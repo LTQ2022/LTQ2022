@@ -1,44 +1,103 @@
-<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>3D 地球</title>
+<title>3D 卫星地球</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <style>
-html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at center,#0b1736 0%,#03060f 55%,#000 100%)}
-#map{position:absolute;inset:0;background:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at center,#0b1736 0%,#03060f 55%,#000 100%);font-family:-apple-system,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif}
 #stars{position:absolute;inset:0;pointer-events:none}
-.maplibregl-ctrl-attrib{font-size:10px;opacity:.55}
-#lab{position:absolute;right:12px;bottom:28px;z-index:5;background:rgba(10,14,26,.6);color:#dfe8ff;border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:7px 13px;font:13px/1 system-ui,sans-serif;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#map{position:absolute;inset:0;background:transparent}
+.maplibregl-ctrl-attrib{font-size:10px;opacity:.6}
+#bar{position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));z-index:10;max-width:520px;margin:0 auto}
+#box{display:flex;align-items:center;background:rgba(14,18,32,.72);border:1px solid rgba(255,255,255,.16);border-radius:24px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 6px 24px rgba(0,0,0,.35);overflow:hidden}
+#q{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#eef3ff;font-size:16px;padding:12px 6px 12px 16px}
+#q::placeholder{color:#8f9bb8}
+#go{border:0;background:#2f7bff;color:#fff;font-size:15px;font-weight:600;padding:0 18px;height:44px;cursor:pointer}
+#clr{border:0;background:transparent;color:#8f9bb8;font-size:20px;padding:0 8px;display:none;cursor:pointer}
+#res{margin-top:8px;background:rgba(14,18,32,.88);border:1px solid rgba(255,255,255,.14);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;display:none;max-height:55vh;overflow-y:auto}
+.it{padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer;color:#eef3ff}
+.it:last-child{border-bottom:0}.it:active,.it:hover{background:rgba(47,123,255,.25)}
+.it b{font-size:15px;font-weight:600}.it small{display:block;color:#9aa6c4;font-size:12px;margin-top:3px}
+.msg{padding:12px 16px;color:#9aa6c4;font-size:14px}
+.fab{position:absolute;right:12px;z-index:5;background:rgba(14,18,32,.7);color:#eef3ff;border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:8px 14px;font-size:13px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
+#lab{bottom:30px}#home{bottom:74px}
+.pin{width:18px;height:18px;border-radius:50%;background:#ff3b5c;border:3px solid #fff;box-shadow:0 0 0 6px rgba(255,59,92,.3),0 2px 8px rgba(0,0,0,.5)}
 </style></head><body>
 <canvas id="stars"></canvas><div id="map"></div>
-<button id="lab">地名 关</button>
+<div id="bar"><div id="box"><input id="q" type="search" enterkeyhint="search" placeholder="搜索地址：省 / 市 / 镇 / 村 / 地点" autocomplete="off"><button id="clr">×</button><button id="go">搜索</button></div><div id="res"></div></div>
+<button id="home" class="fab">地球</button><button id="lab" class="fab">地名 开</button>
 <script>
-(function(){var c=document.getElementById('stars'),g=c.getContext('2d');function d(){c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio;g.clearRect(0,0,c.width,c.height);for(var i=0;i<500;i++){var r=Math.random()*1.3*devicePixelRatio;g.fillStyle='rgba(255,255,255,'+(0.3+Math.random()*0.7)+')';g.beginPath();g.arc(Math.random()*c.width,Math.random()*c.height,r,0,7);g.fill();}}d();addEventListener('resize',d);})();
+(function(){var c=document.getElementById('stars'),g=c.getContext('2d');function d(){c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio;for(var i=0;i<500;i++){g.fillStyle='rgba(255,255,255,'+(0.3+Math.random()*0.7)+')';g.beginPath();g.arc(Math.random()*c.width,Math.random()*c.height,Math.random()*1.3*devicePixelRatio,0,7);g.fill();}}d();addEventListener('resize',d);})();
+
+// ---- WGS84 -> GCJ-02 (高德坐标) ----
+function outOfChina(lng,lat){return lng<72.004||lng>137.8347||lat<0.8293||lat>55.8271;}
+function tLat(x,y){var r=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;r+=(20*Math.sin(y*Math.PI)+40*Math.sin(y/3*Math.PI))*2/3;r+=(160*Math.sin(y/12*Math.PI)+320*Math.sin(y*Math.PI/30))*2/3;return r;}
+function tLng(x,y){var r=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;r+=(20*Math.sin(x*Math.PI)+40*Math.sin(x/3*Math.PI))*2/3;r+=(150*Math.sin(x/12*Math.PI)+300*Math.sin(x/30*Math.PI))*2/3;return r;}
+function wgs2gcj(lng,lat){if(outOfChina(lng,lat))return[lng,lat];var a=6378245,ee=0.00669342162296594323;var dLat=tLat(lng-105,lat-35),dLng=tLng(lng-105,lat-35);var rad=lat/180*Math.PI,m=Math.sin(rad);m=1-ee*m*m;var s=Math.sqrt(m);dLat=dLat*180/((a*(1-ee))/(m*s)*Math.PI);dLng=dLng*180/(a/s*Math.cos(rad)*Math.PI);return[lng+dLng,lat+dLat];}
+
+// ---- 高德卫星：过滤“此区域无卫星图”占位图，露出底下的 Esri 影像 ----
+var cv=(typeof OffscreenCanvas!=='undefined')?new OffscreenCanvas(8,8):(function(){var c=document.createElement('canvas');c.width=c.height=8;return c;})();
+var cx=cv.getContext('2d',{willReadFrequently:true});
+async function isPlaceholder(buf){try{var bmp=await createImageBitmap(new Blob([buf]));cx.drawImage(bmp,0,0,8,8);var d=cx.getImageData(0,0,8,8).data;for(var i=0;i<d.length;i+=4){if(Math.abs(d[i]-129)>6||Math.abs(d[i+1]-135)>6||Math.abs(d[i+2]-120)>6)return false;}return true;}catch(e){return false;}}
+maplibregl.addProtocol('gdsat',async function(params,ac){var u=params.url.replace('gdsat://','https://');var r=await fetch(u,{signal:ac.signal});if(!r.ok)throw new Error('tile '+r.status);var b=await r.arrayBuffer();if(await isPlaceholder(b))throw new Error('no imagery');return{data:b};});
+
+var sub=['02','03','04'];
 var map=new maplibregl.Map({
  container:'map',
- style:{version:8,
-  projection:{type:'globe'},
+ style:{version:8,projection:{type:'globe'},
   sources:{
-   sat:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagery © Esri, Maxar, Earthstar Geographics'},
-   dem:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:14},
-   lbl:{type:'raster',tiles:['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19}
+   esri:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'影像 © Esri, Maxar'},
+   gd:{type:'raster',tiles:sub.map(function(s){return 'gdsat://webst'+s+'.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}';}),tileSize:256,maxzoom:18,attribution:'© 高德地图'},
+   gdlbl:{type:'raster',tiles:sub.map(function(s){return 'https://wprd'+s+'.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8';}),tileSize:256,maxzoom:18},
+   wlbl:{type:'raster',tiles:['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19}
   },
-  layers:[{id:'sat',type:'raster',source:'sat',paint:{'raster-fade-duration':200}},
-          {id:'lbl',type:'raster',source:'lbl',layout:{visibility:'none'}}],
+  layers:[
+   {id:'esri',type:'raster',source:'esri'},
+   {id:'gd',type:'raster',source:'gd',paint:{'raster-fade-duration':150}},
+   {id:'wlbl',type:'raster',source:'wlbl',paint:{'raster-opacity':0.9}},
+   {id:'gdlbl',type:'raster',source:'gdlbl'}
+  ],
   sky:{'atmosphere-blend':['interpolate',['linear'],['zoom'],0,1,5,1,7,0],'sky-color':'#6aa8ff','horizon-color':'#cfe4ff','fog-color':'#cfe4ff','sky-horizon-blend':0.5,'horizon-fog-blend':0.6,'fog-ground-blend':0.3}
  },
- center:[120,25],zoom:Math.min(innerWidth,innerHeight)<600?1.15:1.8,maxZoom:19,minZoom:0.5,
- attributionControl:{compact:true},
- maxPitch:80,
- renderWorldCopies:false
+ center:[108,32],zoom:Math.min(innerWidth,innerHeight)<600?1.15:1.8,maxZoom:18.5,minZoom:0.5,
+ attributionControl:{compact:true},maxPitch:80,renderWorldCopies:false
 });
-map.touchZoomRotate.enableRotation();
+// 中国境内用高德中文注记，境外用 Esri 注记，避免重复
+function syncLabels(){if(!labelsOn)return;var c=map.getCenter(),z=map.getZoom();var inCN=!outOfChina(c.lng,c.lat)&&z>=4;map.setLayoutProperty('wlbl','visibility',inCN?'none':'visible');}
+var labelsOn=true;
+map.on('moveend',syncLabels);
+
 var spinning=true,last=performance.now();
 function spin(t){var dt=(t-last)/1000;last=t;if(spinning&&map.getZoom()<4&&!map.isMoving()){var c=map.getCenter();c.lng-=dt*4;map.jumpTo({center:c});}requestAnimationFrame(spin);}
-map.on('load',function(){requestAnimationFrame(spin);});
+map.on('load',function(){requestAnimationFrame(spin);syncLabels();});
 ['mousedown','touchstart','wheel'].forEach(function(e){map.getCanvasContainer().addEventListener(e,function(){spinning=false;},{passive:true});});
-var lab=document.getElementById('lab'),on=false;
-lab.onclick=function(){on=!on;map.setLayoutProperty('lbl','visibility',on?'visible':'none');lab.textContent='地名 '+(on?'开':'关');};
-map.on('error',function(e){console.log('maperr',e&&e.error&&e.error.message);});
-window.__map=map;
+
+var lab=document.getElementById('lab');
+lab.onclick=function(){labelsOn=!labelsOn;var v=labelsOn?'visible':'none';map.setLayoutProperty('gdlbl','visibility',v);map.setLayoutProperty('wlbl','visibility',v);if(labelsOn)syncLabels();lab.textContent='地名 '+(labelsOn?'开':'关');};
+document.getElementById('home').onclick=function(){if(pin)pin.remove();map.flyTo({center:[108,32],zoom:Math.min(innerWidth,innerHeight)<600?1.15:1.8,pitch:0,bearing:0,duration:2500});};
+
+// ---- 搜索 ----
+var q=document.getElementById('q'),res=document.getElementById('res'),clr=document.getElementById('clr'),pin=null;
+var zoomFor={country:4,state:6.5,county:9,city:10,district:12,town:13,village:15,hamlet:15.5,locality:15,suburb:14,neighbourhood:15.5,street:16,road:16.5,house:17.5,building:17.5};
+function zoomOf(p){var v=p.osm_value||'',t=p.type||'';if(p.osm_key==='place'&&zoomFor[v])return zoomFor[v];if(p.extent){var e=p.extent;var span=Math.max(Math.abs(e[2]-e[0]),Math.abs(e[1]-e[3]));if(span>0)return Math.max(3,Math.min(16.5,Math.log2(360/span)+0.6));}return zoomFor[v]||zoomFor[t]||16;}
+function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function show(html){res.innerHTML=html;res.style.display='block';}
+var lastList=[];
+async function search(){var s=q.value.trim();if(!s)return;q.blur();show('<div class="msg">搜索中…</div>');
+ var c=map.getCenter();
+ try{var url='https://photon.komoot.io/api/?limit=8&q='+encodeURIComponent(s)+'&lat='+c.lat.toFixed(3)+'&lon='+c.lng.toFixed(3)+'&location_bias_scale=0.2';
+  var r=await fetch(url);var j=await r.json();lastList=j.features||[];
+  if(!lastList.length){show('<div class="msg">没找到“'+esc(s)+'”，换个写法试试（如加上省市名）</div>');return;}
+  show(lastList.map(function(f,i){var p=f.properties;var path=[p.state,p.city,p.county,p.district,p.locality].filter(function(x,k,a){return x&&x!==p.name&&a.indexOf(x)===k;}).join(' · ');return '<div class="it" data-i="'+i+'"><b>'+esc(p.name||p.street||s)+'</b><small>'+esc(path||p.country||'')+'</small></div>';}).join(''));
+  if(lastList.length===1)go(0);
+ }catch(e){show('<div class="msg">网络错误，请稍后再试</div>');}}
+function go(i){var f=lastList[i];if(!f)return;var p=f.properties,ll=f.geometry.coordinates;var g=wgs2gcj(ll[0],ll[1]);spinning=false;res.style.display='none';
+ if(pin)pin.remove();var el=document.createElement('div');el.className='pin';pin=new maplibregl.Marker({element:el}).setLngLat(g).addTo(map);
+ var z=zoomOf(p);map.flyTo({center:g,zoom:z,pitch:z>12?45:0,bearing:0,duration:3500,essential:true});}
+res.addEventListener('click',function(e){var it=e.target.closest('.it');if(it)go(+it.dataset.i);});
+document.getElementById('go').onclick=search;
+q.addEventListener('keydown',function(e){if(e.key==='Enter')search();});
+q.addEventListener('input',function(){clr.style.display=q.value?'block':'none';});
+clr.onclick=function(){q.value='';clr.style.display='none';res.style.display='none';q.focus();};
+window.__map=map;window.__go=function(s){q.value=s;search();};
 </script></body></html>
