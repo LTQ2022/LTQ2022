@@ -306,7 +306,7 @@ var toastT=0;function toast(t,d){toastEl.textContent=t;toastEl.style.opacity=1;t
 var handRing=newRing();handRing.castShadow=false;camera.add(handRing);scene.add(camera);handRing.position.set(0.17,-0.3,-0.62);handRing.rotation.set(0.95,0,0.15);handRing.scale.setScalar(0.62);
 var aim=new THREE.Mesh(new THREE.RingGeometry(RIN,RING_R,48),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.22,depthWrite:false}));aim.rotation.x=-Math.PI/2;aim.visible=false;scene.add(aim);
 var drag={id:null,sx:0,sy:0,x:0,y:0};
-function params(){var dx=drag.x-drag.sx,dy=drag.sy-drag.y;var pw=clamp(dy/(H*0.55),0,1.15);var dist=0.6+pw*5.0;var ang=clamp(dx/W*0.9,-0.5,0.5);return{dist:dist,ang:ang,ok:dy>28};}
+function params(){var dx=drag.x-drag.sx,dy=drag.sy-drag.y;var pw=clamp(dy/(H*0.36),0,1.25);var dist=0.6+pw*5.6;var ang=clamp(dx/W*0.9,-0.5,0.5);return{dist:dist,ang:ang,ok:dy>28};}
 function land(p){return new V(HAND.x*0.3+Math.sin(p.ang)*p.dist,0,-Math.cos(p.ang)*p.dist);}
 renderer.domElement.addEventListener('pointerdown',function(e){ac();if(drag.id!==null)return;drag.id=e.pointerId;drag.sx=drag.x=e.clientX;drag.sy=drag.y=e.clientY;});
 addEventListener('pointermove',function(e){if(e.pointerId===drag.id){drag.x=e.clientX;drag.y=e.clientY;}});
@@ -314,7 +314,8 @@ function up(e){if(e.pointerId!==drag.id)return;drag.id=null;aim.visible=false;va
 addEventListener('pointerup',up);addEventListener('pointercancel',up);
 function throwRing(p){if(supply<=0){toast('圈扔完啦，再来一把？',1.6);return;}supply--;hud();
  var start=HAND.clone();var target=land(p);target.x+=rnd(-0.06,0.06)*p.dist/3;target.z+=rnd(-0.08,0.08)*p.dist/3;
- var th=0.6,g=9.8,dh=0.02-start.y,dxz=Math.hypot(target.x-start.x,target.z-start.z);var v2=g*dxz*dxz/(2*Math.cos(th)*Math.cos(th)*(dxz*Math.tan(th)-dh));var v=Math.sqrt(Math.max(0.5,v2));var dir=new V(target.x-start.x,0,target.z-start.z).normalize();
+ var bh0=bossHead(),aimY=0.02;if(Math.hypot(target.x-bh0.x,target.z-bh0.z)<0.55){target.x=bh0.x+rnd(-0.05,0.05);target.z=bh0.z+rnd(-0.05,0.05);aimY=bh0.y+0.06;}
+ var th=0.6,g=9.8,dh=aimY-start.y,dxz=Math.hypot(target.x-start.x,target.z-start.z);var v2=g*dxz*dxz/(2*Math.cos(th)*Math.cos(th)*(dxz*Math.tan(th)-dh));var v=Math.sqrt(Math.max(0.5,v2));var dir=new V(target.x-start.x,0,target.z-start.z).normalize();
  var m=newRing();m.position.copy(start);scene.add(m);
  var r={m:m,v:new V(dir.x*v*Math.cos(th),v*Math.sin(th),dir.z*v*Math.cos(th)),state:'fly',spin:rnd(9,14)*(Math.random()<0.5?-1:1),ang:0,tx:rnd(0.1,0.22),tz:rnd(-0.12,0.12),wob:rnd(0,6),rest:0,lean:null,y0:0};rings.push(r);orient(r);
  handRing.visible=false;setTimeout(function(){handRing.visible=supply>0;},380);sfx('throw');}
@@ -323,7 +324,7 @@ function orient(r){var q=new THREE.Quaternion().setFromEuler(new THREE.Euler(r.t
 function ringPhysics(dt){for(var i=rings.length-1;i>=0;i--){var r=rings[i],m=r.m,P=m.position;
  if(r.state==='fly'){var py=P.y;r.v.y-=9.8*dt;P.addScaledVector(r.v,dt);r.ang+=r.spin*dt;r.wob+=dt*7;r.tx*=Math.pow(0.6,dt);r.tz=r.tz*Math.pow(0.6,dt)+Math.sin(r.wob)*0.002;orient(r);
   // boss
-  var bh=bossHead();if(!boss.headRing&&boss.state!=='hit'&&py>=bh.y+0.03&&P.y<bh.y+0.03&&Math.hypot(P.x-bh.x,P.z-bh.z)<RIN-0.11){r.state='bosshead';boss.headRing=r;boss.state='hit';boss.hitT=0;boss.timesHit++;if(boss.target){boss.target.locked=false;boss.target=null;}sfx('boss');say(pick(HIT),2.6);toast('😂 套中老板了！',1.8);continue;}
+  var bh=bossHead();if(!boss.headRing&&boss.state!=='hit'&&py>=bh.y+0.03&&P.y<bh.y+0.03&&Math.hypot(P.x-bh.x,P.z-bh.z)<RIN-0.06){r.state='bosshead';boss.headRing=r;boss.state='hit';boss.hitT=0;boss.timesHit++;if(boss.target){boss.target.locked=false;boss.target=null;}sfx('boss');say(pick(HIT),2.6);toast('😂 套中老板了！',1.8);continue;}
   if(P.y<1.55&&Math.hypot(P.x-BOSS_POS.x,P.z-BOSS_POS.z)<0.28+RING_R*0.6&&r.v.z<0){r.v.z=Math.abs(r.v.z)*0.3;r.v.x*=0.4;r.tx+=0.4;sfx('clink');}
   // cages
   var done=false;for(var k=0;k<slots.length&&!done;k++){var s=slots[k];if(!s.cage||s.cage.taken)continue;var top=CH+0.008+RT;
@@ -370,7 +371,7 @@ var simT=0;
 function logic(dt){simT+=dt;var t=simT;
  ringPhysics(dt);bossUpdate(dt,t);updateCages(dt,t);
  var sway=new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(t*0.6)*0.004,Math.sin(t*0.45)*0.006,0));camera.quaternion.copy(baseQ).multiply(sway);
- if(drag.id!==null){var p=params();aim.visible=p.ok;if(p.ok){var lp=land(p);aim.position.set(lp.x,0.012,lp.z);}handRing.position.y=-0.3+clamp((drag.y-drag.sy)/H,-0.3,0)*0.25;}else handRing.position.y=-0.3+Math.sin(t*1.8)*0.004;
+ if(drag.id!==null){var p=params();aim.visible=p.ok;if(p.ok){var lp=land(p);var bh1=bossHead();if(Math.hypot(lp.x-bh1.x,lp.z-bh1.z)<0.55)aim.position.set(bh1.x,bh1.y+0.06,bh1.z);else aim.position.set(lp.x,0.012,lp.z);}handRing.position.y=-0.3+clamp((drag.y-drag.sy)/H,-0.3,0)*0.25;}else handRing.position.y=-0.3+Math.sin(t*1.8)*0.004;
  boss.sayT-=dt;if(boss.sayT>0){var hp=bossHead().add(new V(0,0.32,0));hp.project(camera);bubble.style.display='block';bubble.style.left=((hp.x+1)/2*W)+'px';bubble.style.top=((1-hp.y)/2*H)+'px';}else bubble.style.display='none';
  if(toastT>0){toastT-=dt;if(toastT<=0)toastEl.style.opacity=0;}}
 var clock=new THREE.Clock();
