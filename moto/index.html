@@ -19,6 +19,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 #bF{right:18px;bottom:calc(112px + env(safe-area-inset-bottom));width:84px;height:84px}#bB{right:110px;bottom:calc(30px + env(safe-area-inset-bottom))}
 #bX{right:18px;bottom:calc(16px + env(safe-area-inset-bottom));width:84px;height:84px;border-color:rgba(255,176,46,.7);font-size:14px;font-weight:800}#bX.on{background:rgba(255,176,46,.5)}
 #bReset{position:fixed;right:14px;top:calc(14px + env(safe-area-inset-top));width:42px;height:42px;border-radius:50%;background:rgba(15,18,24,.45);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:20px}
+@media (max-width:640px){#dash{top:calc(12px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bReset{top:calc(130px + env(safe-area-inset-top))}}
 #msg{position:fixed;left:0;right:0;top:28%;text-align:center;color:#fff;font-size:20px;font-weight:700;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .4s;pointer-events:none}
 </style></head><body>
 <div id="app"></div>
