@@ -443,7 +443,7 @@ function addHelmet() {
 // ---------------- dashboard on bike ----------------
 function drawDash(speedKmh, batt, mode) {
   const g = dashCanvas.getContext('2d'); const w = 256, h = 160; const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#05070b'); gr.addColorStop(1, '#0d1220'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
-  g.strokeStyle = '#1f6fff'; g.lineWidth = 6; g.beginPath(); g.arc(128, 120, 92, Math.PI * 1.08, Math.PI * (1.08 + 0.84 * Math.min(1, speedKmh / 135))); g.stroke();
+  g.strokeStyle = '#1f6fff'; g.lineWidth = 6; g.beginPath(); g.arc(128, 120, 92, Math.PI * 1.08, Math.PI * (1.08 + 0.84 * Math.min(1, speedKmh / 200))); g.stroke();
   g.fillStyle = '#fff'; g.font = 'bold 54px Arial'; g.textAlign = 'center'; g.fillText(String(Math.round(speedKmh)), 128, 112); g.font = '14px Arial'; g.fillStyle = '#9fb3d9'; g.fillText('km/h', 128, 130);
   g.textAlign = 'left'; g.fillStyle = mode === 'S' ? '#ffb02e' : '#4fd1ff'; g.font = 'bold 22px Arial'; g.fillText(mode, 14, 30); g.textAlign = 'right'; g.fillStyle = '#7dff9a'; g.font = '16px Arial'; g.fillText(batt + '%', 244, 28); dashTex.needsUpdate = true;
 }
@@ -531,21 +531,21 @@ function update(dt) {
   if (window.__auto && !crashed) { const ty = Math.atan2(fr.t.x, fr.t.z); const e = angDiff(ty, st.yaw) * 2.5 + (-2.1 - fr.lat) * 0.12; steerIn = THREE.MathUtils.clamp(e * 3, -1, 1); }
   if (!crashed) {
     // longitudinal
-    const boost = input.boost && input.fwd; const topV = boost ? 37.5 : 29.2; const v = st.v;
+    const boost = !!input.boost; const thr = input.fwd || input.boost; const topV = boost ? 55.6 : 33.3; const v = st.v;
     let acc = 0;
-    if (input.fwd && v >= -0.2) { const P = boost ? 29000 : 15000; acc = Math.min(boost ? 8.6 : 5.0, P / (MASS * Math.max(v, 1))); if (v > topV) acc = Math.min(acc, (topV - v) * 2); }
+    if (thr && v >= -0.2) { const P = boost ? 90000 : 22000; acc = Math.min(boost ? 12.5 : 6.0, P / (MASS * Math.max(v, 1))); if (v > topV) acc = Math.min(acc, (topV - v) * 2); }
     if (input.back) { if (v > 0.4) acc -= 7.5; else if (!input.fwd) { acc = v > -1.6 ? -1.2 : 0; } }
-    if (!input.fwd && !input.back) acc -= 0.6 * Math.sign(v) * (Math.abs(v) > 0.05 ? 1 : 0) + (v > 0 ? 0.25 : 0); // regen coast
-    acc -= 0.0042 * v * Math.abs(v); // aero
+    if (!thr && !input.back) acc -= 0.6 * Math.sign(v) * (Math.abs(v) > 0.05 ? 1 : 0) + (v > 0 ? 0.25 : 0); // regen coast
+    acc -= 0.0014 * v * Math.abs(v); // aero
     // slope
     const ahead = roadFrame(new THREE.Vector3(st.pos.x + Math.sin(st.yaw), 0, st.pos.z + Math.cos(st.yaw)), st.hint).y; const slope = ahead - fr.y; acc -= G * slope * 0.9;
     roadFrame(st.pos, st.hint);
-    if (Math.abs(v) < 0.05 && !input.fwd && !input.back) st.v = 0; else st.v += acc * dt;
+    if (Math.abs(v) < 0.05 && !thr && !input.back) st.v = 0; else st.v += acc * dt;
     st.lastAcc = acc;
     // steering geometry with grip limit
     const vv = Math.max(Math.abs(st.v), 0.5);
     const dMax = Math.min(0.55, Math.atan(9.3 * L / (vv * vv)));
-    const wheelieFac = st.pitch > 0.12 ? 0.25 : 1;
+    const wheelieFac = st.pitch > 0.12 ? 0.45 : 1;
     st.steer += (steerIn * dMax * wheelieFac - st.steer) * Math.min(1, dt * (st.v > 15 ? 3.0 : 6));
     const kappa = Math.tan(st.steer) / L; st.yaw += st.v * kappa * dt;
     const latA = st.v * st.v * kappa; const leanT = Math.atan(latA / G) * (st.v > 1 ? 1 : st.v);
@@ -554,9 +554,11 @@ function update(dt) {
     const tot = Math.hypot(latA, Math.min(0, acc) * 1.1 + 0);
     if (tot > 1.08 * G && st.v > 6) crash('lowside');
     // wheelie dynamics (pitch about rear axle)
-    const lift = (input.fwd ? Math.max(0, acc) : 0) * 1.42 * (st.v < 28 ? 1 : 0.5);
-    const grav = 12.0 * Math.cos(st.pitch + 0.35);
-    let pa = lift - grav - 3.2 * st.pitchV - (input.back && st.v > 0 ? 9 : 0);
+    const grav = grav0(st.pitch);
+    let lift = boost ? 16 * Math.max(0.35, 1 - st.v / 75) : (thr ? Math.max(0, acc) * 1.0 : 0);
+    if (boost) { const peq = 1.05 * THREE.MathUtils.clamp((lift - 7) / 5, 0, 1); if (st.pitch > peq - 0.35) lift = grav + (lift - grav) * THREE.MathUtils.clamp((peq - st.pitch) / 0.35, -1.2, 1); }
+    if (boost && input.fwd) lift += 6; // both pressed: violent, can loop out
+    let pa = lift - grav - 4.2 * st.pitchV - (input.back && st.v > 0 ? 9 : 0);
     if (st.pitch <= 0 && pa < 0) { if (st.pitchV < -1.2) { st.pitchV *= -0.25; st.susp -= 0.03; } else st.pitchV = 0; st.pitch = 0; pa = 0; }
     st.pitchV += pa * dt; st.pitch = Math.max(0, st.pitch + st.pitchV * dt);
     if (st.pitch > 1.40) crash('flip');
@@ -595,7 +597,7 @@ function update(dt) {
   // camera
   const tgt = crashed ? new THREE.Vector3(bikeRB.position.x, bikeRB.position.y + 0.6, bikeRB.position.z) : new THREE.Vector3(st.pos.x, st.pos.y + 1.1, st.pos.z);
   const yaw = crashed ? Math.atan2(camLook.x - camPos.x, camLook.z - camPos.z) : st.yaw;
-  const dist = 3.9 + Math.min(1.6, Math.abs(st.v) / 22); const back = new THREE.Vector3(-Math.sin(yaw) * dist, 1.05 + Math.min(0.5, Math.abs(st.v) / 60), -Math.cos(yaw) * dist);
+  const dist = 3.9 + Math.min(1.6, Math.abs(st.v) / 30); const back = new THREE.Vector3(-Math.sin(yaw) * dist, 1.05 + Math.min(0.5, Math.abs(st.v) / 60), -Math.cos(yaw) * dist);
   const want = tgt.clone().add(back); if (crashed) want.y = Math.max(want.y, tgt.y + 1.5);
   if (!camInit) { camPos.copy(want); camLook.copy(tgt); camInit = true; }
   camPos.lerp(want, Math.min(1, dt * (crashed ? 1.5 : 11))); camLook.lerp(tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5)), Math.min(1, dt * 7));
@@ -603,17 +605,18 @@ function update(dt) {
   const cf = roadFrame(camPos, st.hint); if (camPos.y < cf.y + 0.6) camPos.y = cf.y + 0.6;
   camera.position.copy(camPos); const shake = !crashed ? Math.min(1, Math.abs(st.v) / 37) * 0.012 : 0; camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake;
   camera.lookAt(camLook); if (!crashed) camera.rotateZ(st.lean * 0.18);
-  const fov = 60 + Math.min(14, Math.abs(st.v) * 0.38); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 2); camera.updateProjectionMatrix(); }
+  const fov = 60 + Math.min(18, Math.abs(st.v) * 0.33); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 2); camera.updateProjectionMatrix(); }
   // sun shadow follows
   sun.position.copy(tgt).addScaledVector(sunDir, 60); sun.target.position.copy(tgt);
   water.material.uniforms.time.value += dt * 0.6;
   // HUD
-  const kmh = Math.abs(st.v) * 3.6; const mode = crashed ? '—' : (input.back && st.v <= 0.4 && !input.fwd ? 'R' : (input.boost && input.fwd ? 'S' : 'D'));
+  const kmh = Math.abs(st.v) * 3.6; const mode = crashed ? '—' : (input.back && st.v <= 0.4 && !input.fwd ? 'R' : (input.boost ? 'S' : 'D'));
   hudSpd.textContent = Math.round(kmh); hudMode.textContent = mode; hudMode.className = mode === 'S' ? 'boost' : ''; hudBat.textContent = Math.round(st.batt) + '%'; hudLean.textContent = crashed ? '—' : st.pitch > 0.08 ? ('翘头 ' + Math.round(st.pitch * 57.3) + '°') : ('倾角 ' + Math.round(Math.abs(st.lean) * 57.3) + '°');
-  hudArc.style.strokeDashoffset = (283 * (1 - Math.min(1, kmh / 135))).toFixed(1);
+  hudArc.style.strokeDashoffset = (283 * (1 - Math.min(1, kmh / 200))).toFixed(1);
   dashT += dt; if (dashT > 0.15) { dashT = 0; drawDash(kmh, Math.round(st.batt), mode); }
-  if (AC && motorGain) { const sp = Math.abs(st.v); motorOsc.frequency.value = 60 + sp * 22; motorOsc2.frequency.value = 120 + sp * 44; motorGain.gain.value = crashed ? 0 : 0.03 + (input.fwd ? 0.06 : 0.02) * Math.min(1, sp / 8 + 0.2); motorFilt.frequency.value = 600 + sp * 60; windGain.gain.value = Math.min(0.25, sp * sp / 5000); }
+  if (AC && motorGain) { const sp = Math.abs(st.v); motorOsc.frequency.value = 60 + sp * 22; motorOsc2.frequency.value = 120 + sp * 44; motorGain.gain.value = crashed ? 0 : 0.03 + (input.fwd || input.boost ? 0.06 : 0.02) * Math.min(1, sp / 8 + 0.2); motorFilt.frequency.value = 600 + sp * 60; windGain.gain.value = Math.min(0.25, sp * sp / 5000); }
 }
+function grav0(p) { return 12.0 * Math.cos(p + 0.35); }
 function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
 
 // ---------------- loop ----------------
