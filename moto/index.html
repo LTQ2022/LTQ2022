@@ -36,7 +36,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 #menu .opt.sel{border-color:#ff2bd6;background:linear-gradient(135deg,rgba(255,43,214,.25),rgba(41,232,255,.2))}
 #mClose{width:100%;padding:12px;border-radius:14px;border:0;background:#fff;color:#000;font-weight:800;font-size:15px}
 #help{font-size:11px;opacity:.6;margin:2px 0 12px;line-height:1.6}
-@media (max-width:640px) and (orientation:portrait){#dash{top:calc(60px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bL,#bR{width:84px;height:84px}#bR{left:calc(108px + env(safe-area-inset-left))}#bX{width:92px;height:92px}#bF{width:72px;height:72px;bottom:calc(124px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(118px + env(safe-area-inset-right))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom))}}
+@media (max-width:640px) and (orientation:portrait){.top .lbl{display:none}.top{padding:0 12px;font-size:15px}#bCam{right:calc(60px + env(safe-area-inset-right));width:44px;padding:0;justify-content:center}#bTraffic{left:auto;transform:none;right:calc(112px + env(safe-area-inset-right))}#dash{top:calc(60px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bL,#bR{width:84px;height:84px}#bR{left:calc(108px + env(safe-area-inset-left))}#bX{width:92px;height:92px}#bF{width:72px;height:72px;bottom:calc(124px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(118px + env(safe-area-inset-right))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom))}}
 @media (max-height:430px){#dash{transform:translateX(-50%) scale(.8);bottom:calc(2px + env(safe-area-inset-bottom))}}
 </style></head><body>
 <div id="app"></div><canvas id="fx" style="position:fixed;inset:0;pointer-events:none;z-index:0"></canvas>
@@ -46,11 +46,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div class="btn" id="bL" data-k="left">◀</div><div class="btn" id="bR" data-k="right">▶</div>
 <div class="btn" id="bF" data-k="fwd">▲<span class="lbl">油门</span></div><div class="btn" id="bB" data-k="back">▼<span class="lbl">刹车/倒</span></div>
 <div class="btn" id="bX" data-k="boost">加速</div><div class="btn" id="bG">1挡</div>
-<button class="top" id="bMenu">🏍 <span id="mapName">地图</span> · 换车</button><button class="top" id="bReset">↻</button><button class="top" id="bCam">👁 自由视角</button><button class="top" id="bTraffic">🚗 车流:关</button><div id="msg"></div>
+<button class="top" id="bMenu">🏍 <span id="mapName">地图</span><span class="lbl"> · 换车</span> ▾</button><button class="top" id="bReset">↻</button><button class="top" id="bCam">👁<span class="lbl"> 自由视角</span></button><button class="top" id="bTraffic">🚗<span class="lbl"> 车流</span> 关</button><div id="msg"></div>
 <div id="menu"><div class="card">
 <h3>车型</h3><div class="row"><button class="opt" data-car="ev">九号改装电摩<small>白壳天使眼 · 七彩底盘灯 · 金轮</small></button><button class="opt" data-car="gh">改装鬼火 RSZ<small>渐变拉花 · 金色 Kitaco · 直排</small></button></div>
 <h3>人物</h3><div class="row"><button class="opt" data-rider="rpm">黑人小哥</button><button class="opt" data-rider="rpm2">精神小伙</button><button class="opt" data-rider="soldier">特种兵</button><button class="opt" data-rider="xbot">机器人</button><button class="opt" data-rider="michelle">女骑手</button></div><h3>地图</h3><div class="row"><button class="opt" data-map="coast">落日海岸<small>椰林+晚霞</small></button><button class="opt" data-map="plain">雪原极光<small>雪夜可下路</small></button><button class="opt" data-map="desert">天空之镜<small>盐湖直道飙速</small></button><button class="opt" data-map="city">城市夜景<small>霓虹高架</small></button><button class="opt" data-map="mountain">火山熔岩<small>岩浆盘山路</small></button></div>
-<div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡最高 300。键盘：方向键/WASD，空格加速，E 换挡，R 扶车。</div>
+<div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。顶部 🚗 开关路上车流，撞车会摔。键盘：方向键/WASD，空格加速，E 换挡，R 扶车。</div>
 <button id="mClose">开骑</button></div></div>
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "cannon": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={"ph": "https://dl.polyhaven.org/file/ph-assets/", "hdr": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr", "riderBase": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r170/examples/models/gltf/", "waterN": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/waternormals.jpg"};</script>
@@ -748,12 +748,12 @@ function bakeRider() {
     if (si) for (let i = 0; i < si.count; i++) { const W4 = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)], I4 = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)]; for (let c = 0; c < 4; c++) if (W4[c] > 0 && armB.has(I4[c])) { idx.push(i); break; } }
     g.deleteAttribute('skinIndex'); g.deleteAttribute('skinWeight'); g.computeVertexNormals();
     const m = new THREE.Mesh(g, sm.material); m.position.copy(sm.position); m.quaternion.copy(sm.quaternion); m.scale.copy(sm.scale); m.castShadow = true; m.receiveShadow = true; m.visible = sm.visible; m.name = sm.name; m.frustumCulled = false;
-    sm.parent.add(m); sm.parent.remove(sm); if (idx.length) bakedArms.push({ sm, g, idx, M0: riderModel.matrixWorld.clone() });
+    sm.parent.add(m); sm.parent.remove(sm); if (idx.length) bakedArms.push({ sm, g, idx, m });
   });
 }
 function rebakeArms() { const v = new THREE.Vector3(); riderModel.updateMatrixWorld(true);
   const C = new THREE.Matrix4(), Mi = new THREE.Matrix4().copy(riderModel.matrixWorld).invert();
-  for (const b of bakedArms) { b.sm.skeleton.update(); C.copy(b.sm.bindMatrixInverse).multiply(b.M0).multiply(Mi).multiply(b.sm.bindMatrix); const sp = b.sm.geometry.attributes.position, dp = b.g.attributes.position; for (const i of b.idx) { v.fromBufferAttribute(sp, i); b.sm.applyBoneTransform(i, v); v.applyMatrix4(C); dp.setXYZ(i, v.x, v.y, v.z); } dp.needsUpdate = true; } }
+  for (const b of bakedArms) { b.sm.skeleton.update(); b.m.updateWorldMatrix(true, false); C.copy(b.m.matrixWorld).invert().multiply(new THREE.Matrix4().copy(b.sm.bindMatrixInverse).invert()); const sp = b.sm.geometry.attributes.position, dp = b.g.attributes.position; for (const i of b.idx) { v.fromBufferAttribute(sp, i); b.sm.applyBoneTransform(i, v); v.applyMatrix4(C); dp.setXYZ(i, v.x, v.y, v.z); } dp.needsUpdate = true; } }
 function addHairAndChain() {
   const head = riderBones.Head; if (!head) return;
   const hair = new THREE.Mesh(new THREE.SphereGeometry(0.098, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), new THREE.MeshStandardMaterial({ color: 0x0a0807, roughness: 1 }));
@@ -873,7 +873,7 @@ function crash(kind, latDir) {
 
 // ---------------- free camera + speed lines ----------------
 let camMode = 'chase'; var orb = { theta: 0.9, phi: 0.25, dist: 3.2 };
-function setCamMode(m) { camMode = m; const b = document.getElementById('bCam'); if (b) b.textContent = m === 'free' ? '🎥 追尾' : '👁 自由视角'; }
+function setCamMode(m) { camMode = m; const b = document.getElementById('bCam'); if (b) b.innerHTML = m === 'free' ? '🎥<span class=lbl> 追尾</span>' : '👁<span class=lbl> 自由视角</span>'; }
 document.getElementById('bCam')?.addEventListener('click', () => setCamMode(camMode === 'free' ? 'chase' : 'free'));
 const orbT = new Map(); let pinch0 = 0, pinchD0 = 0;
 function orbDrag(dx, dy) { if (camMode !== 'free') setCamMode('free'); orb.theta -= dx * 0.009; orb.phi = THREE.MathUtils.clamp(orb.phi + dy * 0.006, -0.05, 1.35); }
@@ -1115,7 +1115,7 @@ function buildTraffic() {
   }
 }
 buildTraffic();
-function setTraffic(on) { TR.on = on; TR.group.visible = on; lsSet('moto_traffic', on ? '1' : '0'); const b = document.getElementById('bTraffic'); if (b) { b.textContent = on ? '🚗 车流:开' : '🚗 车流:关'; b.classList.toggle('on2', on); } if (on) clearTrafficNear(); }
+function setTraffic(on) { TR.on = on; TR.group.visible = on; lsSet('moto_traffic', on ? '1' : '0'); const b = document.getElementById('bTraffic'); if (b) { b.innerHTML = '🚗<span class=lbl> 车流</span> ' + (on ? '开' : '关'); b.classList.toggle('on2', on); } if (on) clearTrafficNear(); }
 function clearTrafficNear() { const f = roadFrame(st.pos, st.hint); TR.list.forEach(v => { let ds = v.s - f.s; ds -= Math.round(ds / LOOP) * LOOP; if (Math.abs(ds) < 60) v.s = f.s + (ds >= 0 ? 60 + Math.random() * 40 : -(60 + Math.random() * 40)) * (v.dir > 0 ? 1 : 2); }); }
 document.getElementById('bTraffic')?.addEventListener('click', () => setTraffic(!TR.on)); setTraffic(TR.on);
 function trafficTick(dt) {
