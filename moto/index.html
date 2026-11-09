@@ -24,7 +24,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 #bG{width:62px;height:62px;right:calc(132px + env(safe-area-inset-right));bottom:calc(118px + env(safe-area-inset-bottom));font-size:15px;border-color:rgba(41,232,255,.8)}#bG.g2{background:rgba(255,40,80,.55);border-color:#ff3b6b}
 .lbl{position:absolute;bottom:-17px;left:0;right:0;text-align:center;font-size:10px;font-weight:600;color:rgba(255,255,255,.75);text-shadow:0 1px 3px #000}
 .top{position:fixed;top:calc(12px + env(safe-area-inset-top));height:40px;border-radius:20px;background:rgba(15,18,24,.5);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:14px;padding:0 14px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-#bMenu{left:calc(12px + env(safe-area-inset-left))}#bReset{right:calc(12px + env(safe-area-inset-right));width:40px;padding:0;justify-content:center;font-size:20px}
+#bMenu{left:calc(12px + env(safe-area-inset-left))}#bCam{right:calc(62px + env(safe-area-inset-right))}#bReset{right:calc(12px + env(safe-area-inset-right));width:40px;padding:0;justify-content:center;font-size:20px}
 #msg{position:fixed;left:0;right:0;top:28%;text-align:center;color:#fff;font-size:20px;font-weight:700;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .4s;pointer-events:none}
 #menu{position:fixed;inset:0;background:rgba(5,6,10,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:20;display:none;align-items:center;justify-content:center;color:#fff}
 #menu.show{display:flex}
@@ -39,14 +39,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 @media (max-width:640px) and (orientation:portrait){#dash{top:calc(60px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bL,#bR{width:84px;height:84px}#bR{left:calc(108px + env(safe-area-inset-left))}#bX{width:92px;height:92px}#bF{width:72px;height:72px;bottom:calc(124px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(118px + env(safe-area-inset-right))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom))}}
 @media (max-height:430px){#dash{transform:translateX(-50%) scale(.8);bottom:calc(2px + env(safe-area-inset-bottom))}}
 </style></head><body>
-<div id="app"></div>
+<div id="app"></div><canvas id="fx" style="position:fixed;inset:0;pointer-events:none;z-index:0"></canvas>
 <div id="loading"><b>精神小伙 · 改装车</b><span>加载真实材质与光照…</span><div id="lb"><div id="lbar"></div></div></div>
 <div id="dash"><svg width="160" height="100"><path d="M10 90 A70 70 0 0 1 150 90" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round"/><path id="arc" d="M10 90 A70 70 0 0 1 150 90" fill="none" stroke="#1f6fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/></svg>
 <div id="mode">1D</div><div id="bat">100%</div><div id="spd">0</div><div id="unit">km/h</div><div id="lean">倾角 0°</div></div>
 <div class="btn" id="bL" data-k="left">◀</div><div class="btn" id="bR" data-k="right">▶</div>
 <div class="btn" id="bF" data-k="fwd">▲<span class="lbl">油门</span></div><div class="btn" id="bB" data-k="back">▼<span class="lbl">刹车/倒</span></div>
 <div class="btn" id="bX" data-k="boost">加速</div><div class="btn" id="bG">1挡</div>
-<button class="top" id="bMenu">🏍 <span id="mapName">地图</span> · 换车</button><button class="top" id="bReset">↻</button><div id="msg"></div>
+<button class="top" id="bMenu">🏍 <span id="mapName">地图</span> · 换车</button><button class="top" id="bReset">↻</button><button class="top" id="bCam">👁 自由视角</button><div id="msg"></div>
 <div id="menu"><div class="card">
 <h3>车型</h3><div class="row"><button class="opt" data-car="ev">九号改装电摩<small>白壳天使眼 · 七彩底盘灯 · 金轮</small></button><button class="opt" data-car="gh">改装鬼火 RSZ<small>渐变拉花 · 金色 Kitaco · 直排</small></button></div>
 <h3>地图</h3><div class="row"><button class="opt" data-map="coast">海岸线<small>环岛高速</small></button><button class="opt" data-map="plain">大草原<small>可下路跑草地</small></button><button class="opt" data-map="desert">沙漠直道<small>5 公里直线飙 300</small></button><button class="opt" data-map="city">城市夜景<small>霓虹高架</small></button><button class="opt" data-map="mountain">盘山公路<small>连续急弯</small></button></div>
@@ -63,6 +63,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import * as CANNON from 'cannon';
 
 const CFG = window.__CFG || {};
@@ -169,6 +170,9 @@ const P = [], T = [], NO = [], S = [];
   S.push(s);
 })();
 const LOOP = S[N];
+const GRID = 20, roadGrid = new Map();
+P.forEach((p, i) => { const key = Math.floor(p.x / GRID) + ',' + Math.floor(p.z / GRID); if (!roadGrid.has(key)) roadGrid.set(key, []); roadGrid.get(key).push(i); });
+function nearRoad(x, z) { let bd = 1e18, bi = -1; const cx = Math.floor(x / GRID), cz = Math.floor(z / GRID); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const l = roadGrid.get((cx + a) + ',' + (cz + b)); if (l) for (const i of l) { const d = (P[i].x - x) ** 2 + (P[i].z - z) ** 2; if (d < bd) { bd = d; bi = i; } } } return [Math.sqrt(bd), bi]; }
 function nearest(pos, hint, wide) {
   let best = hint, bd = 1e18;
   if (wide) { for (let i = 0; i < N; i += 2) { const d = (P[i].x - pos.x) ** 2 + (P[i].z - pos.z) ** 2; if (d < bd) { bd = d; best = i; } } hint = best; }
@@ -221,7 +225,9 @@ function ribbon(offsets, heights, uvs, vScale) {
     const k = i % N; const c = P[k], n = NO[k];
     for (let r = 0; r < R; r++) {
       const off = offsets[r];
-      const x = c.x + n.x * off, z = c.z + n.z * off; pos.push(x, heights(k, r, x, z), z);
+      const x = c.x + n.x * off, z = c.z + n.z * off; let y = heights(k, r, x, z);
+      if (Math.abs(off) > W + 1.5) { const [d, ni] = nearRoad(x, z); if (ni >= 0 && d < Math.abs(off) - 2 && d < 30) y = Math.min(y, P[ni].y - 0.6 + Math.max(0, d - W - 1) * 0.6); }
+      pos.push(x, y, z);
       uv.push(uvs ? uvs[r] : x / vScale, uvs ? (i === N ? LOOP : S[k]) / vScale : z / vScale);
     }
   }
@@ -391,8 +397,29 @@ function surfaceY(fr, x, z) { const a = Math.abs(fr.lat); if (a <= W || !sideH) 
 const lampLights = [];
 if (M.night) { for (let i = 0; i < (isMobile ? 4 : 6); i++) { const l = new THREE.PointLight(0xffc98a, 22, 28, 1.6); scene.add(l); lampLights.push(l); } }
 // bloom for night
-let composer = null;
-if (M.night && !CFG.noBloom) { composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.55, 0.45, 0.88)); composer.addPass(new OutputPass()); }
+let composer = null; let blurPass = null;
+const RadialBlur = { uniforms: { tDiffuse: { value: null }, strength: { value: 0 }, center: { value: new THREE.Vector2(0.5, 0.56) } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform sampler2D tDiffuse; uniform float strength; uniform vec2 center; varying vec2 vUv;\nvoid main(){ vec2 d = vUv - center; float r = length(d); float s = strength * smoothstep(0.08, 0.55, r); vec4 c = vec4(0.0); for (int i = 0; i < 12; i++) { float t = float(i) / 11.0; c += texture2D(tDiffuse, vUv - d * s * t); } c /= 12.0; c.rgb *= 1.0 - min(0.55, strength * 4.0) * smoothstep(0.3, 0.85, r); gl_FragColor = c; }' };
+if (!CFG.noPost) {
+  const rt = new THREE.WebGLRenderTarget(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio(), { type: THREE.HalfFloatType, samples: 4 });
+  composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
+  if (M.night) composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.55, 0.45, 0.88));
+  blurPass = new ShaderPass(RadialBlur); composer.addPass(blurPass); composer.addPass(new OutputPass());
+}
+// road studs (cat's eyes) + edge reflector posts: strong speed cues
+{
+  const studG = new THREE.BoxGeometry(0.1, 0.03, 0.16); const studM = new THREE.MeshBasicMaterial({ color: M.night ? 0xfff2c0 : 0xf4f4ee, toneMapped: !M.night });
+  const lanes = M.lines === 'city' ? [-W / 3, W / 3] : [0]; const sp = 6; const cnt = Math.floor(LOOP / sp) * lanes.length; const im = new THREE.InstancedMesh(studG, studM, cnt); const m4 = new THREE.Matrix4(); let j = 0, k = 0;
+  for (let s = 0; s < LOOP - sp; s += sp) { while (S[k + 1] < s) k++; lanes.forEach(l => { const c = P[k], n = NO[k]; m4.makeRotationY(Math.atan2(T[k].x, T[k].z)); m4.setPosition(c.x + n.x * l, c.y + 0.015, c.z + n.z * l); im.setMatrixAt(j++, m4); }); }
+  im.count = j; scene.add(im);
+  const sides = []; if (MAPID === 'plain' || MAPID === 'desert') sides.push(1, -1); if (MAPID === 'coast' || MAPID === 'mountain') sides.push(-1);
+  if (sides.length) { const pg = new THREE.BoxGeometry(0.12, 0.95, 0.12); pg.translate(0, 0.47, 0); const rg = new THREE.BoxGeometry(0.13, 0.12, 0.13); rg.translate(0, 0.78, 0);
+    const pm = new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: 0.5 }); const rm = new THREE.MeshBasicMaterial({ color: 0xff9a1a, toneMapped: false });
+    const sp2 = 12; const n2 = Math.floor(LOOP / sp2) * sides.length; const ip = new THREE.InstancedMesh(pg, pm, n2), ir = new THREE.InstancedMesh(rg, rm, n2); let q = 0; k = 0;
+    for (let s = 0; s < LOOP - sp2; s += sp2) { while (S[k + 1] < s) k++; sides.forEach(sd => { const c = P[k], n = NO[k]; const off = sd * (W + (MAPID === 'coast' || MAPID === 'mountain' ? 1.0 : 0.9)); const x = c.x + n.x * off, z = c.z + n.z * off; const y = sideH ? sideH(k, sd, 0.9, x, z) : c.y + 0.14; m4.makeRotationY(Math.atan2(T[k].x, T[k].z)); m4.setPosition(x, y, z); ip.setMatrixAt(q, m4); ir.setMatrixAt(q, m4); q++; }); }
+    ip.count = ir.count = q; ip.castShadow = true; scene.add(ip, ir); }
+}
 
 // ================= bikes =================
 const bike = new THREE.Group(); scene.add(bike);
@@ -768,6 +795,29 @@ function crash(kind, latDir) {
   if (AC) { const bb = AC.createBuffer(1, AC.sampleRate * 0.6, AC.sampleRate); const d = bb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2); const s = AC.createBufferSource(); s.buffer = bb; const g2 = AC.createGain(); g2.gain.value = 0.6; s.connect(g2); g2.connect(AC.destination); s.start(); }
 }
 
+// ---------------- free camera + speed lines ----------------
+let camMode = 'chase'; const orb = { theta: 0.9, phi: 0.25, dist: 3.2 };
+function setCamMode(m) { camMode = m; const b = document.getElementById('bCam'); if (b) b.textContent = m === 'free' ? '🎥 追尾' : '👁 自由视角'; }
+document.getElementById('bCam')?.addEventListener('click', () => setCamMode(camMode === 'free' ? 'chase' : 'free'));
+const orbT = new Map(); let pinch0 = 0, pinchD0 = 0;
+function orbDrag(dx, dy) { if (camMode !== 'free') setCamMode('free'); orb.theta -= dx * 0.009; orb.phi = THREE.MathUtils.clamp(orb.phi + dy * 0.006, -0.05, 1.35); }
+renderer.domElement.addEventListener('touchstart', e => { for (const t of e.changedTouches) orbT.set(t.identifier, { x: t.clientX, y: t.clientY }); if (orbT.size === 2) { const a = [...orbT.values()]; pinch0 = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); pinchD0 = orb.dist; } }, { passive: true });
+renderer.domElement.addEventListener('touchmove', e => { for (const t of e.changedTouches) { const p = orbT.get(t.identifier); if (!p) continue; if (orbT.size === 1) orbDrag(t.clientX - p.x, t.clientY - p.y); p.x = t.clientX; p.y = t.clientY; } if (orbT.size === 2) { const a = [...orbT.values()]; const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); if (pinch0 > 0) { if (camMode !== 'free') setCamMode('free'); orb.dist = THREE.MathUtils.clamp(pinchD0 * pinch0 / d, 1.4, 14); } } e.preventDefault(); }, { passive: false });
+['touchend', 'touchcancel'].forEach(ev => renderer.domElement.addEventListener(ev, e => { for (const t of e.changedTouches) orbT.delete(t.identifier); pinch0 = 0; }));
+{ let md = null; renderer.domElement.addEventListener('mousedown', e => { md = { x: e.clientX, y: e.clientY }; }); addEventListener('mouseup', () => md = null); addEventListener('mousemove', e => { if (!md) return; orbDrag(e.clientX - md.x, e.clientY - md.y); md = { x: e.clientX, y: e.clientY }; });
+  renderer.domElement.addEventListener('wheel', e => { if (camMode !== 'free') setCamMode('free'); orb.dist = THREE.MathUtils.clamp(orb.dist * (1 + e.deltaY * 0.001), 1.4, 14); }, { passive: true }); }
+addEventListener('keydown', e => { if (e.code === 'KeyC') setCamMode(camMode === 'free' ? 'chase' : 'free'); });
+const fxC = document.getElementById('fx'); const fxG = fxC ? fxC.getContext('2d') : null; const streaks = [];
+function drawSpeedLines(k, dt) {
+  if (!fxG) return; const w = fxC.width = innerWidth, h = fxC.height = innerHeight; fxG.clearRect(0, 0, w, h); if (k <= 0.02) { streaks.length = 0; return; }
+  const want = Math.floor(10 + k * 90); while (streaks.length < want) streaks.push({ a: Math.random() * Math.PI * 2, r: 0.25 + Math.random() * 0.5, v: 1.2 + Math.random() * 1.8, l: 0.05 + Math.random() * 0.12 });
+  if (streaks.length > want) streaks.length = want;
+  const cx = w * 0.5, cy = h * 0.44, R = Math.hypot(w, h) * 0.55; fxG.lineCap = 'round';
+  for (const s of streaks) { s.r += s.v * dt * (0.6 + k * 1.6); if (s.r > 1.05) { s.r = 0.22 + Math.random() * 0.2; s.a = Math.random() * Math.PI * 2; }
+    const ca = Math.cos(s.a), sa = Math.sin(s.a); const r0 = s.r * R, r1 = (s.r + s.l * (0.5 + k)) * R; fxG.strokeStyle = 'rgba(255,255,255,' + (0.10 + 0.35 * k * Math.min(1, (s.r - 0.22) * 3)).toFixed(3) + ')'; fxG.lineWidth = 1 + k * 1.5;
+    fxG.beginPath(); fxG.moveTo(cx + ca * r0, cy + sa * r0 * 0.8); fxG.lineTo(cx + ca * r1, cy + sa * r1 * 0.8); fxG.stroke(); }
+}
+
 // ---------------- update ----------------
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(); let camInit = false;
 let dashT = 0, tGlobal = 0, lampT = 0, wideT = 0;
@@ -805,7 +855,7 @@ function update(dt) {
     st.lean += (leanT - st.lean) * Math.min(1, dt * 5);
     // wheelie dynamics
     const grav = grav0(st.pitch);
-    let lift = boost ? 16 * Math.max(0.35, 1 - st.v / 75) * (gear === 2 ? 0.85 : 1) : (thr ? Math.max(0, acc) * 1.0 : 0);
+    let lift = boost ? 16 * Math.max(0.85, 1 - st.v / 150) * (gear === 2 ? 0.92 : 1) : (thr ? Math.max(0, acc) * 1.0 : 0);
     if (boost) { const peq = 1.05 * THREE.MathUtils.clamp((lift - 7) / 5, 0, 1); if (st.pitch > peq - 0.35) lift = grav + (lift - grav) * THREE.MathUtils.clamp((peq - st.pitch) / 0.35, -1.2, 1); }
     if (boost && input.fwd) lift += 6;
     let pa = lift - grav - 4.2 * st.pitchV - (input.back && st.v > 0 ? 9 : 0);
@@ -844,14 +894,18 @@ function update(dt) {
   // camera
   const tgt = crashed ? new THREE.Vector3(bikeRB.position.x, bikeRB.position.y + 0.6, bikeRB.position.z) : new THREE.Vector3(st.pos.x, st.pos.y + 1.1, st.pos.z);
   const yaw = crashed ? Math.atan2(camLook.x - camPos.x, camLook.z - camPos.z) : st.yaw;
-  const spd = Math.abs(st.v); const dist = (3.9 + Math.min(1.8, spd / 35)) * (camera.aspect < 1 ? 1.45 : 1); const back = new THREE.Vector3(-Math.sin(yaw) * dist, 1.05 + Math.min(0.5, spd / 70), -Math.cos(yaw) * dist);
-  const want = tgt.clone().add(back); if (crashed) want.y = Math.max(want.y, tgt.y + 1.5);
+  const spd = Math.abs(st.v); const dist = (3.9 - Math.min(0.8, spd / 100) + THREE.MathUtils.clamp(st.lastAcc * 0.025, -0.15, 0.3)) * (camera.aspect < 1 ? 1.45 : 1); const back = new THREE.Vector3(-Math.sin(yaw) * dist, 1.05 - Math.min(0.3, spd / 280), -Math.cos(yaw) * dist);
+  let want = tgt.clone().add(back); if (crashed) want.y = Math.max(want.y, tgt.y + 1.5);
+  if (camMode === 'free') { const ctr = tgt.clone().add(new THREE.Vector3(0, -0.4, 0)); const a = (crashed ? 0 : st.yaw) + orb.theta; want = ctr.clone().add(new THREE.Vector3(-Math.sin(a) * Math.cos(orb.phi) * orb.dist, Math.sin(orb.phi) * orb.dist, -Math.cos(a) * Math.cos(orb.phi) * orb.dist)); }
   if (!camInit) { camPos.copy(want); camLook.copy(tgt); camInit = true; }
-  camPos.lerp(want, Math.min(1, dt * (crashed ? 1.5 : 11 + spd * 0.45))); camLook.lerp(tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5)), Math.min(1, dt * (7 + spd * 0.5)));
+  camPos.lerp(want, Math.min(1, dt * (camMode === 'free' ? 40 : crashed ? 1.5 : 11 + spd * 0.45))); camLook.lerp(camMode === 'free' ? tgt.clone().add(new THREE.Vector3(0, -0.45, 0)) : tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5)), Math.min(1, dt * (camMode === 'free' ? 40 : 7 + spd * 0.5)));
   const cf = roadFrame(camPos, st.hint); const cy = surfaceY(cf, camPos.x, camPos.z); if (camPos.y < cy + 0.6) camPos.y = cy + 0.6;
-  camera.position.copy(camPos); const shake = !crashed ? Math.min(1.6, spd / 37) * 0.012 * (st.off ? 3 : 1) : 0; camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake;
-  camera.lookAt(camLook); if (!crashed) camera.rotateZ(st.lean * 0.18);
-  const fov = 60 + Math.min(26, spd * 0.32); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 2); camera.updateProjectionMatrix(); }
+  camera.position.copy(camPos); const kmh0 = spd * 3.6; const sp01 = THREE.MathUtils.clamp((kmh0 - 80) / 220, 0, 1);
+  const shake = (!crashed && camMode !== 'free') ? (0.006 + 0.03 * sp01 * sp01) * (st.off ? 2.5 : 1) : 0; camera.position.x += (Math.random() - 0.5) * shake + Math.sin(tGlobal * 23) * shake * 0.5; camera.position.y += (Math.random() - 0.5) * shake + Math.sin(tGlobal * 31) * shake * 0.4;
+  camera.lookAt(camLook); if (!crashed && camMode !== 'free') camera.rotateZ(st.lean * 0.18);
+  if (blurPass) blurPass.uniforms.strength.value += ((camMode === 'free' ? 0 : Math.pow(sp01, 1.3) * 0.11 + (input.boost && !crashed ? 0.012 : 0)) - blurPass.uniforms.strength.value) * Math.min(1, dt * 4);
+  drawSpeedLines(camMode === 'free' ? 0 : sp01, dt);
+  const fov = camMode === 'free' ? 55 : 58 + Math.min(34, spd * 0.41) + (input.boost && !crashed ? 3 : 0); if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 2); camera.updateProjectionMatrix(); }
   sun.position.copy(tgt).addScaledVector(sunDir, 60); sun.target.position.copy(tgt);
   if (water) water.material.uniforms.time.value += dt * 0.6;
   // night: move pooled lamp lights to nearest lamps
@@ -880,7 +934,7 @@ drawDash(0, 100, '1D'); setGear(1);
 frame();
 window.__g = {
   st, input: kin, crash, resetBike, setCar, setGear, step(sec) { running = false; for (let t = 0; t < sec; t += 1 / 60) update(1 / 60); render(); },
-  render, bike, bikeBody, rider, THREE, cam(px, py, pz, lx, ly, lz) { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); render(); }, camera, scene,
+  render, bike, bikeBody, rider, THREE, cam(px, py, pz, lx, ly, lz) { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); render(); }, camera, scene, setCamMode, orb,
 };
 </script>
 </body></html>
