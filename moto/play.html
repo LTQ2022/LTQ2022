@@ -35,6 +35,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 #menu .opt small{display:block;font-weight:400;font-size:11px;opacity:.65;margin-top:4px}
 #menu .opt.sel{border-color:#ff2bd6;background:linear-gradient(135deg,rgba(255,43,214,.25),rgba(41,232,255,.2))}
 #mClose{width:100%;padding:12px;border-radius:14px;border:0;background:#fff;color:#000;font-weight:800;font-size:15px}
+#credit{font-size:10px;opacity:.5;margin-top:10px;line-height:1.5}
 #help{font-size:11px;opacity:.6;margin:2px 0 12px;line-height:1.6}
 @media (max-width:640px) and (orientation:portrait){.top .lbl{display:none}.top{padding:0 12px;font-size:15px}#bCam{right:calc(60px + env(safe-area-inset-right));width:44px;padding:0;justify-content:center}#bTraffic{left:auto;transform:none;right:calc(112px + env(safe-area-inset-right))}#dash{top:calc(60px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bL,#bR{width:84px;height:84px}#bR{left:calc(108px + env(safe-area-inset-left))}#bX{width:92px;height:92px}#bF{width:72px;height:72px;bottom:calc(124px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(118px + env(safe-area-inset-right))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom))}}
 @media (max-height:430px){#dash{transform:translateX(-50%) scale(.8);bottom:calc(2px + env(safe-area-inset-bottom))}}
@@ -48,10 +49,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div class="btn" id="bX" data-k="boost">加速</div><div class="btn" id="bG">1挡</div>
 <button class="top" id="bMenu">🏍 <span id="mapName">地图</span><span class="lbl"> · 换车</span> ▾</button><button class="top" id="bReset">↻</button><button class="top" id="bCam">👁<span class="lbl"> 自由视角</span></button><button class="top" id="bTraffic">🚗<span class="lbl"> 车流</span> 关</button><div id="msg"></div>
 <div id="menu"><div class="card">
-<h3>车型</h3><div class="row"><button class="opt" data-car="ev">九号改装电摩<small>白壳天使眼 · 七彩底盘灯 · 金轮</small></button><button class="opt" data-car="gh">改装鬼火 RSZ<small>渐变拉花 · 金色 Kitaco · 直排</small></button></div>
+<h3>车型</h3><div class="row"><button class="opt" data-car="ev">九号改装电摩<small>白壳天使眼 · 七彩底盘灯 · 金轮</small></button><button class="opt" data-car="gh">改装鬼火 RSZ<small>渐变拉花 · 金色 Kitaco · 直排</small></button><button class="opt" data-car="zx">张雪机车 820RR<small>原厂红 · 818.8cc 直列三缸 · 99kW</small></button></div>
 <h3>人物</h3><div class="row"><button class="opt" data-rider="rpm">黑人小哥</button><button class="opt" data-rider="rpm2">精神小伙</button><button class="opt" data-rider="soldier">特种兵</button><button class="opt" data-rider="xbot">机器人</button><button class="opt" data-rider="michelle">女骑手</button></div><h3>地图</h3><div class="row"><button class="opt" data-map="coast">落日海岸<small>椰林+晚霞</small></button><button class="opt" data-map="plain">雪原极光<small>雪夜可下路</small></button><button class="opt" data-map="desert">天空之镜<small>盐湖直道飙速</small></button><button class="opt" data-map="city">城市夜景<small>霓虹高架</small></button><button class="opt" data-map="mountain">火山熔岩<small>岩浆盘山路</small></button></div>
 <div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。顶部 🚗 开关路上车流，撞车会摔。键盘：方向键/WASD，空格加速，E 换挡，R 扶车。</div>
-<button id="mClose">开骑</button></div></div>
+<h3>声音</h3><div class="row"><button class="opt sel" id="bSnd">🔊 声音 开<small>发动机声 + 刹车飞机声</small></button></div>
+<button id="mClose">开骑</button>
+<div id="credit">音效：820RR 发动机声取自 Triumph Rocket 3 直列三缸排气录音（rsn267，Freesound #584586，CC0）；刹车飞机声取自 F-18 战机掠过录音（JoanCalsina，Freesound #851222，CC0）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
 <script type="importmap">{"imports": {"three": "./t160/three.module.js", "three/addons/": "./t160/addons/", "cannon": "./t160/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={};</script>
 <script type="module">import * as THREE from 'three';
@@ -81,7 +84,7 @@ const QS = new URLSearchParams(location.search);
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
 const MAP_LIST = [['coast', '落日海岸'], ['plain', '雪原极光'], ['desert', '天空之镜'], ['city', '城市夜景'], ['mountain', '火山熔岩']];
-const CAR_LIST = [['ev', '九号改装电摩'], ['gh', '改装鬼火']];
+const CAR_LIST = [['ev', '九号改装电摩'], ['gh', '改装鬼火'], ['zx', '张雪机车 820RR']];
 let MAPID = QS.get('map') || lsGet('moto_map') || 'coast'; if (!MAP_LIST.some(m => m[0] === MAPID)) MAPID = 'coast';
 let CAR = QS.get('car') || lsGet('moto_car') || 'ev'; if (!CAR_LIST.some(m => m[0] === CAR)) CAR = 'ev';
 lsSet('moto_map', MAPID); lsSet('moto_car', CAR);
@@ -673,12 +676,125 @@ function buildGH() {
   wheelsR.push(wr); wheelsF.push(wf);
   return { B, St, glowColor: 0xb43cff, sound: 'gh', head: [0, 0.70, 0.84] };
 }
-CARS.ev = buildEV(); CARS.gh = buildGH();
+const ZX_LOGO = ["M740.0,100.3 L679.3,31.4 L662.1,31.4 L662.1,140.5 L685.3,140.5 L685.3,71.6 L740.0,134.0 L794.7,71.6 L794.7,140.5 L817.9,140.5 L817.9,31.4 L800.7,31.4Z", "M969.4,44.5c-12.7-10.3-30.7-15.7-52.1-15.7s-39.4,5.4-52.1,15.7c-12.5,10.1-19.3,24.6-19.3,40.8 c0,16.2,6.9,30.7,19.3,40.8c12.7,10.3,30.7,15.7,52.1,15.7s39.4-5.4,52.1-15.7c12.5-10.1,19.3-24.6,19.3-40.8 C988.7,69.1,981.9,54.6,969.4,44.5z M917.3,118.3c-29.4,0-47.7-12.7-47.7-33s18.3-33,47.7-33s47.7,12.7,47.7,33 S946.7,118.3,917.3,118.3z", "M1004.2,54.2 L1053.3,54.2 L1053.3,140.5 L1077.2,140.5 L1077.2,54.2 L1126.4,54.2 L1126.4,31.5 L1004.2,31.5Z", "M315.1,54.1 L401.7,54.1 L313.5,136.7 L313.5,140.5 L455.0,140.5 L455.0,117.9 L368.7,117.9 L455.0,35.3 L455.0,31.5 L315.1,31.5Z", "M639.8,31.4 L606.4,31.4 L555.4,81.0 L504.3,31.4 L470.9,31.4 L527.2,86.0 L470.9,140.6 L504.3,140.6 L555.4,91.0 L606.5,140.6 L639.9,140.6 L583.6,86.0Z", "M1265.4,44.5c-12.7-10.3-30.7-15.7-52.1-15.7c-21.4,0-39.4,5.4-52.1,15.7c-12.5,10.1-19.3,24.6-19.3,40.8 c0,16.2,6.9,30.7,19.3,40.8c12.7,10.3,30.7,15.7,52.1,15.7c21.4,0,39.4-5.4,52.1-15.7c12.5-10.1,19.3-24.6,19.3-40.8 C1284.7,69.1,1277.8,54.6,1265.4,44.5z M1213.2,118.3c-29.4,0-47.7-12.7-47.7-33s18.3-33,47.7-33s47.7,12.7,47.7,33 S1242.6,118.3,1213.2,118.3z", "M259.4,0.0 L97.3,0.0 L21.6,40.2 L21.6,43.2 L115.0,43.2 L129.7,72.1 L259.4,3.1Z", "M0.0,144.1 L162.1,144.1 L237.8,103.9 L237.8,100.9 L144.4,100.9 L129.7,72.1 L0.0,141.0Z"]; // ZXMOTO wordmark paths (viewBox 1284.7x144.1) from global.zxmoto.com logo_b.svg
+
+// ---------- 张雪机车 ZXMOTO 820RR 红色款 (traced from global.zxmoto.com official red side view; 1 m = 639 px, rear axle at px 375) ----------
+function zxDecal(w, h, draw, res = 512) { const c = document.createElement('canvas'); c.width = res; c.height = Math.round(res * h / w); const g = c.getContext('2d'); draw(g, c.width, c.height);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, toneMapped: false }); }
+function zxLogo(g, x, y, w, col) { const s = w / 1284.7; g.save(); g.translate(x, y); g.scale(s, s); g.fillStyle = col; ZX_LOGO.forEach(d => g.fill(new Path2D(d))); g.restore(); }
+function buildZX() {
+  const B = new THREE.Group(), St = new THREE.Group(); bikeBody.add(B); steerInner.add(St);
+  const Q = (px, py) => [(px - 375) / 639 - 0.68, (835 - py) / 639];
+  const QP = (arr) => arr.map(p => p.length === 4 ? [...Q(p[0], p[1]), ...Q(p[2], p[3])] : Q(p[0], p[1]));
+  const ZR = 0.32, ZF = 0.30, RZ = -0.68, FZ = 0.74; // rear 190/55ZR17, front 120/70ZR17, wheelbase 1.42 m
+  const red = phys({ color: 0x9a0505, metalness: 0.3, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.05 }); // official swatch #AD0000 (pearl red)
+  const black = phys({ color: 0x0b0b0c, metalness: 0.2, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+  const matte = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.75, metalness: 0.1 });
+  const frameM = new THREE.MeshStandardMaterial({ color: 0x1c1d20, roughness: 0.45, metalness: 0.6 });
+  const carbonC = document.createElement('canvas'); carbonC.width = carbonC.height = 64; { const g = carbonC.getContext('2d'); g.fillStyle = '#111'; g.fillRect(0, 0, 64, 64); for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { g.fillStyle = (i + j) % 2 ? '#1a1b1d' : '#080809'; g.fillRect(i * 8, j * 8, 8, 8); } }
+  const carbonT = new THREE.CanvasTexture(carbonC); carbonT.wrapS = carbonT.wrapT = THREE.RepeatWrapping; carbonT.repeat.set(28, 28);
+  const carbon = phys({ map: carbonT, metalness: 0.3, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05 });
+  const satin = new THREE.MeshStandardMaterial({ color: 0xb8b9bb, metalness: 0.9, roughness: 0.42 }); // silencer / swingarm
+  const bronze = new THREE.MeshStandardMaterial({ color: 0x8a7158, metalness: 0.85, roughness: 0.38 });
+  const goldFork = new THREE.MeshStandardMaterial({ color: 0xc8901c, metalness: 1, roughness: 0.22 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xa8875a, metalness: 1, roughness: 0.3 });
+  const ledW = new THREE.MeshBasicMaterial({ color: 0xf2f8ff, toneMapped: false });
+  const glass = phys({ color: 0xc8d4dc, transparent: true, opacity: 0.32, roughness: 0.04, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false });
+  const SE = (pts, w, bev, mat, x0 = 0, taper = null) => sideExtrude(B, QP(pts), w, bev, mat, x0, taper);
+  // tail unit (red) – sharp upswept, narrow at the tip
+  SE([[272, 182], [300, 180], [400, 184], [432, 205], [462, 240], [474, 268], [470, 286], [430, 278], [380, 256], [330, 236], [290, 206]], 0.25, 0.03, red, 0, (y, z) => 1 - 0.55 * sm01(-0.55, -0.85, z));
+  SE([[300, 186], [312, 176], [398, 178], [424, 194], [446, 222], [404, 206], [330, 196]], 0.20, 0.02, black, 0, (y, z) => 1 - 0.4 * sm01(-0.6, -0.85, z)); // pillion hump
+  { const t = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.012, 0.05), new THREE.MeshBasicMaterial({ color: 0xff1a12, toneMapped: false })); const p = Q(282, 200); t.position.set(0, p[1], p[0] - 0.01); t.rotation.x = 0.75; B.add(t); }
+  // rider seat + black under-seat side panels / subframe
+  SE([[430, 232], [470, 234], [540, 251], [600, 259], [660, 259], [702, 247], [716, 262], [640, 282], [560, 287], [470, 272]], 0.30, 0.035, seatMat, 0, (y, z) => 1 - 0.3 * sm01(-0.25, -0.5, z));
+  SE([[300, 218], [470, 272], [560, 290], [640, 286], [705, 300], [705, 345], [600, 350], [480, 332], [380, 292], [292, 236]], 0.215, 0.015, matte, 0, (y, z) => 1 - 0.35 * sm01(-0.45, -0.85, z));
+  // fuel tank (red) – 18 L, wide shoulders tapering to the top
+  SE([[690, 252], [702, 226], [742, 190], [800, 172], [880, 168], [950, 178], [1012, 200], [1052, 234], [1040, 264], [960, 277], [860, 286], [760, 283], [700, 274]], 0.43, 0.06, red, 0, (y, z) => 1 - 0.35 * sm01(0.82, 1.06, y) - 0.12 * sm01(-0.1, -0.32, z));
+  // cast aluminium frame (black) + engine block
+  SE([[690, 282], [1052, 252], [1102, 300], [1062, 372], [900, 422], [792, 472], [742, 562], [690, 562], [678, 420], [700, 330]], 0.36, 0.02, frameM);
+  SE([[700, 440], [860, 418], [1000, 520], [990, 700], [760, 705], [700, 620]], 0.33, 0.02, new THREE.MeshStandardMaterial({ color: 0x2a2b2e, metalness: 0.7, roughness: 0.45 }));
+  [[800, 505, 0.088], [880, 615, 0.06]].forEach(([px, py, r]) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.04, 0.035, 32), bronze); c.rotation.z = Math.PI / 2; const p = Q(px, py); c.position.set(-0.185, p[1], p[0]); c.castShadow = true; B.add(c); });
+  { const em = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.05), zxDecal(0.11, 0.05, (g, w, h) => zxLogo(g, 4, h * 0.3, w - 8, 'rgba(40,30,20,.75)'))); em.position.set(-0.204, Q(0, 520)[1], Q(800, 0)[0]); em.rotation.set(0, -Math.PI / 2, 0); B.add(em); }
+  // side fairing panels (red), belly pan, nose, carbon winglets
+  SE([[760, 420], [900, 372], [1050, 322], [1132, 302], [1210, 330], [1300, 368], [1240, 420], [1150, 452], [1090, 492], [1050, 562], [960, 682], [900, 702], [862, 562], [800, 522], [770, 482]], 0.50, 0.035, red, 0, (y, z) => 1 - 0.28 * sm01(0.5, 0.15, y) - 0.25 * sm01(0.2, 0.62, z));
+  SE([[612, 692], [700, 622], [800, 562], [900, 602], [1000, 652], [1092, 702], [1092, 726], [950, 736], [700, 742], [620, 738]], 0.36, 0.03, red, 0, (y, z) => 1 - 0.25 * sm01(0.25, 0.1, y));
+  SE([[1068, 242], [1090, 205], [1150, 182], [1225, 196], [1302, 250], [1336, 300], [1348, 340], [1330, 380], [1200, 392], [1120, 392], [1080, 342]], 0.46, 0.05, red, 0, (y, z) => (1 - 0.7 * sm01(0.3, 0.86, z)) * (1 - 0.25 * sm01(0.95, 1.14, y)));
+  SE([[1122, 386], [1346, 344], [1332, 370], [1192, 422], [1130, 418]], 0.575, 0.012, carbon, 0, (y, z) => 1 - 0.45 * sm01(0.5, 1.05, z));
+  // black chin / radiator gap & under-nose
+  SE([[1150, 452], [1240, 420], [1300, 372], [1330, 382], [1260, 440], [1170, 480]], 0.30, 0.01, black);
+  // fairing vents (black slits) + white pinstripe
+  const slit = (a, b, c, d) => SE([a, b, c, d], 0.505, 0, black, 0, (y, z) => 1 - 0.28 * sm01(0.5, 0.15, y) - 0.25 * sm01(0.2, 0.62, z));
+  slit([925, 470], [1000, 448], [1004, 462], [930, 486]); slit([985, 500], [1070, 470], [1074, 486], [990, 518]); slit([1010, 350], [1080, 334], [1082, 344], [1012, 362]);
+  SE([[770, 418], [1130, 300], [1300, 366], [1296, 370], [1130, 308], [772, 424]], 0.512, 0, new THREE.MeshBasicMaterial({ color: 0xf4f4f4, toneMapped: false }), 0, (y, z) => 1 - 0.28 * sm01(0.5, 0.15, y) - 0.25 * sm01(0.2, 0.62, z));
+  // twin slim LED headlights + central ram-air intake
+  { const hz = Q(1336, 0)[0], hy = Q(0, 318)[1];
+    box(B, 0.06, 0.05, 0.04, black, 0, hy - 0.025, hz + 0.008); // ram-air mouth
+    [-1, 1].forEach(s => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.02, 0.03), ledW); l.position.set(s * 0.06, hy - 0.01, hz + 0.03); l.rotation.set(-0.5, s * 0.35, s * -0.3); B.add(l);
+      const hb = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.034, 0.03), black); hb.position.set(s * 0.062, hy - 0.016, hz + 0.022); hb.rotation.set(-0.5, s * 0.35, s * -0.3); B.add(hb); });
+    const ay = Q(0, 392)[1]; [-1, 1].forEach(s => box(B, 0.035, 0.016, 0.03, amberMat, s * 0.25, ay + 0.03, Q(1190, 0)[0], 0)); }
+  // windscreen (tinted) + mirrors on the upper fairing
+  SE([[1096, 205], [1148, 104], [1180, 92], [1212, 106], [1232, 196], [1150, 186]], 0.32, 0.004, glass, 0, (y, z) => 1 - 0.35 * sm01(1.0, 1.18, y));
+  [-1, 1].forEach(s => { const p = Q(1170, 150); tube([s * 0.17, p[1], p[0]], [s * 0.29, p[1] + 0.06, p[0] - 0.03], 0.008, black, B);
+    const mir = new THREE.Mesh(new THREE.CapsuleGeometry(0.033, 0.085, 4, 12), black); mir.rotation.z = Math.PI / 2; mir.scale.set(1, 1, 0.42); mir.position.set(s * 0.33, p[1] + 0.07, p[0] - 0.04); B.add(mir); });
+  // TFT dash behind the screen (fixed)
+  { const p = Q(1098, 182); const bez = box(B, 0.17, 0.11, 0.02, gloss, 0, p[1], p[0], -0.85); const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.092), new THREE.MeshBasicMaterial({ map: dashTex, toneMapped: false })); scr.position.copy(bez.position); scr.rotation.set(-0.85, 0, 0); scr.rotateY(Math.PI); scr.translateZ(-0.011); B.add(scr); }
+  // swingarm (cast aluminium, silver) both sides + shock + chain line
+  [-1, 1].forEach(s => SE([[380, 602], [420, 584], [720, 522], [742, 562], [700, 604], [430, 652], [385, 652]], 0.05, 0.012, satin, s * 0.13));
+  { const p = Q(722, 545); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.36, 18), goldFork); c.rotation.z = Math.PI / 2; c.position.set(0, p[1], p[0]); B.add(c); }
+  // rearsets (silver plates + pegs)
+  [-1, 1].forEach(s => { SE([[590, 505], [680, 500], [690, 560], [650, 575], [610, 540]], 0.012, 0.003, satin, s * 0.17); const p = Q(655, 545); tube([s * 0.17, p[1], p[0]], [s * 0.25, p[1], p[0]], 0.012, darkAlu, B);
+    SE([[440, 430], [470, 420], [540, 470], [520, 485]], 0.012, 0.003, satin, s * 0.15); });
+  // exhaust (left side, +x): brass mid-pipe into angular silver silencer with carbon end
+  { const A = Q(345, 450), Bq = Q(592, 612); const len = Math.hypot(Bq[0] - A[0], Bq[1] - A[1]);
+    const g = new THREE.CylinderGeometry(0.074, 0.08, len, 6); const sil = new THREE.Mesh(g, satin); sil.castShadow = true;
+    sil.position.set(-0.21, (A[1] + Bq[1]) / 2, (A[0] + Bq[0]) / 2); sil.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, A[1] - Bq[1], A[0] - Bq[0]).normalize()); sil.rotateY(Math.PI / 6); B.add(sil);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.03, 6), carbon); cap.position.set(-0.21, A[1] + 0.006, A[0] - 0.012); cap.quaternion.copy(sil.quaternion); B.add(cap);
+    const dc = zxDecal(0.2, 0.06, (g2, w, h) => { g2.fillStyle = '#111'; g2.font = 'italic 900 ' + (h * 0.8) + 'px Arial Black, Arial'; g2.fillText('RR', 4, h * 0.8); g2.font = 'bold ' + (h * 0.26) + 'px Arial'; g2.fillText('EXTREME', w * 0.42, h * 0.45); g2.fillText('PASSION', w * 0.42, h * 0.8); });
+    const dm = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.06), dc); const m = Q(400, 485); dm.position.set(-0.287, m[1], m[0] + 0.03); dm.rotation.set(0, -Math.PI / 2, 0); dm.rotateZ(Math.atan2(A[1] - Bq[1], Bq[0] - A[0])); B.add(dm);
+    const curve = new THREE.CatmullRomCurve3([[-0.21, Bq[1] + 0.02, Bq[0] - 0.02], [-0.19, ...[Q(650, 668)[1], Q(650, 0)[0]]], [-0.12, Q(0, 706)[1], Q(730, 0)[0]], [-0.04, Q(0, 725)[1], Q(860, 0)[0]], [0.0, Q(0, 690)[1], Q(950, 0)[0]]].map(a => new THREE.Vector3(...a)));
+    const pipe = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.033, 12), brass); pipe.castShadow = true; B.add(pipe); }
+  // rear hugger + plate hanger + plate + indicators
+  { const m = new THREE.Mesh(new THREE.TorusGeometry(ZR + 0.035, 0.03, 6, 24, Math.PI * 0.45), matte); m.rotation.y = Math.PI / 2; m.position.set(-0.11, ZR, RZ); m.rotateZ(Math.PI * 0.35); B.add(m); }
+  { const a = Q(300, 232), b = Q(198, 292), c = Q(186, 330); tube([0, a[1], a[0]], [0, b[1], b[0]], 0.022, matte, B); box(B, 0.15, 0.105, 0.008, new THREE.MeshStandardMaterial({ color: 0x2f6fd6, roughness: 0.5, metalness: 0.2 }), 0, c[1], c[0] - 0.02, 0.3);
+    [-1, 1].forEach(s => box(B, 0.03, 0.015, 0.03, amberMat, s * 0.09, b[1] + 0.01, b[0])); }
+  // decals: ZXMOTO wordmark on tank, 820RR on fairings, emblem on tail
+  [-1, 1].forEach(s => {
+    const tl = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.022), zxDecal(0.17, 0.022, (g, w, h) => zxLogo(g, 2, 1, w - 4, '#0c0c0c'), 1024)); const p = Q(870, 216); tl.position.set(s * 0.196, p[1], p[0]); tl.rotation.set(0, s * Math.PI / 2, 0); tl.rotateX(-0.25); tl.rotateZ(s * 0.14); B.add(tl);
+    const n = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.05), zxDecal(0.15, 0.05, (g, w, h) => { g.font = 'italic 900 ' + (h * 0.95) + 'px Arial Black, Arial'; g.lineWidth = h * 0.07; g.strokeStyle = '#fff'; g.fillStyle = 'rgba(255,255,255,.12)'; g.fillText('820', 6, h * 0.86); g.strokeText('820', 6, h * 0.86); g.fillStyle = '#fff'; g.fillText('RR', w * 0.6, h * 0.86); }));
+    const q = Q(1110, 395); n.position.set(s * 0.236, q[1], q[0]); n.rotation.set(0, s * Math.PI / 2, 0); n.rotateZ(s * 0.18); B.add(n);
+    const e = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.016), zxDecal(0.07, 0.016, (g, w, h) => zxLogo(g, 1, 0, w - 2, '#ffffff'), 512)); const r = Q(350, 214); e.position.set(s * 0.108, r[1], r[0]); e.rotation.set(0, s * Math.PI / 2, 0); e.rotateZ(s * 0.33); B.add(e);
+  });
+  // ---- steering parts: clip-ons, top clamp, gold USD forks, radial calipers, fender ----
+  const fa = [0, ZF - 1.0, FZ - 0.47];
+  box(St, 0.25, 0.022, 0.09, alu, 0, -0.115, -0.005);
+  [-1, 1].forEach(s => { tube([s * 0.105, -0.11, -0.01], [s * 0.105, -0.405, 0.13], 0.029, goldFork, St); tube([s * 0.105, -0.405, 0.13], [s * 0.105, fa[1] + 0.03, fa[2]], 0.022, chrome, St);
+    box(St, 0.03, 0.08, 0.05, alu, s * 0.105, fa[1] + 0.035, fa[2] - 0.005, 0.42); box(St, 0.04, 0.10, 0.05, darkAlu, s * 0.08, fa[1] + 0.06, fa[2] - 0.10, 0.42);
+    tube([s * 0.11, -0.115, -0.07], [s * 0.30, -0.125, -0.10], 0.012, darkAlu, St);
+    const gr = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.12, 14), rubber); gr.rotation.z = Math.PI / 2; gr.position.set(s * 0.28, -0.125, -0.10); St.add(gr);
+    const end = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.025, 14), darkAlu); end.rotation.z = Math.PI / 2; end.position.set(s * 0.352, -0.125, -0.10); St.add(end);
+    tube([s * 0.16, -0.112, -0.08], [s * 0.24, -0.10, -0.03], 0.006, darkAlu, St); box(St, 0.04, 0.035, 0.045, matte, s * 0.20, -0.118, -0.10); });
+  { const m = new THREE.Mesh(new THREE.TorusGeometry(ZF + 0.03, 0.045, 8, 32, Math.PI * 0.55), red); m.rotation.y = Math.PI / 2; m.position.set(0, fa[1], fa[2]); m.rotateZ(Math.PI * 0.18); m.scale.z = 2.3; m.castShadow = true; St.add(m); }
+  // wheels: black 5-split-spoke cast, red pin-stripe free; dual 320 mm floating discs front
+  const rim = phys({ color: 0x0c0c0d, metalness: 0.6, roughness: 0.3, clearcoat: 0.8 });
+  const wr = makeWheel(ZR, 0.19, false, rim, 10), wf = makeWheel(ZF, 0.12, true, rim, 10); wr.userData.r = ZR; wf.userData.r = ZF;
+  { const d = wf.children.find(c => c.geometry && c.geometry.type === 'CircleGeometry'); if (d) { d.scale.setScalar(0.16 / 0.13); d.position.x = -0.07; const d2 = d.clone(); d2.position.x = 0.07; wf.add(d2); } }
+  wr.position.set(0, ZR, RZ); B.add(wr); const fh = new THREE.Group(); fh.position.set(...fa); St.add(fh); fh.add(wf);
+  wheelsR.push(wr); wheelsF.push(wf);
+  return { B, St, glowColor: 0x000000, noGlow: true, ownSteer: true, sound: 'zx', head: [0, 0.78, 1.0], name: '张雪机车 820RR',
+    pose: { hip: [0, 0.965, -0.33], foot: [0.175, 0.455, -0.22], knee: [0.45, 0.5, 1], grip: [0.278, -0.117, -0.098], lean: 0.32 },
+    // physics from official data: 99 kW @12000, 80 N·m @9500, 193 kg kerb (+75 kg rider), top 280 km/h (autohome), 0-100 2.81 s
+    phys: { mass: 268, top: [[30.6, 41.7], [47.2, 61.1], [66.7, 77.8]], pw: [[45000, 89000], [52000, 89000], [60000, 89000]], cap: [[5.5, 10.5], [4.5, 9.0], [3.8, 8.0]], drag: 0.00067, revMax: 13750, idle: 1300 } };
+}
+
+CARS.ev = buildEV(); CARS.gh = buildGH(); CARS.zx = buildZX();
 // headlight + underglow lights
 const headLight = new THREE.SpotLight(0xeaf4ff, M.night ? 60 : 0, 70, 0.42, 0.5, 1.4); headLight.position.set(0, 0.7, 0.85); bikeBody.add(headLight); const hlT = new THREE.Object3D(); hlT.position.set(0, -1.0, 12); bikeBody.add(hlT); headLight.target = hlT;
 const glowLight = new THREE.PointLight(0x29e8ff, M.night ? 4 : 0.6, 2.6, 1.5); glowLight.position.set(0, 0.08, 0); bikeBody.add(glowLight);
 let curCar = null;
-function setCar(id) { curCar = CARS[id]; CAR = id; lsSet('moto_car', id); Object.entries(CARS).forEach(([k, c]) => { c.B.visible = c.St.visible = (k === id); }); document.querySelectorAll('[data-car]').forEach(b => b.classList.toggle('sel', b.dataset.car === id)); }
+function setCar(id) { if (!CARS[id]) id = 'ev'; const prev = curCar; curCar = CARS[id]; CAR = id; lsSet('moto_car', id); Object.entries(CARS).forEach(([k, c]) => { c.B.visible = c.St.visible = (k === id); }); document.querySelectorAll('[data-car]').forEach(b => b.classList.toggle('sel', b.dataset.car === id));
+  { const own = new Set(Object.values(CARS).map(c => c.St)); steerInner.children.forEach(o => { if (!own.has(o)) o.visible = !curCar.ownSteer; }); }
+  glowLight.visible = !curCar.noGlow; headLight.position.set(...(curCar.head || [0, 0.7, 0.85]));
+  if (typeof onCarChange === 'function' && prev !== curCar) onCarChange(prev); }
 setCar(CAR);
 
 // ---------------- rider (ReadyPlayerMe, recoloured: Black guy, no helmet) ----------------
@@ -686,7 +802,7 @@ const RIDERS = [['rpm', '黑人小哥', 'readyplayer.me.glb', 'rpm.glb'], ['rpm2
 const RIDER_ID = (() => { const q = new URLSearchParams(location.search).get('rider') || lsGet('moto_rider'); return RIDERS.find(r => r[0] === q) ? q : 'rpm'; })();
 const RDEF = RIDERS.find(r => r[0] === RIDER_ID);
 const rider = new THREE.Group(); bikeBody.add(rider);
-let riderReady = false, riderBones = {}, riderModel = null;
+let riderReady = false, riderBones = {}, riderModel = null; const restPose = [];
 new GLTFLoader(loadMgr).load(CFG.riderBase ? CFG.riderBase + RDEF[2] : RDEF[3], (g) => {
   riderModel = g.scene; rider.add(riderModel);
   riderModel.traverse(o => { if (o.isMesh || o.isSkinnedMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; if (/Headwear|Beard/.test(o.name)) o.visible = false; } if (o.isBone) riderBones[o.name.replace(/^mixamorig:?/, '')] = o; });
@@ -694,13 +810,25 @@ new GLTFLoader(loadMgr).load(CFG.riderBase ? CFG.riderBase + RDEF[2] : RDEF[3], 
     riderModel.traverse(o => { if (!o.isMesh || !o.material) return; const n = o.material.name || ''; const set = (hex, extra) => { o.material = o.material.clone(); o.material.color.setHex(hex); if (extra) extra(o.material); };
       if (/Skin|Body/.test(n) || /Wolf3D_Head|Wolf3D_Body/.test(o.name)) set(C[0], m => { m.roughness = 0.55; });
       else if (/Outfit_Top/.test(o.name)) set(C[1]); else if (/Outfit_Bottom/.test(o.name)) set(C[2]); else if (/Footwear/.test(o.name)) set(C[3]); }); }
+  riderModel.traverse(o => { if (o.isBone) restPose.push([o, o.quaternion.clone(), o.position.clone()]); });
   poseRider(); bakeRider(); if (RIDER_ID === 'rpm' || RIDER_ID === 'rpm2') addHairAndChain(); riderReady = true;
 });
+const DEF_POSE = { hip: [0, 0.91, -0.36], foot: [0.15, 0.44, 0.20], knee: [0.25, 0.6, 1], grip: [0.30, 0.13, -0.05] };
+const carPose = () => (curCar && curCar.pose) || DEF_POSE;
 const GRIP_L = new THREE.Vector3(0.30, 0.13, -0.05), GRIP_R = new THREE.Vector3(-0.30, 0.13, -0.05);
+function setGrips() { const g = carPose().grip; GRIP_L.set(g[0], g[1], g[2]); GRIP_R.set(-g[0], g[1], g[2]); }
+setGrips();
 function armIK() { const B = riderBones; if (!B.LeftArm) return; steerInner.updateWorldMatrix(true, false);
-  ik2(B.LeftArm, B.LeftForeArm, B.LeftHand, steerInner.localToWorld(GRIP_L.clone()), new THREE.Vector3(0.8, -0.6, -0.3).normalize());
-  ik2(B.RightArm, B.RightForeArm, B.RightHand, steerInner.localToWorld(GRIP_R.clone()), new THREE.Vector3(-0.8, -0.6, -0.3).normalize()); }
-const _v1 = new THREE.Vector3();
+  bikeBody.getWorldQuaternion(_bq); const eh = (curCar && curCar.pose && curCar.pose.elbow) || [0.8, -0.6, -0.3];
+  ik2(B.LeftArm, B.LeftForeArm, B.LeftHand, steerInner.localToWorld(GRIP_L.clone()), new THREE.Vector3(eh[0], eh[1], eh[2]).normalize().applyQuaternion(_bq));
+  ik2(B.RightArm, B.RightForeArm, B.RightHand, steerInner.localToWorld(GRIP_R.clone()), new THREE.Vector3(-eh[0], eh[1], eh[2]).normalize().applyQuaternion(_bq)); }
+// re-pose and re-bake the whole rider when the bike's seating geometry changes (scooter <-> 820RR)
+var carHookReady = false;
+function onCarChange(prev) { if (!carHookReady) return; setGrips(); if (!riderReady || !restPose.length) return; if (riderGhost) return;
+  const sameGeom = prev && JSON.stringify(prev.pose || DEF_POSE) === JSON.stringify(carPose()); if (sameGeom) return;
+  restPose.forEach(([b, q, p]) => { b.quaternion.copy(q); b.position.copy(p); }); const rz = rider.rotation.z; rider.rotation.z = 0;
+  poseRider(); rebakeArms(true); rider.rotation.z = rz; st.visB = 99; }
+const _v1 = new THREE.Vector3(), _bq = new THREE.Quaternion();
 function wpos(o, v) { o.updateWorldMatrix(true, false); return v.setFromMatrixPosition(o.matrixWorld); }
 function aim(bone, child, target) {
   const P0 = wpos(bone, new THREE.Vector3()), C0 = wpos(child, new THREE.Vector3());
@@ -723,11 +851,12 @@ function poseRider() {
   const B = riderBones; bike.updateWorldMatrix(true, true);
   const toW = (x, y, z) => bikeBody.localToWorld(new THREE.Vector3(x, y, z));
   rider.position.set(0, 0, 0); rider.updateWorldMatrix(true, true);
-  const hipW = wpos(B.Hips, new THREE.Vector3()); const hipT = toW(0, 0.91, -0.36); const loc = bikeBody.worldToLocal(hipT.clone()); const cur = bikeBody.worldToLocal(hipW.clone());
+  const PZ = carPose(); setGrips(); const hipW = wpos(B.Hips, new THREE.Vector3()); const hipT = toW(...PZ.hip); const loc = bikeBody.worldToLocal(hipT.clone()); const cur = bikeBody.worldToLocal(hipW.clone());
   rider.position.add(loc.sub(cur)); rider.updateWorldMatrix(true, true);
-  bendW(B.Spine, 0.22); bendW(B.Spine1, 0.10); if (B.Spine2) bendW(B.Spine2, 0.04); bendW(B.Neck, -0.14); bendW(B.Head, -0.12); rider.updateWorldMatrix(true, true);
-  ik2(B.LeftUpLeg, B.LeftLeg, B.LeftFoot, toW(0.15, 0.44, 0.20), new THREE.Vector3(0.25, 0.6, 1).normalize());
-  ik2(B.RightUpLeg, B.RightLeg, B.RightFoot, toW(-0.15, 0.44, 0.20), new THREE.Vector3(-0.25, 0.6, 1).normalize());
+  bendW(B.Spine, 0.22 + (PZ.lean || 0) * 0.6); bendW(B.Spine1, 0.10 + (PZ.lean || 0) * 0.4); if (B.Spine2) bendW(B.Spine2, 0.04); bendW(B.Neck, -0.14); bendW(B.Head, -0.12); rider.updateWorldMatrix(true, true);
+  { const f = PZ.foot, k = PZ.knee || DEF_POSE.knee; const kq = new THREE.Vector3(); bikeBody.getWorldQuaternion(_bq);
+    ik2(B.LeftUpLeg, B.LeftLeg, B.LeftFoot, toW(f[0], f[1], f[2]), kq.set(k[0], k[1], k[2]).normalize().applyQuaternion(_bq));
+    ik2(B.RightUpLeg, B.RightLeg, B.RightFoot, toW(-f[0], f[1], f[2]), kq.set(-k[0], k[1], k[2]).normalize().applyQuaternion(_bq)); }
   B.LeftFoot.rotation.x -= 0.35; B.RightFoot.rotation.x -= 0.35;
   steerPivot.updateWorldMatrix(true, true);
   // lean torso forward until both hands can reach the grips
@@ -736,7 +865,7 @@ function poseRider() {
   rider.updateWorldMatrix(true, true); armIK();
   ['Left', 'Right'].forEach(s => ['Index', 'Middle', 'Ring', 'Pinky'].forEach(f => [1, 2, 3].forEach(k => { const b = B[s + 'Hand' + f + k]; if (b) b.rotation.x += 0.9; })));
 }
-const bakedArms = [];
+const bakedArms = [], bakedAll = [];
 function bakeRider() {
   const list = []; riderModel.traverse(o => { if (o.isSkinnedMesh) list.push(o); });
   riderModel.updateMatrixWorld(true);
@@ -748,12 +877,12 @@ function bakeRider() {
     if (si) for (let i = 0; i < si.count; i++) { const W4 = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)], I4 = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)]; for (let c = 0; c < 4; c++) if (W4[c] > 0 && armB.has(I4[c])) { idx.push(i); break; } }
     g.deleteAttribute('skinIndex'); g.deleteAttribute('skinWeight'); g.computeVertexNormals();
     const m = new THREE.Mesh(g, sm.material); m.position.copy(sm.position); m.quaternion.copy(sm.quaternion); m.scale.copy(sm.scale); m.castShadow = true; m.receiveShadow = true; m.visible = sm.visible; m.name = sm.name; m.frustumCulled = false;
-    sm.parent.add(m); sm.parent.remove(sm); if (idx.length) bakedArms.push({ sm, g, idx, m });
+    sm.parent.add(m); sm.parent.remove(sm); if (idx.length) bakedArms.push({ sm, g, idx, m }); bakedAll.push({ sm, g, idx: null, m });
   });
 }
-function rebakeArms() { const v = new THREE.Vector3(); riderModel.updateMatrixWorld(true);
+function rebakeArms(all) { const v = new THREE.Vector3(); riderModel.updateMatrixWorld(true);
   const C = new THREE.Matrix4(), Mi = new THREE.Matrix4().copy(riderModel.matrixWorld).invert();
-  for (const b of bakedArms) { b.sm.skeleton.update(); b.m.updateWorldMatrix(true, false); C.copy(b.m.matrixWorld).invert().multiply(new THREE.Matrix4().copy(b.sm.bindMatrixInverse).invert()); const sp = b.sm.geometry.attributes.position, dp = b.g.attributes.position; for (const i of b.idx) { v.fromBufferAttribute(sp, i); b.sm.applyBoneTransform(i, v); v.applyMatrix4(C); dp.setXYZ(i, v.x, v.y, v.z); } dp.needsUpdate = true; } }
+  for (const b of (all ? bakedAll : bakedArms)) { b.sm.skeleton.update(); b.m.updateWorldMatrix(true, false); C.copy(b.m.matrixWorld).invert().multiply(new THREE.Matrix4().copy(b.sm.bindMatrixInverse).invert()); const sp = b.sm.geometry.attributes.position, dp = b.g.attributes.position; const n = b.idx ? b.idx.length : sp.count; for (let ii = 0; ii < n; ii++) { const i = b.idx ? b.idx[ii] : ii; v.fromBufferAttribute(sp, i); b.sm.applyBoneTransform(i, v); v.applyMatrix4(C); dp.setXYZ(i, v.x, v.y, v.z); } dp.needsUpdate = true; if (all) { b.g.computeVertexNormals(); b.g.computeBoundingSphere(); } } }
 function addHairAndChain() {
   const head = riderBones.Head; if (!head) return;
   const hair = new THREE.Mesh(new THREE.SphereGeometry(0.098, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), new THREE.MeshStandardMaterial({ color: 0x0a0807, roughness: 1 }));
@@ -819,24 +948,76 @@ document.getElementById('bReset')?.addEventListener('click', () => resetBike());
   document.querySelectorAll('[data-rider]').forEach(b => { b.classList.toggle('sel', b.dataset.rider === RIDER_ID); b.addEventListener('click', () => { if (b.dataset.rider === RIDER_ID) { close(); return; } lsSet('moto_rider', b.dataset.rider); const u = new URL(location.href); u.searchParams.set('rider', b.dataset.rider); u.searchParams.set('map', MAPID); u.searchParams.set('car', CAR); location.href = u.toString(); }); });
   document.querySelectorAll('[data-car]').forEach(b => b.addEventListener('click', () => { setCar(b.dataset.car); resetBike(); close(); }));
   document.querySelectorAll('[data-map]').forEach(b => { b.classList.toggle('sel', b.dataset.map === MAPID); b.addEventListener('click', () => { if (b.dataset.map === MAPID) { close(); return; } lsSet('moto_map', b.dataset.map); const u = new URL(location.href); u.searchParams.set('map', b.dataset.map); u.searchParams.set('car', CAR); location.href = u.toString(); }); });
-  const t = document.getElementById('mapName'); if (t) t.textContent = MAP_LIST.find(m => m[0] === MAPID)[1]; }
+  const t = document.getElementById('mapName'); if (t) t.textContent = MAP_LIST.find(m => m[0] === MAPID)[1];
+  document.getElementById('bSnd')?.addEventListener('click', () => { audioStart(); setSound(!sndOn); }); setTimeout(() => setSound(sndOn), 0); }
 const hudSpd = document.getElementById('spd'), hudMode = document.getElementById('mode'), hudBat = document.getElementById('bat'), hudLean = document.getElementById('lean'), hudMsg = document.getElementById('msg'), hudArc = document.getElementById('arc');
 
 // ---------------- audio ----------------
-let AC = null, motorOsc, motorGain, motorFilt, windGain, motorOsc2;
+// Engine: ev/gh synthesized; zx = two loops cut from a real inline-triple recording (Triumph Rocket 3 exhaust, rsn267, Freesound #584586, CC0)
+// pitched by rpm, plus a synth layer for the top end. Brake: jet loop (F-18 flyby, JoanCalsina, Freesound #851222, CC0) with a synth fallback.
+const SFX_BASE = CFG.sfx || 'sfx/';
+let AC = null, master = null, motorOsc, motorGain, motorFilt, windGain, motorOsc2, sndOn = lsGet('moto_snd') !== '0';
+const AU = { rpm: 1300, jet: 0, thrS: 0, loaded: {}, errors: [] };
+function setSound(on) { sndOn = on; lsSet('moto_snd', on ? '1' : '0'); if (master) master.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, 0.05); const b = document.getElementById('bSnd'); if (b) { b.classList.toggle('sel', on); b.innerHTML = (on ? '🔊 声音 开' : '🔇 声音 关') + '<small>发动机声 + 刹车飞机声</small>'; } }
+function loadSfx(name, onBuf) {
+  try { fetch(SFX_BASE + name + '.wav').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    .then(ab => new Promise((ok, no) => { const p = AC.decodeAudioData(ab, ok, no); if (p && p.catch) p.catch(no); }))
+    .then(buf => { AU.loaded[name] = buf.duration; onBuf(buf); }).catch(e => { AU.errors.push(name + ': ' + (e && e.message || e)); }); } catch (e) { AU.errors.push(name + ': ' + e.message); }
+}
+function loopSrc(buf, dest) { const s = AC.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(0, Math.random() * buf.duration * 0.5); return s; }
 function audioStart() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  try { AC.onstatechange = () => { AU.state = AC.state; }; } catch (e) { }
+  master = AC.createGain(); master.gain.value = sndOn ? 1 : 0; const comp = AC.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4; master.connect(comp); comp.connect(AC.destination);
   motorOsc = AC.createOscillator(); motorOsc.type = 'sawtooth'; motorOsc2 = AC.createOscillator(); motorOsc2.type = 'square';
   motorFilt = AC.createBiquadFilter(); motorFilt.type = 'lowpass'; motorFilt.frequency.value = 900; motorGain = AC.createGain(); motorGain.gain.value = 0;
-  motorOsc.connect(motorFilt); motorOsc2.connect(motorFilt); motorFilt.connect(motorGain); motorGain.connect(AC.destination); motorOsc.start(); motorOsc2.start();
+  motorOsc.connect(motorFilt); motorOsc2.connect(motorFilt); motorFilt.connect(motorGain); motorGain.connect(master); motorOsc.start(); motorOsc2.start();
   const buf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const ns = AC.createBufferSource(); ns.buffer = buf; ns.loop = true; const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6; windGain = AC.createGain(); windGain.gain.value = 0; ns.connect(bp); bp.connect(windGain); windGain.connect(AC.destination); ns.start();
+  const ns = AC.createBufferSource(); ns.buffer = buf; ns.loop = true; const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6; windGain = AC.createGain(); windGain.gain.value = 0; ns.connect(bp); bp.connect(windGain); windGain.connect(master); ns.start();
+  // zx sample engine
+  AU.zxBus = AC.createGain(); AU.zxBus.gain.value = 0; AU.zxLP = AC.createBiquadFilter(); AU.zxLP.type = 'lowpass'; AU.zxLP.frequency.value = 3000; AU.zxHS = AC.createBiquadFilter(); AU.zxHS.type = 'highshelf'; AU.zxHS.frequency.value = 2500; AU.zxHS.gain.value = 0;
+  AU.zxBus.connect(AU.zxLP); AU.zxLP.connect(AU.zxHS); AU.zxHS.connect(master);
+  AU.gLow = AC.createGain(); AU.gHigh = AC.createGain(); AU.gLow.gain.value = 1; AU.gHigh.gain.value = 0; AU.gLow.connect(AU.zxBus); AU.gHigh.connect(AU.zxBus);
+  loadSfx('zx_low', b => { AU.sLow = loopSrc(b, AU.gLow); }); loadSfx('zx_high', b => { AU.sHigh = loopSrc(b, AU.gHigh); });
+  // jet brake: synth (filtered noise + turbine whine) until the recording arrives, then the recording
+  AU.jetBus = AC.createGain(); AU.jetBus.gain.value = 0; AU.jetLP = AC.createBiquadFilter(); AU.jetLP.type = 'lowpass'; AU.jetLP.frequency.value = 2000; AU.jetBus.connect(AU.jetLP); AU.jetLP.connect(master);
+  AU.jetSyn = AC.createGain(); AU.jetSyn.gain.value = 1; AU.jetSyn.connect(AU.jetBus);
+  { const n2 = AC.createBufferSource(); n2.buffer = buf; n2.loop = true; const f2 = AC.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 900; f2.Q.value = 0.4; const g2 = AC.createGain(); g2.gain.value = 0.7; n2.connect(f2); f2.connect(g2); g2.connect(AU.jetSyn); n2.start();
+    AU.whine = AC.createOscillator(); AU.whine.type = 'sine'; AU.whine.frequency.value = 2400; const gw = AC.createGain(); gw.gain.value = 0.05; AU.whine.connect(gw); gw.connect(AU.jetSyn); AU.whine.start(); }
+  loadSfx('jet_loop', b => { AU.sJet = loopSrc(b, AU.jetBus); AU.jetSyn.gain.setTargetAtTime(0, AC.currentTime, 0.1); });
+  window.__audio = AU;
+}
+function audioTick(dt, sp, thr, braking) {
+  if (!AC || !motorGain) return; const t = AC.currentTime, k = 0.04; const snd = curCar ? curCar.sound : 'ev';
+  AU.thrS += ((thr ? 1 : 0) - AU.thrS) * Math.min(1, dt * 10);
+  if (snd === 'zx') {
+    const P = curCar.phys; const topB = P.top[gear - 1][1]; let tgt = P.idle + (P.revMax - P.idle) * Math.pow(THREE.MathUtils.clamp(sp / topB, 0, 1), 0.92);
+    if (thr) tgt = Math.max(tgt, P.idle + (input.boost ? 5200 : 2600) * Math.max(0, 1 - sp / 12)); if (crashed) tgt = 0;
+    AU.rpm += (tgt - AU.rpm) * Math.min(1, dt * (tgt < AU.rpm ? 9 : 5)); const rpmN = THREE.MathUtils.clamp((AU.rpm - P.idle) / (P.revMax - P.idle), 0, 1);
+    const f = Math.max(8, AU.rpm / 60 * 1.5); // inline triple: 1.5 power pulses per crank revolution
+    const wH = sm01(52, 105, f), wL = 1 - wH; const g3 = gear === 3;
+    if (AU.sLow) AU.sLow.playbackRate.setTargetAtTime(THREE.MathUtils.clamp(f / 32, 0.5, 4), t, k); if (AU.sHigh) AU.sHigh.playbackRate.setTargetAtTime(THREE.MathUtils.clamp(f / 116, 0.3, 3.2), t, k);
+    AU.gLow.gain.setTargetAtTime(Math.sqrt(wL), t, k); AU.gHigh.gain.setTargetAtTime(Math.sqrt(wH) * (AU.sHigh ? 1 : 0), t, k);
+    const loud = crashed ? 0 : (0.32 + 0.5 * AU.thrS) * (0.65 + 0.45 * rpmN) * (g3 ? 1.25 : gear === 2 ? 1.08 : 1);
+    AU.zxBus.gain.setTargetAtTime(loud * (AU.sLow ? 1 : 0), t, k); AU.zxLP.frequency.setTargetAtTime(1500 + rpmN * 5500 + (g3 ? 3500 : 0) + AU.thrS * 1200, t, k); AU.zxHS.gain.setTargetAtTime(g3 ? 7 : gear === 2 ? 3 : 0, t, k);
+    // synth layer: carries the sound alone if the recording failed, adds the high-rpm edge otherwise
+    motorOsc.frequency.setTargetAtTime(f, t, k); motorOsc2.frequency.setTargetAtTime(f * 2, t, k); motorFilt.frequency.setTargetAtTime(600 + rpmN * 4200 + (g3 ? 2500 : 0), t, k);
+    motorGain.gain.setTargetAtTime(crashed ? 0 : (AU.sLow ? (0.012 + 0.05 * rpmN * rpmN) * (g3 ? 1.6 : 1) : 0.05 + 0.07 * AU.thrS) , t, k);
+  } else {
+    if (AU.zxBus) AU.zxBus.gain.setTargetAtTime(0, t, k);
+    if (snd === 'gh') { const rpm = (sp / (gear === 1 ? 55 : gear === 2 ? 83 : 127)) + (thr ? 0.25 : 0.1); motorOsc.frequency.setTargetAtTime(70 + rpm * 260, t, k); motorOsc2.frequency.setTargetAtTime((70 + rpm * 260) * 0.5, t, k); motorGain.gain.setTargetAtTime(crashed ? 0 : 0.05 + (thr ? 0.08 : 0.03), t, k); motorFilt.frequency.setTargetAtTime(900 + rpm * 2600, t, k); }
+    else { motorOsc.frequency.setTargetAtTime(60 + sp * 16, t, k); motorOsc2.frequency.setTargetAtTime(120 + sp * 32, t, k); motorGain.gain.setTargetAtTime(crashed ? 0 : 0.025 + (thr ? 0.05 : 0.015) * Math.min(1, sp / 8 + 0.2), t, k); motorFilt.frequency.setTargetAtTime(600 + sp * 45, t, k); }
+  }
+  AU.jet += ((braking ? 1 : 0) - AU.jet) * Math.min(1, dt * (braking ? 3.2 : 1.6));
+  AU.jetBus.gain.setTargetAtTime(0.75 * AU.jet * AU.jet, t, k); AU.jetLP.frequency.setTargetAtTime(900 + 7000 * AU.jet, t, k);
+  if (AU.sJet) AU.sJet.playbackRate.setTargetAtTime(0.85 + 0.2 * AU.jet + 0.15 * Math.min(1, sp / 60), t, 0.1); AU.whine.frequency.setTargetAtTime(1800 + 1400 * AU.jet, t, 0.1);
+  windGain.gain.setTargetAtTime(Math.min(0.3, sp * sp / 7000), t, k);
 }
 
 // ---------------- bike state ----------------
 const st = { pos: new THREE.Vector3(), yaw: 0, v: 0, lean: 0, steer: 0, pitch: 0, pitchV: 0, hint: 0, batt: 100, wheelA: 0, susp: 0, suspV: 0, lastAcc: 0, off: 0, vis: 0 };
-const G = 9.81, L = 1.36, MASS = 215;
+const G = 9.81, L = 1.36, MASS0 = 215;
 function resetBike(atS) {
   try { if (TR && TR.on) setTimeout(clearTrafficNear, 0); } catch (e) { }
   crashed = false; crashT = 0; hudMsg.style.opacity = 0; world.removeBody(bikeRB); world.removeBody(riderRB);
@@ -868,7 +1049,7 @@ function crash(kind, latDir) {
   const fr = roadFrame(st.pos, st.hint); const k = fr.i; const c = P[k], n = NO[k]; const rl = (latDir || 1) > 0 ? (RAIL_OUT || 50) : (RAIL_IN || -(W + 0.8));
   railBody.position.set(c.x + n.x * (rl + Math.sign(rl) * 0.1), c.y + 0.5, c.z + n.z * (rl + Math.sign(rl) * 0.1)); railBody.quaternion.setFromEuler(0, Math.atan2(T[k].x, T[k].z), 0);
   world.addBody(bikeRB); world.addBody(riderRB); bikeRB.wakeUp(); riderRB.wakeUp();
-  if (AC) { const bb = AC.createBuffer(1, AC.sampleRate * 0.6, AC.sampleRate); const d = bb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2); const s = AC.createBufferSource(); s.buffer = bb; const g2 = AC.createGain(); g2.gain.value = 0.6; s.connect(g2); g2.connect(AC.destination); s.start(); }
+  if (AC) { const bb = AC.createBuffer(1, AC.sampleRate * 0.6, AC.sampleRate); const d = bb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2); const s = AC.createBufferSource(); s.buffer = bb; const g2 = AC.createGain(); g2.gain.value = 0.6; s.connect(g2); g2.connect(master || AC.destination); s.start(); }
 }
 
 // ---------------- free camera + speed lines ----------------
@@ -908,14 +1089,16 @@ function update(dt) {
   if (!crashed) {
     const off = Math.abs(fr.lat) > W + 0.3 && !!sideH; st.off = off ? 1 : 0;
     const boost = !!input.boost; const thr = input.fwd || input.boost; const v = st.v;
-    const topV = gear === 1 ? (boost ? 55.6 : 33.3) : gear === 2 ? (boost ? 83.3 : 50) : (boost ? 127 : 69.4);
-    const Pw = gear === 1 ? (boost ? 120000 : 22000) : gear === 2 ? (boost ? 320000 : 45000) : (boost ? 1150000 : 90000);
-    const cap = gear === 1 ? (boost ? 12.5 : 6.0) : gear === 2 ? (boost ? 12.0 : 5.0) : (boost ? 14.0 : 5.0);
+    const CP = curCar && curCar.phys; const bi = boost ? 1 : 0;
+    const topV = CP ? CP.top[gear - 1][bi] : gear === 1 ? (boost ? 55.6 : 33.3) : gear === 2 ? (boost ? 83.3 : 50) : (boost ? 127 : 69.4);
+    const Pw = CP ? CP.pw[gear - 1][bi] : gear === 1 ? (boost ? 120000 : 22000) : gear === 2 ? (boost ? 320000 : 45000) : (boost ? 1150000 : 90000);
+    const cap = CP ? CP.cap[gear - 1][bi] : gear === 1 ? (boost ? 12.5 : 6.0) : gear === 2 ? (boost ? 12.0 : 5.0) : (boost ? 14.0 : 5.0);
+    const MASS = CP ? CP.mass : MASS0;
     let acc = 0;
     if (thr && v >= -0.2) { acc = Math.min(cap, Pw / (MASS * Math.max(v, 1))); if (v > topV) acc = Math.min(acc, (topV - v) * 2); }
     if (input.back) { if (v > 0.4) acc -= 8.0; else if (!input.fwd) { acc = v > -1.6 ? -1.2 : 0; } }
     if (!thr && !input.back) acc -= 0.6 * Math.sign(v) * (Math.abs(v) > 0.05 ? 1 : 0) + (v > 0 ? 0.25 : 0);
-    acc -= (gear === 3 ? 0.0006 : 0.0014) * v * Math.abs(v);
+    acc -= (CP ? CP.drag : (gear === 3 ? 0.0006 : 0.0014)) * v * Math.abs(v);
     if (off) acc -= Math.sign(v) * (MAPID === 'desert' ? 2.2 + 0.006 * v * v : 1.4 + 0.004 * v * v);
     _ah.set(st.pos.x + Math.sin(st.yaw), 0, st.pos.z + Math.cos(st.yaw)); const fa = roadFrame(_ah, st.hint); const yA = surfaceY(fa, _ah.x, _ah.z);
     const f0 = roadFrame(st.pos, st.hint); const y0 = surfaceY(f0, st.pos.x, st.pos.z); acc -= G * THREE.MathUtils.clamp(yA - y0, -0.4, 0.4) * 0.9;
@@ -955,7 +1138,7 @@ function update(dt) {
     bike.position.set(st.pos.x, st.pos.y + bump, st.pos.z); bike.rotation.set(0, st.yaw, 0, 'YXZ');
     bike.rotation.z = -st.lean;
     bikePitch.rotation.x = -st.pitch; bikeBody.position.y = -WR + st.susp;
-    st.wheelA += st.v * dt; wheelsR.forEach(w => w.rotation.x = st.wheelA / WR); wheelsF.forEach(w => w.rotation.x = st.wheelA / WF);
+    st.wheelA += st.v * dt; wheelsR.forEach(w => w.rotation.x = st.wheelA / (w.userData.r || WR)); wheelsF.forEach(w => w.rotation.x = st.wheelA / (w.userData.r || WF));
     steerInner.quaternion.setFromAxisAngle(STEER_AX, st.vis);
     if (riderReady) { rider.rotation.z = st.lean * 0.12; if (Math.abs(st.vis - (st.visB || 0)) > 0.004) { st.visB = st.vis; armIK(); rebakeArms(); } }
     st.batt = Math.max(0, st.batt - Math.max(0, acc) * Math.abs(st.v) * dt * 0.00004);
@@ -997,10 +1180,8 @@ function update(dt) {
   hudSpd.textContent = Math.round(kmh); hudMode.textContent = mode; hudMode.className = /S/.test(mode) ? 'boost' : ''; hudBat.textContent = Math.round(st.batt) + '%'; hudLean.textContent = crashed ? '—' : st.pitch > 0.08 ? ('翘头 ' + Math.round(st.pitch * 57.3) + '°') : ('倾角 ' + Math.round(Math.abs(st.lean) * 57.3) + '°' + (st.off ? ' · 越野' : ''));
   hudArc.style.strokeDashoffset = (283 * (1 - Math.min(1, kmh / 300))).toFixed(1); hudArc.style.stroke = kmh > 200 ? '#ff3b3b' : '#1f6fff';
   dashT += dt; if (dashT > 0.15) { dashT = 0; drawDash(kmh, Math.round(st.batt), mode); }
-  if (AC && motorGain) { const sp = spd; const gh = curCar && curCar.sound === 'gh'; const thr = input.fwd || input.boost;
-    if (gh) { const rpm = (sp / (gear === 1 ? 55 : gear === 2 ? 83 : 127)) * 1 + (thr ? 0.25 : 0.1); motorOsc.frequency.value = 70 + rpm * 260; motorOsc2.frequency.value = (70 + rpm * 260) * 0.5; motorGain.gain.value = crashed ? 0 : 0.05 + (thr ? 0.08 : 0.03); motorFilt.frequency.value = 900 + rpm * 2600; }
-    else { motorOsc.frequency.value = 60 + sp * 16; motorOsc2.frequency.value = 120 + sp * 32; motorGain.gain.value = crashed ? 0 : 0.025 + (thr ? 0.05 : 0.015) * Math.min(1, sp / 8 + 0.2); motorFilt.frequency.value = 600 + sp * 45; }
-    windGain.gain.value = Math.min(0.3, sp * sp / 7000); }
+  audioTick(dt, spd, input.fwd || input.boost, !!input.back && st.v > 0.5 && !crashed);
+  if (curCar && curCar.ownSteer) { const own = new Set(Object.values(CARS).map(c => c.St)); steerInner.children.forEach(o => { if (!own.has(o) && o.visible) o.visible = false; }); }
 }
 function grav0(p) { return 12.0 * Math.cos(p + 0.35); }
 function angDiff(a, b) { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
@@ -1013,10 +1194,11 @@ let running = !CFG.paused;
 function render() { if (composer) composer.render(); else renderer.render(scene, camera); }
 function frame() { if (!running) return; requestAnimationFrame(frame); const dt = Math.min(clock.getDelta(), 0.05); const sub = 2; for (let i = 0; i < sub; i++) update(dt / sub); render(); }
 drawDash(0, 100, '1D'); setGear(1);
+carHookReady = true;
 frame();
 window.__g = {
   st, input: kin, crash, resetBike, setCar, setGear, step(sec) { running = false; for (let t = 0; t < sec; t += 1 / 60) update(1 / 60); render(); },
-  render, bike, bikeBody, rider, THREE, cam(px, py, pz, lx, ly, lz) { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); render(); }, camera, scene, setCamMode, orb,
+  render, bike, bikeBody, rider, THREE, cam(px, py, pz, lx, ly, lz) { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); render(); }, camera, scene, setCamMode, orb, audioStart, setSound, AU, get car() { return CAR; }, steerInner, riderBones,
 };
 
 // ---------------- traffic (toggle, default off) ----------------
