@@ -52,9 +52,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <h3>车型</h3><div class="row"><button class="opt" data-car="ev">九号改装电摩<small>白壳天使眼 · 七彩底盘灯 · 金轮</small></button><button class="opt" data-car="gh">改装鬼火 RSZ<small>渐变拉花 · 金色 Kitaco · 直排</small></button><button class="opt" data-car="zx">张雪机车 820RR<small>原厂红 · 818.8cc 直列三缸 · 99kW</small></button></div>
 <h3>人物</h3><div class="row"><button class="opt" data-rider="rpm">黑人小哥</button><button class="opt" data-rider="rpm2">精神小伙</button><button class="opt" data-rider="soldier">特种兵</button><button class="opt" data-rider="xbot">机器人</button><button class="opt" data-rider="michelle">女骑手</button></div><h3>地图</h3><div class="row"><button class="opt" data-map="coast">落日海岸<small>椰林+晚霞</small></button><button class="opt" data-map="plain">雪原极光<small>雪夜可下路</small></button><button class="opt" data-map="desert">天空之镜<small>盐湖直道飙速</small></button><button class="opt" data-map="city">城市夜景<small>霓虹高架</small></button><button class="opt" data-map="mountain">火山熔岩<small>岩浆盘山路</small></button></div>
 <div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。顶部 🚗 开关路上车流，撞车会摔。键盘：方向键/WASD，空格加速，E 换挡，R 扶车。</div>
-<h3>声音</h3><div class="row"><button class="opt sel" id="bSnd">🔊 声音 开<small>发动机声 + 刹车飞机声</small></button></div>
+<h3>声音</h3><div class="row"><button class="opt sel" id="bSnd">🔊 声音 开<small>发动机声 + 刹车声</small></button></div>
 <button id="mClose">开骑</button>
-<div id="credit">音效：820RR 发动机声取自 Triumph Rocket 3 直列三缸排气录音（rsn267，Freesound #584586，CC0）；刹车飞机声取自 F-18 战机掠过录音（JoanCalsina，Freesound #851222，CC0）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
+<div id="credit">音效（均为 CC0 公共领域录音，Freesound）：820RR 发动机声用 Yamaha MT-09 直列三缸赛道掠过录音代替（richwise #429491）；鬼火用 Gilera Runner SP50 二冲程踏板录音（lovretta #140384）；电摩用电动滑板车轮毂电机录音（IENBA #697379）；刹车用碟刹摩擦声（stib #494321）+ 轮胎尖叫（audible-edge #71741）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
 <script type="importmap">{"imports": {"three": "./t160/three.module.js", "three/addons/": "./t160/addons/", "cannon": "./t160/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={};</script>
 <script type="module">import * as THREE from 'three';
@@ -1162,66 +1162,99 @@ document.getElementById('bReset')?.addEventListener('click', () => resetBike());
 const hudSpd = document.getElementById('spd'), hudMode = document.getElementById('mode'), hudBat = document.getElementById('bat'), hudLean = document.getElementById('lean'), hudMsg = document.getElementById('msg'), hudArc = document.getElementById('arc');
 
 // ---------------- audio ----------------
-// Engine: ev/gh synthesized; zx = two loops cut from a real inline-triple recording (Triumph Rocket 3 exhaust, rsn267, Freesound #584586, CC0)
-// pitched by rpm, plus a synth layer for the top end. Brake: jet loop (F-18 flyby, JoanCalsina, Freesound #851222, CC0) with a synth fallback.
+// Every car has its own recorded engine loops (lazy-loaded when the car is first used), brakes are real recordings too.
+// zx (820RR, inline triple): Yamaha MT-09 track flyby, richwise, Freesound #429491, CC0 (substitute: no free 820RR recording exists).
+// gh (鬼火, 2-stroke scooter): Gilera Runner SP50 2T, lovretta, Freesound #140384, CC0.
+// ev (电摩): electric scooter hub motor, IENBA, Freesound #697379, CC0.
+// brakes: disc brake rub/squeal, stib, Freesound #494321, CC0 + tyre screech, audible-edge, Freesound #71741, CC0.
+// Files are mp3 with 0.2 s of circular padding each side; loopStart/loopEnd point at the seamless loop inside.
 const SFX_BASE = CFG.sfx || 'sfx/';
+const SFXM = {"zx_lo": {"pre": 0.2, "len": 2.06755, "ref": 230}, "zx_hi": {"pre": 0.2, "len": 2.54263, "ref": 228}, "gh_lo": {"pre": 0.2, "len": 3.94998, "ref": 112}, "gh_hi": {"pre": 0.2, "len": 3.24533, "ref": 210}, "ev_mo": {"pre": 0.2, "len": 4.25002, "ref": 74}, "brk_disc": {"pre": 0.2, "len": 5.95, "ref": null}, "brk_tire": {"pre": 0.2, "len": 1.80905, "ref": null}};
+const ENG = { zx: ['zx_lo', 'zx_hi'], gh: ['gh_lo', 'gh_hi'], ev: ['ev_mo'] };
+const BRK = { zx: { disc: 0.55, tire: 0.6, all: 1.25 }, gh: { disc: 0.7, tire: 0.45, all: 1.12 }, ev: { disc: 0.5, tire: 0.25, all: 1.3 } }; // ev: less tyre screech (lighter bike), level kept within 3 dB of its motor
 let AC = null, master = null, motorOsc, motorGain, motorFilt, windGain, motorOsc2, sndOn = lsGet('moto_snd') !== '0';
-const AU = { rpm: 1300, jet: 0, thrS: 0, loaded: {}, errors: [] };
-function setSound(on) { sndOn = on; lsSet('moto_snd', on ? '1' : '0'); if (master) master.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, 0.05); const b = document.getElementById('bSnd'); if (b) { b.classList.toggle('sel', on); b.innerHTML = (on ? '🔊 声音 开' : '🔇 声音 关') + '<small>发动机声 + 刹车飞机声</small>'; } }
+const AU = { rpm: 1300, brk: 0, thrS: 0, ghF: 60, loaded: {}, requested: [], errors: [], car: {} };
+function setSound(on) { sndOn = on; lsSet('moto_snd', on ? '1' : '0'); if (master) master.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, 0.05); const b = document.getElementById('bSnd'); if (b) { b.classList.toggle('sel', on); b.innerHTML = (on ? '🔊 声音 开' : '🔇 声音 关') + '<small>发动机声 + 刹车声</small>'; } }
 function loadSfx(name, onBuf) {
-  try { fetch(SFX_BASE + name + '.wav').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+  AU.requested.push(name);
+  try { fetch(SFX_BASE + name + '.mp3').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
     .then(ab => new Promise((ok, no) => { const p = AC.decodeAudioData(ab, ok, no); if (p && p.catch) p.catch(no); }))
     .then(buf => { AU.loaded[name] = buf.duration; onBuf(buf); }).catch(e => { AU.errors.push(name + ': ' + (e && e.message || e)); }); } catch (e) { AU.errors.push(name + ': ' + e.message); }
 }
-function loopSrc(buf, dest) { const s = AC.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(0, Math.random() * buf.duration * 0.5); return s; }
+function loopSrc(name, buf, dest) {
+  const m = SFXM[name], s = AC.createBufferSource(); s.buffer = buf; s.loop = true;
+  // decoder delay may shift the content by a few ms; the padding is circular so any window of length m.len is still seamless
+  const st0 = Math.min(m.pre, Math.max(0, buf.duration - m.len) / 2); s.loopStart = st0; s.loopEnd = st0 + m.len;
+  s.connect(dest); s.start(0, st0 + Math.random() * m.len); return s;
+}
+function engBus(id) {
+  // one bus per car: loop gains -> lowpass -> bus gain -> master. Loaded on first use.
+  if (AU.car[id]) return AU.car[id];
+  const E = AU.car[id] = { bus: AC.createGain(), lp: AC.createBiquadFilter(), g: [], s: [] }; E.bus.gain.value = 0; E.lp.type = 'lowpass'; E.lp.frequency.value = 4000;
+  E.lp.connect(E.bus); E.bus.connect(master);
+  ENG[id].forEach((n, i) => { const g = AC.createGain(); g.gain.value = i ? 0 : 1; g.connect(E.lp); E.g[i] = g; loadSfx(n, b => { E.s[i] = loopSrc(n, b, g); }); });
+  return E;
+}
 function audioStart() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
   try { AC.onstatechange = () => { AU.state = AC.state; }; } catch (e) { }
   master = AC.createGain(); master.gain.value = sndOn ? 1 : 0; const comp = AC.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4; master.connect(comp); comp.connect(AC.destination);
+  AU.an = AC.createAnalyser(); AU.an.fftSize = 2048; comp.connect(AU.an); // level meter (used by tests / debug)
+  // synth fallback: only audible if a car's recording failed to load
   motorOsc = AC.createOscillator(); motorOsc.type = 'sawtooth'; motorOsc2 = AC.createOscillator(); motorOsc2.type = 'square';
   motorFilt = AC.createBiquadFilter(); motorFilt.type = 'lowpass'; motorFilt.frequency.value = 900; motorGain = AC.createGain(); motorGain.gain.value = 0;
   motorOsc.connect(motorFilt); motorOsc2.connect(motorFilt); motorFilt.connect(motorGain); motorGain.connect(master); motorOsc.start(); motorOsc2.start();
   const buf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   const ns = AC.createBufferSource(); ns.buffer = buf; ns.loop = true; const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6; windGain = AC.createGain(); windGain.gain.value = 0; ns.connect(bp); bp.connect(windGain); windGain.connect(master); ns.start();
-  // zx sample engine
-  AU.zxBus = AC.createGain(); AU.zxBus.gain.value = 0; AU.zxLP = AC.createBiquadFilter(); AU.zxLP.type = 'lowpass'; AU.zxLP.frequency.value = 3000; AU.zxHS = AC.createBiquadFilter(); AU.zxHS.type = 'highshelf'; AU.zxHS.frequency.value = 2500; AU.zxHS.gain.value = 0;
-  AU.zxBus.connect(AU.zxLP); AU.zxLP.connect(AU.zxHS); AU.zxHS.connect(master);
-  AU.gLow = AC.createGain(); AU.gHigh = AC.createGain(); AU.gLow.gain.value = 1; AU.gHigh.gain.value = 0; AU.gLow.connect(AU.zxBus); AU.gHigh.connect(AU.zxBus);
-  loadSfx('zx_low', b => { AU.sLow = loopSrc(b, AU.gLow); }); loadSfx('zx_high', b => { AU.sHigh = loopSrc(b, AU.gHigh); });
-  // jet brake: synth (filtered noise + turbine whine) until the recording arrives, then the recording
-  AU.jetBus = AC.createGain(); AU.jetBus.gain.value = 0; AU.jetLP = AC.createBiquadFilter(); AU.jetLP.type = 'lowpass'; AU.jetLP.frequency.value = 2000; AU.jetBus.connect(AU.jetLP); AU.jetLP.connect(master);
-  AU.jetSyn = AC.createGain(); AU.jetSyn.gain.value = 1; AU.jetSyn.connect(AU.jetBus);
-  { const n2 = AC.createBufferSource(); n2.buffer = buf; n2.loop = true; const f2 = AC.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 900; f2.Q.value = 0.4; const g2 = AC.createGain(); g2.gain.value = 0.7; n2.connect(f2); f2.connect(g2); g2.connect(AU.jetSyn); n2.start();
-    AU.whine = AC.createOscillator(); AU.whine.type = 'sine'; AU.whine.frequency.value = 2400; const gw = AC.createGain(); gw.gain.value = 0.05; AU.whine.connect(gw); gw.connect(AU.jetSyn); AU.whine.start(); }
-  loadSfx('jet_loop', b => { AU.sJet = loopSrc(b, AU.jetBus); AU.jetSyn.gain.setTargetAtTime(0, AC.currentTime, 0.1); });
+  // brakes: disc rub/squeal + tyre screech
+  AU.brkBus = AC.createGain(); AU.brkBus.gain.value = 1; AU.brkBus.connect(master);
+  AU.gDisc = AC.createGain(); AU.gDisc.gain.value = 0; AU.gTire = AC.createGain(); AU.gTire.gain.value = 0; AU.gDisc.connect(AU.brkBus);
+  AU.tireHP = AC.createBiquadFilter(); AU.tireHP.type = 'highpass'; AU.tireHP.frequency.value = 500; AU.gTire.connect(AU.tireHP); AU.tireHP.connect(AU.brkBus);
+  loadSfx('brk_disc', b => { AU.sDisc = loopSrc('brk_disc', b, AU.gDisc); }); loadSfx('brk_tire', b => { AU.sTire = loopSrc('brk_tire', b, AU.gTire); });
+  if (curCar) engBus(curCar.sound);
   window.__audio = AU;
 }
+AU.level = () => { if (!AU.an) return -200; const a = new Float32Array(AU.an.fftSize); AU.an.getFloatTimeDomainData(a); let s = 0; for (const v of a) s += v * v; return 10 * Math.log10(s / a.length + 1e-20); };
 function audioTick(dt, sp, thr, braking) {
-  if (!AC || !motorGain) return; const t = AC.currentTime, k = 0.04; const snd = curCar ? curCar.sound : 'ev';
+  if (!AC || !motorGain) return; const t = AC.currentTime, k = 0.04; const snd = curCar ? curCar.sound : 'ev'; const SM = THREE.MathUtils;
   AU.thrS += ((thr ? 1 : 0) - AU.thrS) * Math.min(1, dt * 10);
+  const E = engBus(snd); Object.keys(AU.car).forEach(id => { if (id !== snd) AU.car[id].bus.gain.setTargetAtTime(0, t, k); });
+  const ok = !!E.s[0]; let loud = 0, fSyn = 60, rpmN = 0;
   if (snd === 'zx') {
-    const P = curCar.phys; const topB = P.top[gear - 1][1]; let tgt = P.idle + (P.revMax - P.idle) * Math.pow(THREE.MathUtils.clamp(sp / topB, 0, 1), 0.92);
+    const P = curCar.phys; const topB = P.top[gear - 1][1]; let tgt = P.idle + (P.revMax - P.idle) * Math.pow(SM.clamp(sp / topB, 0, 1), 0.92);
     if (thr) tgt = Math.max(tgt, P.idle + (input.boost ? 5200 : 2600) * Math.max(0, 1 - sp / 12)); if (crashed) tgt = 0;
-    AU.rpm += (tgt - AU.rpm) * Math.min(1, dt * (tgt < AU.rpm ? 9 : 5)); const rpmN = THREE.MathUtils.clamp((AU.rpm - P.idle) / (P.revMax - P.idle), 0, 1);
-    const f = Math.max(8, AU.rpm / 60 * 1.5); // inline triple: 1.5 power pulses per crank revolution
-    const wH = sm01(52, 105, f), wL = 1 - wH; const g3 = gear === 3;
-    if (AU.sLow) AU.sLow.playbackRate.setTargetAtTime(THREE.MathUtils.clamp(f / 32, 0.5, 4), t, k); if (AU.sHigh) AU.sHigh.playbackRate.setTargetAtTime(THREE.MathUtils.clamp(f / 116, 0.3, 3.2), t, k);
-    AU.gLow.gain.setTargetAtTime(Math.sqrt(wL), t, k); AU.gHigh.gain.setTargetAtTime(Math.sqrt(wH) * (AU.sHigh ? 1 : 0), t, k);
-    const loud = crashed ? 0 : (0.32 + 0.5 * AU.thrS) * (0.65 + 0.45 * rpmN) * (g3 ? 1.25 : gear === 2 ? 1.08 : 1);
-    AU.zxBus.gain.setTargetAtTime(loud * (AU.sLow ? 1 : 0), t, k); AU.zxLP.frequency.setTargetAtTime(1500 + rpmN * 5500 + (g3 ? 3500 : 0) + AU.thrS * 1200, t, k); AU.zxHS.gain.setTargetAtTime(g3 ? 7 : gear === 2 ? 3 : 0, t, k);
-    // synth layer: carries the sound alone if the recording failed, adds the high-rpm edge otherwise
-    motorOsc.frequency.setTargetAtTime(f, t, k); motorOsc2.frequency.setTargetAtTime(f * 2, t, k); motorFilt.frequency.setTargetAtTime(600 + rpmN * 4200 + (g3 ? 2500 : 0), t, k);
-    motorGain.gain.setTargetAtTime(crashed ? 0 : (AU.sLow ? (0.012 + 0.05 * rpmN * rpmN) * (g3 ? 1.6 : 1) : 0.05 + 0.07 * AU.thrS) , t, k);
+    AU.rpm += (tgt - AU.rpm) * Math.min(1, dt * (tgt < AU.rpm ? 9 : 5)); rpmN = SM.clamp((AU.rpm - P.idle) / (P.revMax - P.idle), 0, 1);
+    const f = Math.max(8, AU.rpm / 60 * 1.5); fSyn = f; // inline triple: 1.5 firing pulses per crank revolution
+    const wH = sm01(110, 200, f);
+    if (E.s[0]) E.s[0].playbackRate.setTargetAtTime(SM.clamp(f / SFXM.zx_lo.ref, 0.3, 1.6), t, k); if (E.s[1]) E.s[1].playbackRate.setTargetAtTime(SM.clamp(f / SFXM.zx_hi.ref, 0.3, 1.6), t, k);
+    E.g[0].gain.setTargetAtTime(Math.sqrt(1 - wH), t, k); E.g[1].gain.setTargetAtTime(Math.sqrt(wH) * (E.s[1] ? 1 : 0), t, k);
+    loud = (0.3 + 0.5 * AU.thrS) * (0.65 + 0.45 * rpmN) * (gear === 3 ? 1.15 : 1); E.lp.frequency.setTargetAtTime(900 + rpmN * 7000 + AU.thrS * 1500, t, k);
+  } else if (snd === 'gh') {
+    // 2-stroke: one firing per revolution. f 60 Hz (~3600 rpm) .. 230 Hz (~13800 rpm)
+    const r = SM.clamp(sp / (gear === 1 ? 55 : gear === 2 ? 83 : 127) + (thr ? 0.3 : 0.05), 0, 1.15); const ft = crashed ? 0 : 60 + r * 150;
+    AU.ghF += (ft - AU.ghF) * Math.min(1, dt * (ft < AU.ghF ? 6 : 4)); const f = Math.max(20, AU.ghF); fSyn = f; rpmN = SM.clamp((f - 60) / 150, 0, 1);
+    const wH = sm01(120, 185, f);
+    if (E.s[0]) E.s[0].playbackRate.setTargetAtTime(SM.clamp(f / SFXM.gh_lo.ref, 0.45, 2.0), t, k); if (E.s[1]) E.s[1].playbackRate.setTargetAtTime(SM.clamp(f / SFXM.gh_hi.ref, 0.5, 1.3), t, k);
+    E.g[0].gain.setTargetAtTime(Math.sqrt(1 - wH), t, k); E.g[1].gain.setTargetAtTime(Math.sqrt(wH) * (E.s[1] ? 1 : 0), t, k);
+    loud = (0.3 + 0.55 * AU.thrS) * (0.7 + 0.4 * rpmN); E.lp.frequency.setTargetAtTime(1500 + rpmN * 6500 + AU.thrS * 1500, t, k);
   } else {
-    if (AU.zxBus) AU.zxBus.gain.setTargetAtTime(0, t, k);
-    if (snd === 'gh') { const rpm = (sp / (gear === 1 ? 55 : gear === 2 ? 83 : 127)) + (thr ? 0.25 : 0.1); motorOsc.frequency.setTargetAtTime(70 + rpm * 260, t, k); motorOsc2.frequency.setTargetAtTime((70 + rpm * 260) * 0.5, t, k); motorGain.gain.setTargetAtTime(crashed ? 0 : 0.05 + (thr ? 0.08 : 0.03), t, k); motorFilt.frequency.setTargetAtTime(900 + rpm * 2600, t, k); }
-    else { motorOsc.frequency.setTargetAtTime(60 + sp * 16, t, k); motorOsc2.frequency.setTargetAtTime(120 + sp * 32, t, k); motorGain.gain.setTargetAtTime(crashed ? 0 : 0.025 + (thr ? 0.05 : 0.015) * Math.min(1, sp / 8 + 0.2), t, k); motorFilt.frequency.setTargetAtTime(600 + sp * 45, t, k); }
+    // electric hub motor: whine pitch follows wheel speed, louder under load
+    rpmN = SM.clamp(sp / 30, 0, 1); fSyn = 60 + sp * 16;
+    if (E.s[0]) E.s[0].playbackRate.setTargetAtTime(SM.clamp(0.4 + sp / 22, 0.4, 2.4), t, k);
+    loud = (0.09 + 0.56 * Math.min(1, sp / 8)) * (0.55 + 0.45 * AU.thrS); E.lp.frequency.setTargetAtTime(2500 + rpmN * 6000, t, k);
   }
-  AU.jet += ((braking ? 1 : 0) - AU.jet) * Math.min(1, dt * (braking ? 3.2 : 1.6));
-  AU.jetBus.gain.setTargetAtTime(0.75 * AU.jet * AU.jet, t, k); AU.jetLP.frequency.setTargetAtTime(900 + 7000 * AU.jet, t, k);
-  if (AU.sJet) AU.sJet.playbackRate.setTargetAtTime(0.85 + 0.2 * AU.jet + 0.15 * Math.min(1, sp / 60), t, 0.1); AU.whine.frequency.setTargetAtTime(1800 + 1400 * AU.jet, t, 0.1);
-  windGain.gain.setTargetAtTime(Math.min(0.3, sp * sp / 7000), t, k);
+  if (crashed) loud = 0;
+  E.bus.gain.setTargetAtTime(ok ? loud : 0, t, k);
+  // synth only when the recording is missing
+  motorOsc.frequency.setTargetAtTime(fSyn, t, k); motorOsc2.frequency.setTargetAtTime(fSyn * 2, t, k); motorFilt.frequency.setTargetAtTime(700 + rpmN * 3000, t, k);
+  motorGain.gain.setTargetAtTime(ok || crashed ? 0 : 0.04 + 0.06 * AU.thrS, t, k);
+  // brakes: fade in on press, fade out on release
+  const W = BRK[snd] || BRK.ev; AU.brk += ((braking ? 1 : 0) - AU.brk) * Math.min(1, dt * (braking ? 6 : 3)); const b = AU.brk * W.all;
+  const spF = Math.min(1, sp / 6), tireF = SM.clamp((sp - 4) / 22, 0, 1);
+  AU.gDisc.gain.setTargetAtTime(W.disc * b * (0.35 + 0.65 * spF), t, k); AU.gTire.gain.setTargetAtTime(W.tire * b * tireF * tireF, t, k);
+  if (AU.sDisc) AU.sDisc.playbackRate.setTargetAtTime(0.75 + 0.45 * Math.min(1, sp / 30), t, 0.1); if (AU.sTire) AU.sTire.playbackRate.setTargetAtTime(0.9 + 0.15 * Math.min(1, sp / 40), t, 0.1);
+  windGain.gain.setTargetAtTime(Math.min(0.3, sp * sp / 7000) * (snd === 'ev' ? 1.15 : 1), t, k);
 }
 
 // ---------------- bike state ----------------
