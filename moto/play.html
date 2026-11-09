@@ -797,6 +797,176 @@ function setCar(id) { if (!CARS[id]) id = 'ev'; const prev = curCar; curCar = CA
   if (typeof onCarChange === 'function' && prev !== curCar) onCarChange(prev); }
 setCar(CAR);
 
+// ================= ev / gh: image-to-3D bodies =================
+// Shapes: Hunyuan3D-2 (tencent/Hunyuan3D-2 HF space) from the reference photos; the photo is projected back onto the mesh
+// (fitted camera, mirrored for the far side). Wheels and the steering assembly are split out so they spin / steer.
+// Procedural bodies of ev/gh are hidden; lights, logos and lettering are rebuilt on the mesh surface (canvas textures).
+const SHARED_ST = steerInner.children.filter(o => !Object.values(CARS).some(c => c.St === o));
+const GLB_CARS = {
+  ev: { file: 'ev_body.glb', rf: 0.2444, rr: 0.2732, yf: 0.2444, yr: 0.2732, head: [0, 0.70, 0.66] },
+  gh: { file: 'gh_body.glb', rf: 0.2463, rr: 0.2463, yf: 0.2463, yr: 0.2463, head: [0, 1.12, 0.40] },
+};
+const PIVOT = new THREE.Vector3(0, 1.0, 0.47);
+function cvTex(w, h, draw, res = 512) { const c = document.createElement('canvas'); c.width = res; c.height = Math.max(8, Math.round(res * h / w)); const g = c.getContext('2d'); draw(g, c.width, c.height); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+function decalMat(tex, lit = true) { const o = { map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }; return lit ? new THREE.MeshStandardMaterial(Object.assign(o, { roughness: 0.35, metalness: 0.05 })) : new THREE.MeshBasicMaterial(Object.assign(o, { toneMapped: false })); }
+// raycast on a mesh in its own local space; returns {p, n}
+function surfHit(mesh, o, d) {
+  const tmp = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })); tmp.position.copy(mesh.position); tmp.updateMatrixWorld(true);
+  const rc = new THREE.Raycaster(new THREE.Vector3(...o), new THREE.Vector3(...d).normalize(), 0, 5); const h = rc.intersectObject(tmp, false)[0]; if (!h) return null;
+  const n = h.face.normal.clone(); if (n.dot(rc.ray.direction) > 0) n.negate(); return { p: h.point, n };
+}
+// put a flat sticker on the surface hit by the ray; `roll` spins it about the normal
+function stick(parent, mesh, o, d, w, h, mat, roll = 0, lift = 0.004) {
+  const hit = surfHit(mesh, o, d); if (!hit) return null;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.copy(hit.p).addScaledVector(hit.n, lift);
+  m.lookAt(m.position.clone().add(hit.n)); m.rotateZ(roll); parent.add(m); return m;
+}
+// ---- artwork ----
+function drawNinebot(g, w, h) { g.clearRect(0, 0, w, h); g.lineWidth = h * 0.09; g.strokeStyle = '#111'; g.fillStyle = 'rgba(255,255,255,0.0)'; g.beginPath(); g.ellipse(w / 2, h / 2, w / 2 - g.lineWidth, h / 2 - g.lineWidth, 0, 0, 7); g.stroke();
+  g.fillStyle = '#111'; g.font = '900 ' + (h * 0.36) + 'px Arial Black, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('NINEBOT', w / 2, h / 2 + h * 0.02); }
+function drawYamaha(g, w, h) { const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 6; g.clearRect(0, 0, w, h);
+  g.fillStyle = '#c9ccd2'; g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fill(); g.lineWidth = R * 0.12; g.strokeStyle = '#3a3d44'; g.stroke();
+  g.strokeStyle = '#2b2e35'; g.lineCap = 'round';
+  for (let k = 0; k < 3; k++) { g.save(); g.translate(cx, cy); g.rotate(k * Math.PI * 2 / 3 + Math.PI / 6); // one tuning fork
+    g.lineWidth = R * 0.11; g.beginPath(); g.moveTo(0, -R * 0.05); g.lineTo(0, R * 0.78); g.stroke();
+    g.beginPath(); g.moveTo(-R * 0.17, -R * 0.78); g.lineTo(-R * 0.17, -R * 0.22); g.quadraticCurveTo(-R * 0.17, -R * 0.03, 0, -R * 0.03); g.quadraticCurveTo(R * 0.17, -R * 0.03, R * 0.17, -R * 0.22); g.lineTo(R * 0.17, -R * 0.78); g.stroke(); g.restore(); } }
+function drawSticker(g, w, h) { g.fillStyle = '#121014'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 70; i++) { const x = Math.random() * w, y = Math.random() * h, r = 2 + Math.random() * h * 0.08; g.fillStyle = ['#7d3cff', '#c23cff', '#5a2bd6', '#ff6ad5'][i % 4]; g.globalAlpha = 0.5 + Math.random() * 0.4; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  g.globalAlpha = 1; g.fillStyle = '#fff'; g.font = 'bold ' + (h * 0.62) + 'px "STKaiti","KaiTi","Noto Serif SC","Noto Sans SC",serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('雨祭', w / 2, h / 2 + h * 0.04); }
+function drawBrembo(g, w, h) { g.clearRect(0, 0, w, h); g.fillStyle = '#0d0d0d'; g.font = 'italic 900 ' + (h * 0.8) + 'px Arial Black, Arial'; g.textBaseline = 'middle'; g.fillText('brembo', 4, h / 2 + 2); }
+function drawBadge(g, w, h) { g.clearRect(0, 0, w, h); g.fillStyle = '#d0141e'; g.beginPath(); g.moveTo(w * 0.05, h * 0.2); g.lineTo(w * 0.95, h * 0.05); g.lineTo(w * 0.9, h * 0.8); g.lineTo(w * 0.1, h * 0.95); g.closePath(); g.fill();
+  g.fillStyle = '#111'; g.fillRect(w * 0.18, h * 0.42, w * 0.64, h * 0.16); }
+function drawNineRound(g, w, h) { const cx = w / 2, cy = h / 2, R = w / 2 - 4; g.clearRect(0, 0, w, h); g.lineWidth = R * 0.14; g.strokeStyle = '#2a2c30'; g.beginPath(); g.arc(cx, cy, R - g.lineWidth / 2, 0, 7); g.stroke();
+  g.fillStyle = '#2a2c30'; g.font = '900 ' + (R * 1.1) + 'px Arial Black, Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('9', cx, cy + R * 0.06); }
+function drawLamp(g, w, h) { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.5, '#dfe9f5'); gr.addColorStop(1, '#9fb0c4'); g.fillStyle = gr; g.beginPath(); g.moveTo(w * 0.04, h * 0.25); g.lineTo(w * 0.96, h * 0.25); g.lineTo(w * 0.85, h * 0.95); g.lineTo(w * 0.15, h * 0.95); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(120,135,155,.6)'; g.lineWidth = 2; for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(w * (0.04 + i * 0.115), h * 0.25); g.lineTo(w * (0.15 + i * 0.0875), h * 0.95); g.stroke(); }
+  g.fillStyle = '#fff'; g.beginPath(); g.ellipse(w / 2, h * 0.58, w * 0.12, h * 0.22, 0, 0, 7); g.fill(); }
+const chromeF = new THREE.MeshStandardMaterial({ color: 0xd6d9de, metalness: 1, roughness: 0.12 });
+const blueAno = new THREE.MeshStandardMaterial({ color: 0x2c3fd0, metalness: 0.85, roughness: 0.25 });
+const orangeAno = new THREE.MeshStandardMaterial({ color: 0xf06a14, metalness: 0.7, roughness: 0.3 });
+const blackSat = new THREE.MeshStandardMaterial({ color: 0x101012, metalness: 0.35, roughness: 0.45 });
+const ledWhite = new THREE.MeshBasicMaterial({ color: 0xf4fbff, toneMapped: false });
+const ledCyan = new THREE.MeshBasicMaterial({ color: 0x35e6ff, toneMapped: false });
+// steer-local helpers (pivot origin)
+const SL = (x, y, z) => [x - PIVOT.x, y - PIVOT.y, z - PIVOT.z];
+const AX = STEER_AX.clone();
+function forkTubes(St, fy, upMat, loMat, gap = 0.085) { // fork legs along the steering axis from the axle up into the body
+  const a = new THREE.Vector3(0, fy, 0.68).sub(PIVOT);
+  [-1, 1].forEach(s => { const lo = a.clone().add(new THREE.Vector3(s * gap, 0, 0)); const mid = lo.clone().addScaledVector(AX, 0.26), top = lo.clone().addScaledVector(AX, 0.52);
+    tube(lo.toArray(), mid.toArray(), 0.03, loMat, St); tube(mid.toArray(), top.toArray(), 0.022, upMat, St); });
+}
+function bars(St, gx, gy, gz, cfg) { // handlebar: tube, rubber grips, bar ends, levers, mirrors (steer-local coords from bike coords)
+  const L = (x, y, z) => SL(x, y, z);
+  tube(L(-gx - 0.02, gy, gz), L(-0.14, gy + 0.03, gz + 0.03), 0.012, cfg.bar, St); tube(L(0.14, gy + 0.03, gz + 0.03), L(gx + 0.02, gy, gz), 0.012, cfg.bar, St); tube(L(-0.14, gy + 0.03, gz + 0.03), L(0.14, gy + 0.03, gz + 0.03), 0.014, cfg.bar, St);
+  [-1, 1].forEach(s => { const gr = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.12, 16), rubber); gr.rotation.z = Math.PI / 2; gr.position.set(...L(s * (gx - 0.02), gy, gz)); St.add(gr);
+    const e = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.03, 16), cfg.end); e.rotation.z = Math.PI / 2; e.position.set(...L(s * (gx + 0.055), gy, gz)); St.add(e);
+    tube(L(s * (gx - 0.10), gy + 0.01, gz + 0.03), L(s * (gx + 0.02), gy - 0.005, gz + 0.075), 0.006, cfg.lever, St);
+    box(St, 0.045, 0.035, 0.05, blackSat, ...L(s * (gx - 0.10), gy + 0.005, gz));
+    if (cfg.mirror) { const ms = L(s * (gx - 0.12), gy + 0.02, gz + 0.02), me = L(s * (gx - 0.02), gy + 0.13, gz + 0.03); tube(ms, me, 0.006, blackSat, St);
+      const mir = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.07, 4, 14), blackSat); mir.rotation.z = Math.PI / 2; mir.scale.set(1, 1, 0.4); mir.position.set(me[0] + s * 0.04, me[1] + 0.02, me[2]); St.add(mir);
+      const gl = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.05), chromeF); gl.position.set(me[0] + s * 0.04, me[1] + 0.02, me[2] - 0.016); gl.rotation.y = Math.PI; St.add(gl); } });
+}
+function setupGlbCar(id, g) {
+  const c = CARS[id], S = GLB_CARS[id]; if (!c) return;
+  const keep = new Set([glowMat]);
+  [c.B, c.St].forEach(grp => grp.traverse(o => { if (o.isMesh && (!keep.has(o.material) || Math.abs(o.position.x) > 0.01)) o.visible = false; })); // keep only the centre under-floor glow strip
+  const parts = {}; g.scene.traverse(o => { if (o.isMesh) parts[(o.name || '').replace(/_\d+$/, '')] = o; if (o.isMesh && o.parent && !/body|steer|wheel|seat/.test(o.name)) parts[o.parent.name] = o; });
+  const tex = parts.body.material.map; tex.anisotropy = 8;
+  const paint = new THREE.MeshPhysicalMaterial({ map: tex, roughness: id === 'ev' ? 0.45 : 0.32, metalness: 0.05, clearcoat: id === 'ev' ? 0.35 : 0.7, clearcoatRoughness: 0.15 });
+  const tyre = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.2 });
+  const add = (m, parent, pos, mat) => { if (!m) return null; m.removeFromParent(); m.position.set(...pos); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1); m.material = mat; m.castShadow = m.receiveShadow = true; m.geometry.computeVertexNormals(); parent.add(m); return m; };
+  const body = add(parts.body, c.B, [0, 0, 0], paint);
+  add(parts.seat, c.B, [0, 0, 0], phys({ color: id === 'gh' ? 0x161a26 : 0x111113, roughness: 0.62, sheen: 1, sheenColor: 0x555a66, sheenRoughness: 0.5 }));
+  const steer = add(parts.steer, c.St, [0, 0, 0], paint);
+  const wrG = new THREE.Group(); wrG.position.set(0, S.yr, REAR_Z); c.B.add(wrG); add(parts.wheelR, wrG, [0, 0, 0], tyre); wrG.userData.r = S.rr; wheelsR.push(wrG);
+  const wfG = new THREE.Group(); wfG.position.set(0, S.yf - PIVOT.y, FRONT_Z - PIVOT.z); c.St.add(wfG); add(parts.wheelF, wfG, [0, 0, 0], tyre); wfG.userData.r = S.rf; wheelsF.push(wfG);
+  c.head = S.head; c.glb = true;
+  if (id === 'ev') buildEvDetails(c, body, steer); else buildGhDetails(c, body, steer);
+  if (curCar === c) { setCar(id); try { st.visB = 99; if (riderReady) { armIK(); rebakeArms(); } } catch (e) { } }
+}
+function buildEvDetails(c, body, steer) {
+  const B = c.B, St = c.St;
+  forkTubes(St, GLB_CARS.ev.yf, chromeF, chromeF, 0.075);
+  bars(St, 0.33, 1.03, 0.22, { bar: blackSat, end: redAno, lever: darkAlu, mirror: true });
+  // TFT dash between the grips, behind the shield
+  { const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.09), new THREE.MeshBasicMaterial({ map: dashTex, toneMapped: false })); scr.position.set(...SL(0, 1.075, 0.235)); scr.rotation.set(-0.5, Math.PI, 0); St.add(scr); box(St, 0.17, 0.11, 0.02, gloss, ...SL(0, 1.072, 0.245), 0.5); }
+  // headlight: LED brow bar + three projector lenses each side of the nose (c21)
+  [-1, 1].forEach(s => {
+    stick(B, body, [s * 0.065, 0.735, 2], [0, 0, -1], 0.11, 0.014, ledWhite, 0, 0.006);
+    [0, 1, 2].forEach(i => { const m = stick(B, body, [s * (0.035 + i * 0.033), 0.69 - i * 0.008, 2], [0, 0, -1], 0.026, 0.026, ledWhite, 0, 0.007); if (m) { m.geometry = new THREE.CircleGeometry(0.014, 20); } });
+    stick(B, body, [s * 2, 0.655, 0.57], [-s, 0, 0], 0.07, 0.016, ledCyan, 0, 0.005); // cyan side marker
+    stick(B, body, [s * 0.14, 0.76, 2], [0, 0, -1], 0.04, 0.016, amberMat, 0, 0.006); // front turn
+  });
+  stick(B, body, [0, 0.97, 2], [0, -0.3, -1], 0.06, 0.06, decalMat(cvTex(0.06, 0.06, drawNineRound, 256)), 0, 0.004); // round emblem, top of the front panel
+  // tail light + rear turns
+  stick(B, body, [0, 0.74, -2], [0, 0, 1], 0.22, 0.03, tailMat, 0, 0.006);
+  [-1, 1].forEach(s => stick(B, body, [s * 0.15, 0.68, -2], [0, 0, 1], 0.04, 0.02, amberMat, 0, 0.006));
+  // left side: '雨祭' sticker on the inner leg-shield, red badge on the side cover; brembo on the front caliper
+  stick(B, body, [-2, 0.79, 0.43], [1, 0, 0], 0.10, 0.07, decalMat(cvTex(0.10, 0.07, drawSticker)), 0, 0.004);
+  stick(B, body, [-2, 0.70, -0.20], [1, 0, 0], 0.07, 0.045, decalMat(cvTex(0.07, 0.045, drawBadge)), 0, 0.004);
+  if (steer) { const tmp = steer; stick(St, tmp, SL(-2, 0.22, 0.585), [1, 0, 0], 0.07, 0.018, decalMat(cvTex(0.07, 0.018, drawBrembo, 512)), -0.9, 0.004); }
+}
+function buildGhDetails(c, body, steer) {
+  const B = c.B, St = c.St;
+  forkTubes(St, GLB_CARS.gh.yf, chromeF, blueAno, 0.07);
+  { const a = new THREE.Vector3(0, GLB_CARS.gh.yf, 0.68).sub(PIVOT); box(St, 0.03, 0.09, 0.07, orangeAno, -0.105, a.y + 0.06, a.z - 0.07, 0.5); } // orange caliper bracket (c12)
+  // grips sit on the mesh handlebar ends
+  [-1, 1].forEach(s => { const gr = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.12, 16), rubber); gr.rotation.z = Math.PI / 2; gr.position.set(...SL(s * 0.34, 1.135, 0.205)); St.add(gr);
+    const e = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.03, 16), blackSat); e.rotation.z = Math.PI / 2; e.position.set(...SL(s * 0.415, 1.135, 0.205)); St.add(e);
+    tube(SL(s * 0.25, 1.15, 0.24), SL(s * 0.37, 1.135, 0.28), 0.006, darkAlu, St); });
+  // headlight in the handlebar cover (c12) + Yamaha tuning-fork emblem on the apron + turn lenses
+  if (steer) { stick(St, steer, SL(0, 1.13, 2), [0, 0, -1], 0.13, 0.055, decalMat(cvTex(0.13, 0.055, drawLamp), false), 0, 0.006); }
+  stick(B, body, [0, 0.95, 2], [0, -0.25, -1], 0.05, 0.05, decalMat(cvTex(0.05, 0.05, drawYamaha, 256)), 0, 0.004);
+  stick(B, body, [0, 0.80, -2], [0, 0, 1], 0.14, 0.03, tailMat, 0, 0.006);
+  [-1, 1].forEach(s => stick(B, body, [s * 0.1, 0.74, -2], [0, 0, 1], 0.035, 0.02, amberMat, 0, 0.006));
+}
+// rider seating per real geometry (bike coords; grip in steer-local)
+// shorter-armed riders (e.g. soldier: 0.47 m arm vs 0.54 m) sit a little further forward instead of folding over the bars
+let _armLen = 0; function armLen() { if (!_armLen && typeof riderBones !== 'undefined' && riderBones.LeftArm && riderBones.LeftHand) { const w = b => b.getWorldPosition(new THREE.Vector3()); _armLen = w(riderBones.LeftArm).distanceTo(w(riderBones.LeftForeArm)) + w(riderBones.LeftForeArm).distanceTo(w(riderBones.LeftHand)); } return _armLen || 0.537; }
+let _legLen = 0; function legLen() { if (!_legLen && typeof riderBones !== 'undefined' && riderBones.LeftUpLeg && riderBones.LeftFoot) { const w = b => b.getWorldPosition(new THREE.Vector3()); _legLen = w(riderBones.LeftUpLeg).distanceTo(w(riderBones.LeftLeg)) + w(riderBones.LeftLeg).distanceTo(w(riderBones.LeftFoot)); } return _legLen || 0.90; }
+// some rigs (Soldier.glb) are mirrored: their 'Left' limbs sit on the bike's right, so left/right targets are swapped for them
+let _mir = 0; function rigMirror() { if (!_mir && typeof riderBones !== 'undefined' && riderBones.LeftUpLeg && riderBones.Hips) { const l = bikeBody.worldToLocal(riderBones.LeftUpLeg.getWorldPosition(new THREE.Vector3())).x, h = bikeBody.worldToLocal(riderBones.Hips.getWorldPosition(new THREE.Vector3())).x; _mir = l < h ? -1 : 1; } return _mir || 1; }
+function seatPose(base) { const mx = a => [a[0] * rigMirror(), a[1], a[2]];
+  return { get hip() { const d = THREE.MathUtils.clamp(0.537 - armLen(), 0, 0.1); return [0, base.hip[1], base.hip[2] + d * 1.2]; }, get foot() { const f = mx(base.foot); return [f[0], f[1], f[2] + THREE.MathUtils.clamp(legLen() - 0.90, 0, 0.15) * 1.3]; }, get knee() { return mx(base.knee); }, get grip() { return mx(base.grip); }, get elbow() { return mx(base.elbow); } }; }
+CARS.ev.pose = seatPose({ hip: [0, 0.915, -0.30], foot: [0.15, 0.45, 0.13], knee: [0.30, 0.55, 1], grip: SL(0.30, 1.03, 0.22), elbow: [0.85, -0.45, -0.3] });
+CARS.gh.pose = seatPose({ hip: [0, 0.925, -0.31], foot: [0.15, 0.48, 0.10], knee: [0.30, 0.55, 1], grip: SL(0.31, 1.135, 0.205), elbow: [0.85, -0.45, -0.3] });
+CARS.ev.head = GLB_CARS.ev.head; CARS.gh.head = GLB_CARS.gh.head;
+Object.keys(GLB_CARS).forEach(id => new GLTFLoader(loadMgr).load((CFG.carBase || './') + GLB_CARS[id].file, g => setupGlbCar(id, g), undefined, e => console.warn('glb car', id, e)));
+{ const _setCar = setCar; setCar = function (id) { _setCar(id); const g = !!(curCar && curCar.glb); SHARED_ST.forEach(o => { o.visible = !g; }); }; setCar(CAR); }
+// ---- hands: wrist placed behind/above the grip so the palm wraps the bar, hand turned so fingers point forward-down around it ----
+function gripIK() {
+  const B = riderBones; if (!B.LeftHand || !B.LeftHandMiddle1 || !(curCar && curCar.glb)) return false;
+  steerInner.updateWorldMatrix(true, false); const sq = steerInner.getWorldQuaternion(new THREE.Quaternion()); bikeBody.getWorldQuaternion(_bq);
+  const eh = [0.85, -0.45, -0.3];
+  const MS = rigMirror(); [['Left', GRIP_L, MS], ['Right', GRIP_R, -MS]].forEach(([S, G, s]) => {
+    const hand = B[S + 'Hand'], mid = B[S + 'HandMiddle1'], idx = B[S + 'HandIndex1'], pin = B[S + 'HandPinky1'];
+    const Lh = wpos(hand, new THREE.Vector3()).distanceTo(wpos(mid, new THREE.Vector3()));
+    const f1 = new THREE.Vector3(s * 0.12, -0.45, 0.88).normalize().applyQuaternion(sq); // finger direction
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(sq);
+    const gripW = steerInner.localToWorld(G.clone());
+    const wrist = gripW.clone().addScaledVector(f1, -Lh * 0.78).addScaledVector(up, 0.028);
+    ik2(B[S + 'Arm'], B[S + 'ForeArm'], hand, wrist, new THREE.Vector3(s * eh[0], eh[1], eh[2]).normalize().applyQuaternion(_bq));
+    // orient the hand: fingers along f1, knuckle line (pinky -> index) toward the bike centre
+    const h0 = wpos(hand, new THREE.Vector3()), m0 = wpos(mid, new THREE.Vector3()).sub(h0).normalize();
+    const k0 = wpos(idx, new THREE.Vector3()).sub(wpos(pin, new THREE.Vector3())); k0.addScaledVector(m0, -k0.dot(m0)).normalize();
+    const k1 = new THREE.Vector3(-s, 0, 0).applyQuaternion(sq); k1.addScaledVector(f1, -k1.dot(f1)).normalize();
+    const M0 = new THREE.Matrix4().makeBasis(m0, k0, m0.clone().cross(k0)), M1 = new THREE.Matrix4().makeBasis(f1, k1, f1.clone().cross(k1));
+    const dq = new THREE.Quaternion().setFromRotationMatrix(M1.multiply(M0.transpose()));
+    const wq = hand.getWorldQuaternion(new THREE.Quaternion()); const pq = hand.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+    hand.quaternion.copy(pq.multiply(dq.multiply(wq))); hand.updateWorldMatrix(false, true);
+    // curl fingers around the bar (rig-agnostic: from rest pose, about the knuckle axis in world space)
+    if (!gripIK.rest) { gripIK.rest = new Map(); restPose.forEach(([b, q]) => gripIK.rest.set(b, q)); }
+    const curl = (b, ang, axis) => { const r = gripIK.rest.get(b); if (!b || !r) return; b.quaternion.copy(r); b.updateWorldMatrix(false, false);
+      const q = new THREE.Quaternion().setFromAxisAngle(axis, ang); const w = b.getWorldQuaternion(new THREE.Quaternion()); const pq2 = b.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+      b.quaternion.copy(pq2.multiply(q.multiply(w))); b.updateWorldMatrix(false, true); };
+    ['Index', 'Middle', 'Ring', 'Pinky'].forEach(fn => [1, 2, 3].forEach(j => curl(B[S + 'Hand' + fn + j], -s * (j === 1 ? 0.95 : 0.85), k1)));
+    [1, 2, 3].forEach(j => curl(B[S + 'HandThumb' + j], -s * 0.25, f1));
+  });
+  return true;
+}
+// point the torso-lean loop must reach: the wrist spot behind/above the left grip (glb cars), else the grip itself
+function gripReach() { const g = GRIP_L.clone(); if (curCar && curCar.glb) g.add(new THREE.Vector3(-0.01, 0.06, -0.075)); return steerInner.localToWorld(g); }
+
 // ---------------- rider (ReadyPlayerMe, recoloured: Black guy, no helmet) ----------------
 const RIDERS = [['rpm', '黑人小哥', 'readyplayer.me.glb', 'rpm.glb'], ['rpm2', '精神小伙', 'readyplayer.me.glb', 'rpm.glb'], ['soldier', '特种兵', 'Soldier.glb', 'soldier.glb'], ['xbot', '机器人', 'Xbot.glb', 'xbot.glb'], ['michelle', '女骑手', 'Michelle.glb', 'michelle.glb']];
 const RIDER_ID = (() => { const q = new URLSearchParams(location.search).get('rider') || lsGet('moto_rider'); return RIDERS.find(r => r[0] === q) ? q : 'rpm'; })();
@@ -818,7 +988,7 @@ const carPose = () => (curCar && curCar.pose) || DEF_POSE;
 const GRIP_L = new THREE.Vector3(0.30, 0.13, -0.05), GRIP_R = new THREE.Vector3(-0.30, 0.13, -0.05);
 function setGrips() { const g = carPose().grip; GRIP_L.set(g[0], g[1], g[2]); GRIP_R.set(-g[0], g[1], g[2]); }
 setGrips();
-function armIK() { const B = riderBones; if (!B.LeftArm) return; steerInner.updateWorldMatrix(true, false);
+function armIK() { const B = riderBones; if (!B.LeftArm) return; if (typeof gripIK === 'function' && gripIK()) return; steerInner.updateWorldMatrix(true, false);
   bikeBody.getWorldQuaternion(_bq); const eh = (curCar && curCar.pose && curCar.pose.elbow) || [0.8, -0.6, -0.3];
   ik2(B.LeftArm, B.LeftForeArm, B.LeftHand, steerInner.localToWorld(GRIP_L.clone()), new THREE.Vector3(eh[0], eh[1], eh[2]).normalize().applyQuaternion(_bq));
   ik2(B.RightArm, B.RightForeArm, B.RightHand, steerInner.localToWorld(GRIP_R.clone()), new THREE.Vector3(-eh[0], eh[1], eh[2]).normalize().applyQuaternion(_bq)); }
@@ -861,7 +1031,7 @@ function poseRider() {
   steerPivot.updateWorldMatrix(true, true);
   // lean torso forward until both hands can reach the grips
   for (let it = 0; it < 16; it++) { rider.updateWorldMatrix(true, true); const sh = wpos(B.LeftArm, new THREE.Vector3()), el = wpos(B.LeftForeArm, new THREE.Vector3()), ha = wpos(B.LeftHand, new THREE.Vector3());
-    const reach = sh.distanceTo(el) + el.distanceTo(ha); const d = sh.distanceTo(steerInner.localToWorld(GRIP_L.clone())); if (d < reach * 0.985) break; bendW(B.Spine, 0.03); bendW(B.Spine1, 0.02); bendW(B.Neck, -0.025); bendW(B.Head, -0.025); }
+    const reach = sh.distanceTo(el) + el.distanceTo(ha); const d = sh.distanceTo(typeof gripReach === 'function' ? gripReach() : steerInner.localToWorld(GRIP_L.clone())); if (d < reach * 0.985) break; bendW(B.Spine, 0.03); bendW(B.Spine1, 0.02); bendW(B.Neck, -0.025); bendW(B.Head, -0.025); }
   rider.updateWorldMatrix(true, true); armIK();
   ['Left', 'Right'].forEach(s => ['Index', 'Middle', 'Ring', 'Pinky'].forEach(f => [1, 2, 3].forEach(k => { const b = B[s + 'Hand' + f + k]; if (b) b.rotation.x += 0.9; })));
 }
