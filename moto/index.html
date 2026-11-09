@@ -748,11 +748,12 @@ function bakeRider() {
     if (si) for (let i = 0; i < si.count; i++) { const W4 = [sw.getX(i), sw.getY(i), sw.getZ(i), sw.getW(i)], I4 = [si.getX(i), si.getY(i), si.getZ(i), si.getW(i)]; for (let c = 0; c < 4; c++) if (W4[c] > 0 && armB.has(I4[c])) { idx.push(i); break; } }
     g.deleteAttribute('skinIndex'); g.deleteAttribute('skinWeight'); g.computeVertexNormals();
     const m = new THREE.Mesh(g, sm.material); m.position.copy(sm.position); m.quaternion.copy(sm.quaternion); m.scale.copy(sm.scale); m.castShadow = true; m.receiveShadow = true; m.visible = sm.visible; m.name = sm.name; m.frustumCulled = false;
-    sm.parent.add(m); sm.parent.remove(sm); if (idx.length) bakedArms.push({ sm, g, idx });
+    sm.parent.add(m); sm.parent.remove(sm); if (idx.length) bakedArms.push({ sm, g, idx, M0: riderModel.matrixWorld.clone() });
   });
 }
 function rebakeArms() { const v = new THREE.Vector3(); riderModel.updateMatrixWorld(true);
-  for (const b of bakedArms) { b.sm.skeleton.update(); const sp = b.sm.geometry.attributes.position, dp = b.g.attributes.position; for (const i of b.idx) { v.fromBufferAttribute(sp, i); b.sm.applyBoneTransform(i, v); dp.setXYZ(i, v.x, v.y, v.z); } dp.needsUpdate = true; } }
+  const C = new THREE.Matrix4(), Mi = new THREE.Matrix4().copy(riderModel.matrixWorld).invert();
+  for (const b of bakedArms) { b.sm.skeleton.update(); C.copy(b.sm.bindMatrixInverse).multiply(b.M0).multiply(Mi).multiply(b.sm.bindMatrix); const sp = b.sm.geometry.attributes.position, dp = b.g.attributes.position; for (const i of b.idx) { v.fromBufferAttribute(sp, i); b.sm.applyBoneTransform(i, v); v.applyMatrix4(C); dp.setXYZ(i, v.x, v.y, v.z); } dp.needsUpdate = true; } }
 function addHairAndChain() {
   const head = riderBones.Head; if (!head) return;
   const hair = new THREE.Mesh(new THREE.SphereGeometry(0.098, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), new THREE.MeshStandardMaterial({ color: 0x0a0807, roughness: 1 }));
