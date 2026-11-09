@@ -803,16 +803,18 @@ setCar(CAR);
 // Procedural bodies of ev/gh are hidden; lights, logos and lettering are rebuilt on the mesh surface (canvas textures).
 const SHARED_ST = steerInner.children.filter(o => !Object.values(CARS).some(c => c.St === o));
 const GLB_CARS = {
-  ev: { file: 'ev_body.glb', rf: 0.2444, rr: 0.2732, yf: 0.2444, yr: 0.2732, head: [0, 0.70, 0.66] },
-  gh: { file: 'gh_body.glb', rf: 0.2463, rr: 0.2463, yf: 0.2463, yr: 0.2463, head: [0, 1.12, 0.40] },
+  ev: { file: 'ev_body2.glb', tex: 'ev_decal.png', rf: 0.2444, rr: 0.2732, yf: 0.2444, yr: 0.2732, head: [0, 0.70, 0.66] },
+  gh: { file: 'gh_body2.glb', tex: 'gh_decal.png', rf: 0.2463, rr: 0.2463, yf: 0.2463, yr: 0.2463, head: [0, 1.12, 0.40] },
 };
 const PIVOT = new THREE.Vector3(0, 1.0, 0.47);
-function cvTex(w, h, draw, res = 512) { const c = document.createElement('canvas'); c.width = res; c.height = Math.max(8, Math.round(res * h / w)); const g = c.getContext('2d'); draw(g, c.width, c.height); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+const MAXANI = renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 8;
+function cvTex(w, h, draw, res = 1024) { res = Math.max(1024, res); const c = document.createElement('canvas'); c.width = res; c.height = Math.max(64, Math.round(res * h / w)); const g = c.getContext('2d'); draw(g, c.width, c.height); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAXANI; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; return t; }
 function decalMat(tex, lit = true) { const o = { map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }; return lit ? new THREE.MeshStandardMaterial(Object.assign(o, { roughness: 0.35, metalness: 0.05 })) : new THREE.MeshBasicMaterial(Object.assign(o, { toneMapped: false })); }
 // raycast on a mesh in its own local space; returns {p, n}
+const _hitMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 function surfHit(mesh, o, d) {
-  const tmp = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })); tmp.position.copy(mesh.position); tmp.updateMatrixWorld(true);
-  const rc = new THREE.Raycaster(new THREE.Vector3(...o), new THREE.Vector3(...d).normalize(), 0, 5); const h = rc.intersectObject(tmp, false)[0]; if (!h) return null;
+  const tmps = (Array.isArray(mesh) ? mesh : [mesh]).filter(Boolean).map(ms => { const t = new THREE.Mesh(ms.geometry, _hitMat); t.position.copy(ms.position); t.updateMatrixWorld(true); return t; });
+  const rc = new THREE.Raycaster(new THREE.Vector3(...o), new THREE.Vector3(...d).normalize(), 0, 5); const h = rc.intersectObjects(tmps, false)[0]; if (!h) return null;
   const n = h.face.normal.clone(); if (n.dot(rc.ray.direction) > 0) n.negate(); return { p: h.point, n };
 }
 // put a flat sticker on the surface hit by the ray; `roll` spins it about the normal
@@ -866,20 +868,57 @@ function bars(St, gx, gy, gz, cfg) { // handlebar: tube, rubber grips, bar ends,
       const mir = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.07, 4, 14), blackSat); mir.rotation.z = Math.PI / 2; mir.scale.set(1, 1, 0.4); mir.position.set(me[0] + s * 0.04, me[1] + 0.02, me[2]); St.add(mir);
       const gl = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.05), chromeF); gl.position.set(me[0] + s * 0.04, me[1] + 0.02, me[2] - 0.016); gl.rotation.y = Math.PI; St.add(gl); } });
 }
+// zoned material (bake2.py): each vertex carries soft zone weights _zw = (white shell, black plastic, grey/metal, seat) and _zuv =
+// (u, v, valid) into a crisp 2048px decal sheet (flame artwork on shell white). The fragment shader takes the strongest zone per
+// pixel, so borders are smooth anti-aliased lines; colour / roughness / metalness / clearcoat are clean per zone.
+const GLB_LOOK = {
+  gh: { col: [0xeef0f3, 0x151517, 0x3d3f45, 0x1a1d27], rough: [0.3, 0.55, 0.45, 0.68], metal: [0.0, 0.1, 0.3, 0.0], cc: 0.85, rim: 0xd9ad52, rimHoles: 6, wF: 0.13, wR: 0.15 },
+  ev: { col: [0xeff1f3, 0x141416, 0x8e9298, 0x121214], rough: [0.4, 0.62, 0.32, 0.7], metal: [0.0, 0.05, 0.75, 0.0], cc: 0.4, rim: 0x1b1c1f, rimHoles: 6, wF: 0.14, wR: 0.19 },
+};
+const _texCache = {};
+function zoneMaterial(id) {
+  const LK = GLB_LOOK[id], S = GLB_CARS[id];
+  const tex = _texCache[id] || (_texCache[id] = new THREE.TextureLoader(loadMgr).load((CFG.carBase || './') + S.tex, t => { t.needsUpdate = true; }));
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = MAXANI; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 1, metalness: 1, clearcoat: LK.cc, clearcoatRoughness: 0.12, side: THREE.DoubleSide });
+  const U = { zCol: { value: LK.col.map(c => new THREE.Color(c)) }, zRough: { value: new THREE.Vector4(...LK.rough) }, zMetal: { value: new THREE.Vector4(...LK.metal) }, zMap: { value: tex } };
+  m.onBeforeCompile = sh => { Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 _zw; attribute vec3 _zuv; varying vec4 vZw; varying vec3 vZuv;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvZw = _zw; vZuv = _zuv;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec4 vZw; varying vec3 vZuv; uniform vec3 zCol[4]; uniform vec4 zRough; uniform vec4 zMetal; uniform sampler2D zMap;')
+      .replace('#include <map_fragment>', `
+        float zw[4]; zw[0] = vZw.x; zw[1] = vZw.y; zw[2] = vZw.z; zw[3] = vZw.w;
+        int zi = 0, zj = 1; if (zw[1] > zw[0]) { zi = 1; zj = 0; }
+        for (int k = 2; k < 4; k++) { if (zw[k] > zw[zi]) { zj = zi; zi = k; } else if (zw[k] > zw[zj]) { zj = k; } }
+        float zd = zw[zi] - zw[zj]; float zt = clamp(0.5 + zd / (2.0 * fwidth(zd) + 1e-4), 0.0, 1.0);
+        vec3 zca = zCol[zi], zcb = zCol[zj];
+        vec3 zdec = texture2D(zMap, vZuv.xy).rgb; float zv = step(0.999, vZuv.z);
+        if (zi == 0) zca = mix(zca, zdec, zv); if (zj == 0) zcb = mix(zcb, zdec, zv);
+        diffuseColor.rgb *= mix(zcb, zca, zt);
+        float zr4[4]; zr4[0] = zRough.x; zr4[1] = zRough.y; zr4[2] = zRough.z; zr4[3] = zRough.w;
+        float zm4[4]; zm4[0] = zMetal.x; zm4[1] = zMetal.y; zm4[2] = zMetal.z; zm4[3] = zMetal.w;
+        float zRgh = mix(zr4[zj], zr4[zi], zt), zMtl = mix(zm4[zj], zm4[zi], zt), zCC = mix(zj == 0 ? 1.0 : 0.0, zi == 0 ? 1.0 : 0.0, zt);`)
+      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = zRgh;')
+      .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = zMtl;')
+      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\nmaterial.clearcoat *= zCC;');
+  };
+  m.customProgramCacheKey = () => 'zones_' + id;
+  return m;
+}
 function setupGlbCar(id, g) {
-  const c = CARS[id], S = GLB_CARS[id]; if (!c) return;
+  const c = CARS[id], S = GLB_CARS[id], LK = GLB_LOOK[id]; if (!c) return;
   const keep = new Set([glowMat]);
   [c.B, c.St].forEach(grp => grp.traverse(o => { if (o.isMesh && (!keep.has(o.material) || Math.abs(o.position.x) > 0.01)) o.visible = false; })); // keep only the centre under-floor glow strip
-  const parts = {}; g.scene.traverse(o => { if (o.isMesh) parts[(o.name || '').replace(/_\d+$/, '')] = o; if (o.isMesh && o.parent && !/body|steer|wheel|seat/.test(o.name)) parts[o.parent.name] = o; });
-  const tex = parts.body.material.map; tex.anisotropy = 8;
-  const paint = new THREE.MeshPhysicalMaterial({ map: tex, roughness: id === 'ev' ? 0.45 : 0.32, metalness: 0.05, clearcoat: id === 'ev' ? 0.35 : 0.7, clearcoatRoughness: 0.15 });
-  const tyre = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.2 });
-  const add = (m, parent, pos, mat) => { if (!m) return null; m.removeFromParent(); m.position.set(...pos); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1); m.material = mat; m.castShadow = m.receiveShadow = true; m.geometry.computeVertexNormals(); parent.add(m); return m; };
-  const body = add(parts.body, c.B, [0, 0, 0], paint);
-  add(parts.seat, c.B, [0, 0, 0], phys({ color: id === 'gh' ? 0x161a26 : 0x111113, roughness: 0.62, sheen: 1, sheenColor: 0x555a66, sheenRoughness: 0.5 }));
-  const steer = add(parts.steer, c.St, [0, 0, 0], paint);
-  const wrG = new THREE.Group(); wrG.position.set(0, S.yr, REAR_Z); c.B.add(wrG); add(parts.wheelR, wrG, [0, 0, 0], tyre); wrG.userData.r = S.rr; wheelsR.push(wrG);
-  const wfG = new THREE.Group(); wfG.position.set(0, S.yf - PIVOT.y, FRONT_Z - PIVOT.z); c.St.add(wfG); add(parts.wheelF, wfG, [0, 0, 0], tyre); wfG.userData.r = S.rf; wheelsF.push(wfG);
+  const mat = zoneMaterial(id), body = [], steer = [], meshes = [];
+  g.scene.traverse(o => { if (o.isMesh) meshes.push(o); });
+  meshes.forEach(o => { const nm = (o.name || '') + ' ' + (o.parent ? o.parent.name : ''); const part = /steer/.test(nm) ? 'steer' : /body/.test(nm) ? 'body' : null; if (!part) return;
+    o.removeFromParent(); o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.material = mat; o.castShadow = o.receiveShadow = true;
+    if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+    (part === 'body' ? c.B : c.St).add(o); (part === 'body' ? body : steer).push(o); });
+  // clean procedural wheels (the generated wheels were lumpy and full of holes)
+  const rim = phys({ color: LK.rim, metalness: id === 'gh' ? 1 : 0.6, roughness: id === 'gh' ? 0.22 : 0.4, clearcoat: 0.5 });
+  const wrG = new THREE.Group(); wrG.position.set(0, S.yr, REAR_Z); c.B.add(wrG); const wr = makeWheel(S.rr, LK.wR, false, rim, LK.rimHoles); wr.traverse(o => { if (o.isMesh) o.castShadow = true; }); wrG.add(wr); wrG.userData.r = S.rr; wheelsR.push(wrG);
+  const wfG = new THREE.Group(); wfG.position.set(0, S.yf - PIVOT.y, FRONT_Z - PIVOT.z); c.St.add(wfG); const wf = makeWheel(S.rf, LK.wF, true, rim, LK.rimHoles); wfG.add(wf); wfG.userData.r = S.rf; wheelsF.push(wfG);
   c.head = S.head; c.glb = true;
   if (id === 'ev') buildEvDetails(c, body, steer); else buildGhDetails(c, body, steer);
   if (curCar === c) { setCar(id); try { st.visB = 99; if (riderReady) { armIK(); rebakeArms(); } } catch (e) { } }
@@ -904,7 +943,7 @@ function buildEvDetails(c, body, steer) {
   // left side: '雨祭' sticker on the inner leg-shield, red badge on the side cover; brembo on the front caliper
   stick(B, body, [-2, 0.79, 0.43], [1, 0, 0], 0.10, 0.07, decalMat(cvTex(0.10, 0.07, drawSticker)), 0, 0.004);
   stick(B, body, [-2, 0.70, -0.20], [1, 0, 0], 0.07, 0.045, decalMat(cvTex(0.07, 0.045, drawBadge)), 0, 0.004);
-  if (steer) { const tmp = steer; stick(St, tmp, SL(-2, 0.22, 0.585), [1, 0, 0], 0.07, 0.018, decalMat(cvTex(0.07, 0.018, drawBrembo, 512)), -0.9, 0.004); }
+  if (steer.length) { const tmp = steer; stick(St, tmp, SL(-2, 0.22, 0.585), [1, 0, 0], 0.07, 0.018, decalMat(cvTex(0.07, 0.018, drawBrembo, 512)), -0.9, 0.004); }
 }
 function buildGhDetails(c, body, steer) {
   const B = c.B, St = c.St;
@@ -915,7 +954,7 @@ function buildGhDetails(c, body, steer) {
     const e = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.03, 16), blackSat); e.rotation.z = Math.PI / 2; e.position.set(...SL(s * 0.415, 1.135, 0.205)); St.add(e);
     tube(SL(s * 0.25, 1.15, 0.24), SL(s * 0.37, 1.135, 0.28), 0.006, darkAlu, St); });
   // headlight in the handlebar cover (c12) + Yamaha tuning-fork emblem on the apron + turn lenses
-  if (steer) { stick(St, steer, SL(0, 1.13, 2), [0, 0, -1], 0.13, 0.055, decalMat(cvTex(0.13, 0.055, drawLamp), false), 0, 0.006); }
+  if (steer.length) { stick(St, steer, SL(0, 1.13, 2), [0, 0, -1], 0.13, 0.055, decalMat(cvTex(0.13, 0.055, drawLamp), false), 0, 0.006); }
   stick(B, body, [0, 0.95, 2], [0, -0.25, -1], 0.05, 0.05, decalMat(cvTex(0.05, 0.05, drawYamaha, 256)), 0, 0.004);
   stick(B, body, [0, 0.80, -2], [0, 0, 1], 0.14, 0.03, tailMat, 0, 0.006);
   [-1, 1].forEach(s => stick(B, body, [s * 0.1, 0.74, -2], [0, 0, 1], 0.035, 0.02, amberMat, 0, 0.006));
