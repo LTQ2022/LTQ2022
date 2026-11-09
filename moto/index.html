@@ -265,17 +265,17 @@ if (MAPID === 'coast') {
     im.receiveShadow = true; scene.add(im); }
   RAIL_OUT = W + 0.55; LIM_OUT = RAIL_OUT - 0.45; LIM_IN = -W - 0.7; RAIL_IN = null;
 } else if (MAPID === 'plain' || MAPID === 'desert') {
-  const mat = MAPID === 'plain' ? pbr('aerial_grass_rock', 1, 0xd8e8b0) : pbr('aerial_sand', 1.2);
+  const mat = MAPID === 'plain' ? pbr('aerial_grass_rock', 1, 0xd8e8b0) : pbr('aerial_sand', 1.2, 0xe0b880);
   const vs = MAPID === 'plain' ? 18 : 26;
   sideH = (k, side, d, x, z) => { const y0 = P[k].y; const near = y0 - 0.06 - Math.min(0.25, d * 0.12); return near + (groundG(x, z) - 0.3 - near) * sm01(1.5, 60, d); };
-  const rows = [0, 0.4, 1.2, 2.5, 4.5, 7, 11, 16, 23, 32, 44, 60, 80, 110];
+  const rows = [0, 0.4, 1.2, 2.5, 4.5, 7, 11, 16, 23, 32, 44, 60, 80, 110, 150, 205];
   scene.add(Object.assign(new THREE.Mesh(ribbon(rows.map(o => W + o), (k, r, x, z) => r === 0 ? P[k].y - 0.02 : sideH(k, 1, rows[r], x, z), null, vs), mat), { receiveShadow: true }));
-  const rowsIn = rows.filter(o => o < 110);
+  const rowsIn = rows.filter(o => o < 210);
   scene.add(Object.assign(new THREE.Mesh(flipGeo(ribbon(rowsIn.map(o => -W - o), (k, r, x, z) => r === 0 ? P[k].y - 0.02 : sideH(k, -1, rowsIn[r], x, z), null, vs)), mat), { receiveShadow: true }));
   // base ground
   const ext = MAPID === 'plain' ? 9000 : 14000; const segs = isMobile ? 150 : 220;
   const g = new THREE.PlaneGeometry(ext, ext * 0.75, segs, Math.round(segs * 0.75)); g.rotateX(-Math.PI / 2);
-  const p = g.attributes.position, uv = g.attributes.uv; for (let v = 0; v < p.count; v++) { const x = p.getX(v), z = p.getZ(v); p.setY(v, groundG(x, z) - 0.32); uv.setXY(v, x / vs, z / vs); } g.computeVertexNormals();
+  const p = g.attributes.position, uv = g.attributes.uv; for (let v = 0; v < p.count; v++) { const x = p.getX(v), z = p.getZ(v); { const dr = Math.hypot(x, z) - M.Rad(Math.atan2(z, x)); p.setY(v, groundG(x, z) - 0.32 - 6 * (1 - sm01(70, 200, Math.abs(dr)))); } uv.setXY(v, x / vs, z / vs); } g.computeVertexNormals();
   const base = new THREE.Mesh(g, mat); base.receiveShadow = true; scene.add(base);
   LIM_OUT = 1500; LIM_IN = MAPID === 'plain' ? -420 : -330;
 } else if (MAPID === 'mountain') {
@@ -847,7 +847,7 @@ function update(dt) {
   const spd = Math.abs(st.v); const dist = (3.9 + Math.min(1.8, spd / 35)) * (camera.aspect < 1 ? 1.45 : 1); const back = new THREE.Vector3(-Math.sin(yaw) * dist, 1.05 + Math.min(0.5, spd / 70), -Math.cos(yaw) * dist);
   const want = tgt.clone().add(back); if (crashed) want.y = Math.max(want.y, tgt.y + 1.5);
   if (!camInit) { camPos.copy(want); camLook.copy(tgt); camInit = true; }
-  camPos.lerp(want, Math.min(1, dt * (crashed ? 1.5 : 11))); camLook.lerp(tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5)), Math.min(1, dt * 7));
+  camPos.lerp(want, Math.min(1, dt * (crashed ? 1.5 : 11 + spd * 0.45))); camLook.lerp(tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5)), Math.min(1, dt * (7 + spd * 0.5)));
   const cf = roadFrame(camPos, st.hint); const cy = surfaceY(cf, camPos.x, camPos.z); if (camPos.y < cy + 0.6) camPos.y = cy + 0.6;
   camera.position.copy(camPos); const shake = !crashed ? Math.min(1.6, spd / 37) * 0.012 * (st.off ? 3 : 1) : 0; camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake;
   camera.lookAt(camLook); if (!crashed) camera.rotateZ(st.lean * 0.18);
