@@ -58,7 +58,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。右侧「超级档」按钮（键盘 F）开启超级档：按住加速最高 1000 km/h，高速下方向键变成换道、车身自动回正；再按一次或按换挡退出。顶部 🚗 开关路上车流，撞车会摔。左侧「漂移」按钮（键盘 X）：25 km/h 以上按住，配合方向键甩尾漂移，冒烟留胎印、计分。烧胎：把前轮顶在护栏上再加油，后轮原地狂转冒大烟；没护栏的地方按住刹车 + 油门也能原地烧胎。键盘：方向键/WASD，空格加速，E 换挡，F 超级档，X 漂移，R 扶车。</div>
 <h3>声音</h3><div class="row"><button class="opt sel" id="bSnd">🔊 声音 开<small>发动机声 + 刹车声</small></button></div>
 <button id="mClose">开骑</button>
-<div id="credit">音效（除注明外均为 CC0 公共领域录音）：820RR 无可用原车录音，发动机声用 Triumph 直列三缸录音代替（Street Triple 675 与 Sprint ST，Internet Archive「Bike Engine Sounds」）；鬼火用 Gilera Runner SP50 二冲程踏板录音（Freesound lovretta #140384）；电摩用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车用真实摩托车后轮抱死急刹录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）+ 踏板车刹车录音（Freesound 16HPanskaResatko_Matej #497971）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
+<div id="credit">音效（除注明外均为 CC0 公共领域录音）：820RR 无可用原车录音，发动机声用 Triumph 直列三缸录音代替（Street Triple 675 与 Sprint ST，Internet Archive「Bike Engine Sounds」）；鬼火用 Gilera Runner SP50 二冲程踏板录音（Freesound lovretta #140384）；电摩用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车（三车同一套）用真实轮胎刹车吱声（Freesound RutgerMuller #104026、audible-edge #71737）+ 刹车片尖啸（Freesound WavJunction.com #456764）+ 踏板车刹车摩擦（Freesound 16HPanskaResatko_Matej #497971）；漂移/烧胎摩擦声用摩托车后轮抱死录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
 <script type="importmap">{"imports": {"three": "./t160/three.module.js", "three/addons/": "./t160/addons/", "cannon": "./t160/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={};</script>
 <script type="module">import * as THREE from 'three';
@@ -1718,12 +1718,13 @@ const hudSpd = document.getElementById('spd'), hudMode = document.getElementById
 //    archive.org "Bike Engine Sounds" (CC0): idle = 1999 Triumph Sprint ST, lo/mid/hi = 2008 Triumph Street Triple 675 (Arrow exhaust).
 // gh (鬼火, 2-stroke scooter): Gilera Runner SP50 2T, lovretta, Freesound #140384, CC0.
 // ev (电摩): lo = electric scooter hub motor, IENBA, Freesound #697379, CC0; hi = EV traction-motor whine under acceleration, justVova, Freesound #761685, CC0.
-// brakes v3: one-shot real motorcycle rear-lock skid (A.Warner, Freesound #764522, CC BY-NC 4.0) for zx/gh; scooter braking one-shot + scrub loop (16HPanskaResatko_Matej, Freesound #497971, CC0).
+// brakes v4 (all bikes): bite one-shot = tyre squeal (RutgerMuller #104026) + pad squeal (WavJunction.com #456764) + scooter scrub (#497971); sustained tyre squeal loop (audible-edge #71737); pad loop = scrub + pad squeal. All CC0.
+// drift_loop: A.Warner #764522 (CC BY-NC 4.0).
 // Loop files are mp3 with 0.2 s of circular padding each side; loopStart/loopEnd point at the seamless loop inside. 'ref' = firing Hz of the loop.
 const SFX_BASE = CFG.sfx || 'sfx/';
-const SFXM = {"zx_idle": {"pre": 0.2, "len": 4.75, "ref": 40}, "zx_lo": {"pre": 0.2, "len": 2.0544, "ref": 56}, "zx_mid": {"pre": 0.2, "len": 2.0722, "ref": 112}, "zx_hi": {"pre": 0.2, "len": 2.95726, "ref": 235}, "gh_lo": {"pre": 0.2, "len": 3.94998, "ref": 112}, "gh_hi": {"pre": 0.2, "len": 3.24533, "ref": 210}, "ev_mo": {"pre": 0.2, "len": 4.25002, "ref": 74}, "ev_hi": {"pre": 0.2, "len": 3.73755, "ref": 5800}, "brk_disc": {"pre": 0.2, "len": 5.95, "ref": null}, "brk_tire": {"pre": 0, "len": 0.62499, "ref": null, "oneshot": true}, "brk_skid": {"pre": 0, "len": 1.4, "ref": null, "oneshot": true}, "brk_scoot": {"pre": 0, "len": 1.45002, "ref": null, "oneshot": true}, "brk_rub": {"pre": 0.2, "len": 0.7, "ref": null}, "drift_loop": {"pre": 0.2, "len": 0.85, "ref": null}};
+const SFXM = {"zx_idle": {"pre": 0.2, "len": 4.75, "ref": 40}, "zx_lo": {"pre": 0.2, "len": 2.0544, "ref": 56}, "zx_mid": {"pre": 0.2, "len": 2.0722, "ref": 112}, "zx_hi": {"pre": 0.2, "len": 2.95726, "ref": 235}, "gh_lo": {"pre": 0.2, "len": 3.94998, "ref": 112}, "gh_hi": {"pre": 0.2, "len": 3.24533, "ref": 210}, "ev_mo": {"pre": 0.2, "len": 4.25002, "ref": 74}, "ev_hi": {"pre": 0.2, "len": 3.73755, "ref": 5800}, "brk_disc": {"pre": 0.2, "len": 5.95, "ref": null}, "brk_tire": {"pre": 0, "len": 0.62499, "ref": null, "oneshot": true}, "brk_skid": {"pre": 0, "len": 1.4, "ref": null, "oneshot": true}, "brk_scoot": {"pre": 0, "len": 1.45002, "ref": null, "oneshot": true}, "brk_rub": {"pre": 0.2, "len": 0.7, "ref": null}, "drift_loop": {"pre": 0.2, "len": 0.85, "ref": null}, "brk4_shot": {"pre": 0, "len": 1.3, "ref": null, "oneshot": true}, "brk4_tire": {"pre": 0.2, "len": 0.54, "ref": null}, "brk4_pad": {"pre": 0.2, "len": 0.7, "ref": null}};
 const ENG = { zx: ['zx_idle', 'zx_lo', 'zx_mid', 'zx_hi'], gh: ['gh_lo', 'gh_hi'], ev: ['ev_mo', 'ev_hi'] };
-const BRK = { zx: { disc: 0.4, tire: 0.75, all: 1.42, shot: 'brk_skid' }, gh: { disc: 0.45, tire: 0.6, all: 1.12, shot: 'brk_skid' }, ev: { disc: 0.4, tire: 0.55, all: 1.3, shot: 'brk_scoot' } }; // ev: less tyre screech (lighter bike), level kept within 3 dB of its motor
+const BRK1 = { disc: 0.42, tire: 0.7, loop: 0.55, all: 1.3, shot: 'brk4_shot' }; const BRK = { zx: BRK1, gh: BRK1, ev: BRK1 }; // v4: one brake sound for every bike = tyre squeal + pad squeal/scrub
 let AC = null, master = null, motorOsc, motorGain, motorFilt, windGain, motorOsc2, sndOn = lsGet('moto_snd') !== '0';
 const AU = { rpm: 1300, brk: 0, thrS: 0, ghF: 60, loaded: {}, requested: [], errors: [], car: {} };
 function setSound(on) { sndOn = on; lsSet('moto_snd', on ? '1' : '0'); if (master) master.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, 0.05); const b = document.getElementById('bSnd'); if (b) { b.classList.toggle('sel', on); b.innerHTML = (on ? '🔊 声音 开' : '🔇 声音 关') + '<small>发动机声 + 刹车声</small>'; } }
@@ -1764,7 +1765,8 @@ function audioStart() {
   AU.gDisc = AC.createGain(); AU.gDisc.gain.value = 0; AU.gTire = AC.createGain(); AU.gTire.gain.value = 0; AU.gDisc.connect(AU.brkBus);
   AU.tireHP = AC.createBiquadFilter(); AU.tireHP.type = 'highpass'; AU.tireHP.frequency.value = 220; AU.gTire.connect(AU.tireHP); AU.tireHP.connect(AU.brkBus);
   AU.gTire.gain.value = 1; // tyre = short one-shot chirps (brake bite / ABS), each with its own gain -> gTire -> highpass -> brkBus
-  AU.bShot = {}; loadSfx('brk_rub', b => { AU.sDisc = loopSrc('brk_rub', b, AU.gDisc); }); loadSfx('brk_skid', b => { AU.bShot.brk_skid = b; }); loadSfx('brk_scoot', b => { AU.bShot.brk_scoot = b; });
+  AU.bShot = {}; loadSfx('brk4_pad', b => { AU.sDisc = loopSrc('brk4_pad', b, AU.gDisc); }); loadSfx('brk4_shot', b => { AU.bShot.brk4_shot = b; });
+  AU.gTL = AC.createGain(); AU.gTL.gain.value = 0; AU.gTL.connect(AU.tireHP); loadSfx('brk4_tire', b => { AU.sTL = loopSrc('brk4_tire', b, AU.gTL); });
   if (curCar) engBus(curCar.sound);
   window.__audio = AU;
 }
@@ -1811,6 +1813,10 @@ function audioTick(dt, sp, thr, braking) {
   const spF = Math.min(1, sp / 6), tireF = SM.clamp((sp - 4) / 22, 0, 1);
   AU.gDisc.gain.setTargetAtTime(W.disc * b * (0.35 + 0.65 * spF) * (0.6 + 0.4 * Math.min(1, AU.dec)), t, 0.06);
   if (AU.sDisc) AU.sDisc.playbackRate.setTargetAtTime(0.85 + 0.3 * Math.min(1, sp / 30), t, 0.15);
+  // sustained tyre squeal: rises in after the bite while the brake is held at speed
+  AU.tlHold = braking && !crashed && sp > 4 ? (AU.tlHold || 0) + dt : 0;
+  if (AU.gTL) AU.gTL.gain.setTargetAtTime(AU.tlHold > 0.45 ? W.loop * W.all * tireF * (0.4 + 0.6 * Math.min(1, AU.dec)) : 0, t, AU.tlHold > 0.45 ? 0.25 : 0.06);
+  if (AU.sTL) AU.sTL.playbackRate.setTargetAtTime(0.9 + 0.15 * Math.min(1, sp / 30), t, 0.2);
   AU.tireCool = Math.max(0, (AU.tireCool || 0) - dt);
   const tireLvl = () => W.tire * W.all * (0.3 + 0.7 * tireF) * (0.45 + 0.55 * Math.min(1, AU.dec));
   AU.bTire = AU.bShot && AU.bShot[W.shot]; if (braking && !AU.brkPrev && AU.bTire && !AU.tire && !crashed && sp > 6 && AU.tireCool <= 0) {
