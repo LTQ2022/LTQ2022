@@ -41,6 +41,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 @media (max-width:640px) and (orientation:portrait){.top .lbl{display:none}.top{padding:0 12px;font-size:15px}#bCam{right:calc(60px + env(safe-area-inset-right));width:44px;padding:0;justify-content:center}#bTraffic{left:auto;transform:none;right:calc(112px + env(safe-area-inset-right))}#dash{top:calc(60px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bL,#bR{width:84px;height:84px}#bR{left:calc(108px + env(safe-area-inset-left))}#bX{width:92px;height:92px}#bF{width:72px;height:72px;bottom:calc(124px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(118px + env(safe-area-inset-right))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom))}#bS{width:54px;height:54px;right:calc(37px + env(safe-area-inset-right));bottom:calc(214px + env(safe-area-inset-bottom));font-size:12px}}
 @media (max-height:430px){#bS{right:calc(132px + env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom));width:52px;height:52px;font-size:11px}}
 @media (max-height:430px){#dash{transform:translateX(-50%) scale(.8);bottom:calc(2px + env(safe-area-inset-bottom))}}
+#bD{width:70px;height:70px;left:calc(66px + env(safe-area-inset-left));bottom:calc(132px + env(safe-area-inset-bottom));font-size:16px;border-color:rgba(255,80,200,.85);background:rgba(120,20,90,.3)}#bD.on{background:rgba(255,60,190,.65)}#driftHud{position:fixed;left:0;right:0;top:20%;text-align:center;color:#ff5ad9;font-size:30px;font-weight:900;letter-spacing:2px;text-shadow:0 0 12px rgba(255,60,200,.8),0 2px 6px #000;opacity:0;transition:opacity .25s;pointer-events:none}
+@media (max-width:640px) and (orientation:portrait){#bD{width:62px;height:62px;left:calc(60px + env(safe-area-inset-left));bottom:calc(118px + env(safe-area-inset-bottom));font-size:14px}#driftHud{top:30%;font-size:24px}}
 </style></head><body>
 <div id="app"></div><canvas id="fx" style="position:fixed;inset:0;pointer-events:none;z-index:0"></canvas>
 <div id="loading"><b>精神小伙 · 改装车</b><span>加载真实材质与光照…</span><div id="lb"><div id="lbar"></div></div></div>
@@ -48,12 +50,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div id="mode">1D</div><div id="bat">100%</div><div id="spd">0</div><div id="unit">km/h</div><div id="lean">倾角 0°</div></div>
 <div class="btn" id="bL" data-k="left">◀</div><div class="btn" id="bR" data-k="right">▶</div>
 <div class="btn" id="bF" data-k="fwd">▲<span class="lbl">油门</span></div><div class="btn" id="bB" data-k="back">▼<span class="lbl">刹车/倒</span></div>
-<div class="btn" id="bX" data-k="boost">加速</div><div class="btn" id="bG">1挡</div><div class="btn" id="bS">超级<br>档</div>
+<div class="btn" id="bD" data-k="drift">漂移</div><div id="driftHud"></div><div class="btn" id="bX" data-k="boost">加速</div><div class="btn" id="bG">1挡</div><div class="btn" id="bS">超级<br>档</div>
 <button class="top" id="bMenu">🏍 <span id="mapName">地图</span><span class="lbl"> · 换车</span> ▾</button><button class="top" id="bReset">↻</button><button class="top" id="bCam">👁<span class="lbl"> 自由视角</span></button><button class="top" id="bTraffic">🚗<span class="lbl"> 车流</span> 关</button><div id="msg"></div>
 <div id="menu"><div class="card">
 <h3>车型</h3><div class="row"><button class="opt" data-car="ev">九号改装电摩<small>白壳天使眼 · 七彩底盘灯 · 金轮</small></button><button class="opt" data-car="gh">改装鬼火 RSZ<small>渐变拉花 · 金色 Kitaco · 直排</small></button><button class="opt" data-car="zx">张雪机车 820RR<small>原厂红 · 818.8cc 直列三缸 · 99kW</small></button></div>
 <h3>人物</h3><div class="row"><button class="opt" data-rider="rpm">黑人小哥</button><button class="opt" data-rider="rpm2">精神小伙</button><button class="opt" data-rider="soldier">特种兵</button><button class="opt" data-rider="xbot">机器人</button><button class="opt" data-rider="michelle">女骑手</button></div><h3>地图</h3><div class="row"><button class="opt" data-map="coast">落日海岸<small>椰林+晚霞</small></button><button class="opt" data-map="plain">雪原极光<small>雪夜可下路</small></button><button class="opt" data-map="desert">天空之镜<small>盐湖直道飙速</small></button><button class="opt" data-map="city">城市夜景<small>霓虹高架</small></button><button class="opt" data-map="mountain">火山熔岩<small>岩浆盘山路</small></button></div>
-<div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。右侧「超级档」按钮（键盘 F）开启超级档：按住加速最高 1000 km/h，高速下方向键变成换道、车身自动回正；再按一次或按换挡退出。顶部 🚗 开关路上车流，撞车会摔。键盘：方向键/WASD，空格加速，E 换挡，F 超级档，R 扶车。</div>
+<div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。右侧「超级档」按钮（键盘 F）开启超级档：按住加速最高 1000 km/h，高速下方向键变成换道、车身自动回正；再按一次或按换挡退出。顶部 🚗 开关路上车流，撞车会摔。左侧「漂移」按钮（键盘 X）：25 km/h 以上按住，配合方向键甩尾漂移，冒烟留胎印、计分。烧胎：把前轮顶在护栏上再加油，后轮原地狂转冒大烟；没护栏的地方按住刹车 + 油门也能原地烧胎。键盘：方向键/WASD，空格加速，E 换挡，F 超级档，X 漂移，R 扶车。</div>
 <h3>声音</h3><div class="row"><button class="opt sel" id="bSnd">🔊 声音 开<small>发动机声 + 刹车声</small></button></div>
 <button id="mClose">开骑</button>
 <div id="credit">音效（除注明外均为 CC0 公共领域录音）：820RR 无可用原车录音，发动机声用 Triumph 直列三缸录音代替（Street Triple 675 与 Sprint ST，Internet Archive「Bike Engine Sounds」）；鬼火用 Gilera Runner SP50 二冲程踏板录音（Freesound lovretta #140384）；电摩用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车用真实摩托车后轮抱死急刹录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）+ 踏板车刹车录音（Freesound 16HPanskaResatko_Matej #497971）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
@@ -1466,6 +1468,92 @@ function superFx(dt, spd) {
   return k;
 }
 
+// ---------------- 漂移 + 烧胎 (drift + burnout) ----------------
+// Runs before p3_game; st / input / AC / AU etc. are only touched from functions called inside update().
+// 漂移: hold 漂移 (key X) above ~25 km/h -> rear steps out (visual body yaw offset st.slip), tighter line, speed scrub, tyre smoke, black marks, score.
+// 烧胎: front wheel pushed against a rail + throttle (or brake + throttle at a standstill) -> bike held in place, rear wheel spins, big smoke cloud.
+const DR = { on: false, slip: 0, dir: 1, score: 0, best: 0, showT: 0, burn: 0, burnT: 0, src: null, g: null, req: false, smokeAcc: 0, lastMark: null, shake: 0 };
+try { DR.best = +localStorage.getItem('moto_drift_best') || 0; } catch (e) { }
+const DRIFT_MIN_V = 7;
+const SMOKE_N = isMobile ? 90 : 220;
+const smokeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const smoke = []; const smokeGrp = new THREE.Group(); scene.add(smokeGrp);
+for (let i = 0; i < SMOKE_N; i++) { const m = new THREE.SpriteMaterial({ map: smokeTex, color: 0xdddddd, transparent: true, opacity: 0, depthWrite: false, fog: true });
+  const s = new THREE.Sprite(m); s.visible = false; s.renderOrder = 6; smokeGrp.add(s); smoke.push({ s, m, life: 0, max: 1, v: new THREE.Vector3(), s0: 0.4, s1: 3, a: 0.5 }); }
+let smokeI = 0;
+function puff(p, big, fwdV) { const P = smoke[smokeI]; smokeI = (smokeI + 1) % SMOKE_N; P.s.visible = true; P.s.position.copy(p); P.s.position.x += (Math.random() - 0.5) * 0.2; P.s.position.z += (Math.random() - 0.5) * 0.2;
+  P.life = 0; P.max = big ? 2.6 + Math.random() * 1.6 : 1.3 + Math.random() * 0.7; P.s0 = big ? 0.6 : 0.35; P.s1 = big ? 3 + Math.random() * 2.2 : 2.4 + Math.random();
+  P.a = big ? 0.42 : 0.5; P.v.set((Math.random() - 0.5) * (big ? 3 : 1) + Math.sin(st.yaw) * (fwdV || 0), 0.5 + Math.random() * (big ? 1.4 : 0.7), (Math.random() - 0.5) * (big ? 3 : 1) + Math.cos(st.yaw) * (fwdV || 0)); P.m.rotation = Math.random() * 6.28;
+  const c = 0.8 + Math.random() * 0.15; P.m.color.setRGB(c, c, c); }
+// black tyre marks: ring buffer of quads on the road surface
+const MARK_N = isMobile ? 260 : 520;
+const markGeo = new THREE.BufferGeometry(); markGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MARK_N * 4 * 3), 3));
+{ const idx = []; for (let i = 0; i < MARK_N; i++) { const a = i * 4; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } markGeo.setIndex(idx); }
+const markMesh = new THREE.Mesh(markGeo, new THREE.MeshBasicMaterial({ color: 0x0a0a0a, transparent: true, opacity: 0.62, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, side: THREE.DoubleSide }));
+markMesh.frustumCulled = false; markMesh.renderOrder = 2; scene.add(markMesh); let markI = 0;
+function addMark(a, b, w) { const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l * w, nz = dx / l * w; const P = markGeo.attributes.position.array, o = markI * 12;
+  P.set([a.x + nx, a.y, a.z + nz, a.x - nx, a.y, a.z - nz, b.x + nx, b.y, b.z + nz, b.x - nx, b.y, b.z - nz], o); markI = (markI + 1) % MARK_N; markGeo.attributes.position.needsUpdate = true; }
+const _rp = new THREE.Vector3(), _fp = new THREE.Vector3(), _hd = new THREE.Vector3();
+const driftHud = document.getElementById('driftHud');
+function driftEnd() { if (DR.score > 30) { const s = Math.round(DR.score); if (s > DR.best) { DR.best = s; try { localStorage.setItem('moto_drift_best', s); } catch (e) { } }
+    if (driftHud) { driftHud.textContent = '漂移 +' + s + (s >= DR.best ? '  新纪录!' : ''); driftHud.style.opacity = 1; } DR.showT = 1.8; } DR.score = 0; }
+// physics part: called inside update() (every sub-step) after steering, before the bike is moved
+function driftTick(dt, steerIn, fr) {
+  // --- burnout detection ---
+  _hd.set(Math.sin(st.yaw), 0, Math.cos(st.yaw)); let onRail = false;
+  if (Math.abs(st.v) < 9) { _fp.copy(st.pos).addScaledVector(_hd, FRONT_Z + 0.35); const ff = roadFrame(_fp, st.hint); const into = _hd.dot(ff.n);
+    if (RAIL_OUT && ff.lat > LIM_OUT - 0.05 && into > 0.45) onRail = true; if (!M.open && ff.lat < LIM_IN + 0.05 && into < -0.45) onRail = true; }
+  const thr = input.fwd || input.boost; const burnWant = !crashed && !superG && thr && (onRail || (input.back && Math.abs(st.v) < 2.5));
+  DR.burn += ((burnWant ? 1 : 0) - DR.burn) * Math.min(1, dt * (burnWant ? 3 : 2));
+  if (burnWant) { st.v = 0; st.pitchV = Math.min(st.pitchV, 0); st.pitch = Math.max(0, st.pitch - dt * 2); DR.burnT += dt; } else DR.burnT = 0;
+  st.spinR = (st.spinR || 0) + (DR.burn > 0.05 ? 75 * DR.burn * dt : 0);
+  // --- drift ---
+  const want = !!input.drift && !superG && !burnWant && st.v > DRIFT_MIN_V && st.pitch < 0.15 && !((st.hs || 0) > 0.05);
+  if (want && !DR.on) { DR.on = true; DR.dir = steerIn || Math.sign(st.steer) || DR.dir || 1; DR.score = 0; }
+  if (!want && DR.on) { DR.on = false; driftEnd(); }
+  if (DR.on) {
+    if (steerIn) DR.dir += (steerIn - DR.dir) * Math.min(1, dt * 2.2); // steering the other way swings the tail back over slowly
+    const tgt = DR.dir * (0.5 + 0.25 * Math.min(1, st.v / 30)) * (steerIn ? 1 : 0.8);
+    DR.slip += (tgt - DR.slip) * Math.min(1, dt * 3.2);
+    st.yaw += DR.dir * (0.3 + 0.35 * Math.abs(steerIn)) * Math.min(1, st.v / 12) * dt; // tighter line than grip turning
+    st.v = Math.max(0, st.v - (1.0 + 0.03 * st.v) * Math.abs(DR.slip) * dt); // scrubs speed
+    DR.score += st.v * Math.abs(DR.slip) * dt * 6;
+    st.spinR += Math.abs(DR.slip) * 20 * dt;
+  } else DR.slip += (0 - DR.slip) * Math.min(1, dt * 4);
+  st.slip = DR.slip;
+  st.vis = THREE.MathUtils.clamp(st.vis - DR.slip * 0.55, -0.55, 0.55); // counter-steer look on the bars
+}
+// effects part: once per rendered frame
+function driftFx(dt) {
+  if (crashed) { if (DR.on) { DR.on = false; DR.score = 0; } DR.slip = 0; st.slip = 0; DR.burn = 0; }
+  const k = Math.min(1, Math.abs(DR.slip) / 0.5) * (DR.on ? 1 : 0.4), b = DR.burn;
+  bike.updateMatrixWorld(true); _rp.set(0, 0.05, REAR_Z - 0.05); bike.localToWorld(_rp); _rp.y = st.pos.y + 0.1;
+  // smoke
+  const rate = (k > 0.2 ? 55 * k : 0) + b * (isMobile ? 40 : 75); DR.smokeAcc += rate * dt;
+  while (DR.smokeAcc >= 1) { DR.smokeAcc -= 1; puff(_rp, b > 0.3, st.v * 0.6); }
+  for (const P of smoke) { if (!P.s.visible) continue; P.life += dt; const u = P.life / P.max; if (u >= 1) { P.s.visible = false; continue; }
+    P.s.position.addScaledVector(P.v, dt); P.v.multiplyScalar(1 - dt * 0.6); P.v.y += dt * 0.15; const sc = P.s0 + (P.s1 - P.s0) * Math.sqrt(u); P.s.scale.set(sc, sc, 1);
+    const dc = P.s.position.distanceTo(camera.position); P.m.opacity = P.a * (u < 0.1 ? u / 0.1 : 1 - (u - 0.1) / 0.9) * THREE.MathUtils.clamp((dc - 2.2) / 3.5, 0, 1); }
+  // marks
+  const marking = (DR.on && Math.abs(DR.slip) > 0.15) || b > 0.3; _fp.set(_rp.x, st.pos.y + 0.025, _rp.z);
+  if (marking) { if (!DR.lastMark) DR.lastMark = _fp.clone(); else if (DR.lastMark.distanceTo(_fp) > 0.25) { addMark(DR.lastMark, _fp, 0.07 + 0.03 * k); DR.lastMark.copy(_fp); }
+    else if (b > 0.3 && Math.random() < dt * 20) { _hd.set(Math.sin(st.yaw), 0, Math.cos(st.yaw)); const a = _fp.clone().addScaledVector(_hd, -0.12), c = _fp.clone().addScaledVector(_hd, 0.12); addMark(a, c, 0.075); } }
+  else DR.lastMark = null;
+  // body shake while burning out
+  if (b > 0.05 && !crashed) { bike.position.x += (Math.random() - 0.5) * 0.012 * b; bike.rotation.z += (Math.random() - 0.5) * 0.02 * b; }
+  // audio: real rear-lock skid loop
+  if (typeof AC !== 'undefined' && AC && AU && AU.brkBus) {
+    if (!DR.req) { DR.req = true; DR.g = AC.createGain(); DR.g.gain.value = 0; DR.g.connect(AU.brkBus); loadSfx('drift_loop', buf => { DR.src = loopSrc('drift_loop', buf, DR.g); }); }
+    const lvl = crashed ? 0 : Math.max(k * Math.min(1, st.v / 10) * 0.9, b * 1.05); DR.g.gain.setTargetAtTime(lvl, AC.currentTime, 0.06);
+    if (DR.src) DR.src.playbackRate.setTargetAtTime(b > k ? 1.05 + 0.1 * Math.sin(tGlobal * 7) : 0.9 + 0.2 * Math.min(1, st.v / 30), AC.currentTime, 0.1);
+  }
+  // HUD
+  if (driftHud) { if (DR.on && DR.score > 5) { driftHud.textContent = '漂移 ' + Math.round(DR.score); driftHud.style.opacity = 1; DR.showT = 0.01; }
+    else if (b > 0.3) { driftHud.textContent = '烧胎!'; driftHud.style.opacity = 1; DR.showT = 0.4; }
+    else if (DR.showT > 0) { DR.showT -= dt; if (DR.showT <= 0) driftHud.style.opacity = 0; } }
+}
+
 // ---------------- rider (ReadyPlayerMe, recoloured: Black guy, no helmet) ----------------
 const RIDERS = [['rpm', '黑人小哥', 'readyplayer.me.glb', 'rpm.glb'], ['rpm2', '精神小伙', 'readyplayer.me.glb', 'rpm.glb'], ['soldier', '特种兵', 'Soldier.glb', 'soldier.glb'], ['xbot', '机器人', 'Xbot.glb', 'xbot.glb'], ['michelle', '女骑手', 'Michelle.glb', 'michelle.glb']];
 const RIDER_ID = (() => { const q = new URLSearchParams(location.search).get('rider') || lsGet('moto_rider'); return RIDERS.find(r => r[0] === q) ? q : 'rpm'; })();
@@ -1583,10 +1671,10 @@ riderRB.addShape(new CANNON.Box(new CANNON.Vec3(0.22, 0.45, 0.16)), new CANNON.V
 let crashed = false, crashT = 0, riderGhost = null;
 
 // ---------------- controls ----------------
-const KEYS = ['left', 'right', 'fwd', 'back', 'boost'];
-const kin = { left: 0, right: 0, fwd: 0, back: 0, boost: 0 }; // keyboard / external
-const tin = { left: 0, right: 0, fwd: 0, back: 0, boost: 0 }; // touch
-const input = { left: 0, right: 0, fwd: 0, back: 0, boost: 0 };
+const KEYS = ['left', 'right', 'fwd', 'back', 'boost', 'drift'];
+const kin = { left: 0, right: 0, fwd: 0, back: 0, boost: 0, drift: 0 }; // keyboard / external
+const tin = { left: 0, right: 0, fwd: 0, back: 0, boost: 0, drift: 0 }; // touch
+const input = { left: 0, right: 0, fwd: 0, back: 0, boost: 0, drift: 0 };
 let gear = 1;
 const touchMap = new Map();
 function keyAt(x, y) { const el = document.elementFromPoint(x, y); const b = el && el.closest && el.closest('[data-k]'); return b ? b.dataset.k : null; }
@@ -1605,7 +1693,7 @@ function onTouch(e) {
 // mouse fallback for desktop clicks on buttons
 document.querySelectorAll('[data-k]').forEach(b => { b.addEventListener('mousedown', () => { kin[b.dataset.k] = 1; b.classList.add('on'); audioStart(); }); const up = () => { kin[b.dataset.k] = 0; b.classList.remove('on'); }; b.addEventListener('mouseup', up); b.addEventListener('mouseleave', up); });
 addEventListener('contextmenu', e => e.preventDefault());
-const keymap = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'fwd', KeyW: 'fwd', ArrowDown: 'back', KeyS: 'back', ShiftLeft: 'boost', ShiftRight: 'boost', Space: 'boost' };
+const keymap = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'fwd', KeyW: 'fwd', ArrowDown: 'back', KeyS: 'back', ShiftLeft: 'boost', ShiftRight: 'boost', Space: 'boost', KeyX: 'drift' };
 function setGear(g) { gear = g; const b = document.getElementById('bG'); if (b) { b.textContent = gear + '挡'; b.classList.toggle('g2', gear === 2); b.classList.toggle('g3', gear === 3); } }
 function toggleGear() { if (superG) { setSuper(false); return; } setGear(gear % 3 + 1); }
 function toggleSuper() { setSuper(!superG); }
@@ -1633,7 +1721,7 @@ const hudSpd = document.getElementById('spd'), hudMode = document.getElementById
 // brakes v3: one-shot real motorcycle rear-lock skid (A.Warner, Freesound #764522, CC BY-NC 4.0) for zx/gh; scooter braking one-shot + scrub loop (16HPanskaResatko_Matej, Freesound #497971, CC0).
 // Loop files are mp3 with 0.2 s of circular padding each side; loopStart/loopEnd point at the seamless loop inside. 'ref' = firing Hz of the loop.
 const SFX_BASE = CFG.sfx || 'sfx/';
-const SFXM = {"zx_idle": {"pre": 0.2, "len": 4.75, "ref": 40}, "zx_lo": {"pre": 0.2, "len": 2.0544, "ref": 56}, "zx_mid": {"pre": 0.2, "len": 2.0722, "ref": 112}, "zx_hi": {"pre": 0.2, "len": 2.95726, "ref": 235}, "gh_lo": {"pre": 0.2, "len": 3.94998, "ref": 112}, "gh_hi": {"pre": 0.2, "len": 3.24533, "ref": 210}, "ev_mo": {"pre": 0.2, "len": 4.25002, "ref": 74}, "ev_hi": {"pre": 0.2, "len": 3.73755, "ref": 5800}, "brk_disc": {"pre": 0.2, "len": 5.95, "ref": null}, "brk_tire": {"pre": 0, "len": 0.62499, "ref": null, "oneshot": true}, "brk_skid": {"pre": 0, "len": 1.4, "ref": null, "oneshot": true}, "brk_scoot": {"pre": 0, "len": 1.45002, "ref": null, "oneshot": true}, "brk_rub": {"pre": 0.2, "len": 0.7, "ref": null}};
+const SFXM = {"zx_idle": {"pre": 0.2, "len": 4.75, "ref": 40}, "zx_lo": {"pre": 0.2, "len": 2.0544, "ref": 56}, "zx_mid": {"pre": 0.2, "len": 2.0722, "ref": 112}, "zx_hi": {"pre": 0.2, "len": 2.95726, "ref": 235}, "gh_lo": {"pre": 0.2, "len": 3.94998, "ref": 112}, "gh_hi": {"pre": 0.2, "len": 3.24533, "ref": 210}, "ev_mo": {"pre": 0.2, "len": 4.25002, "ref": 74}, "ev_hi": {"pre": 0.2, "len": 3.73755, "ref": 5800}, "brk_disc": {"pre": 0.2, "len": 5.95, "ref": null}, "brk_tire": {"pre": 0, "len": 0.62499, "ref": null, "oneshot": true}, "brk_skid": {"pre": 0, "len": 1.4, "ref": null, "oneshot": true}, "brk_scoot": {"pre": 0, "len": 1.45002, "ref": null, "oneshot": true}, "brk_rub": {"pre": 0.2, "len": 0.7, "ref": null}, "drift_loop": {"pre": 0.2, "len": 0.85, "ref": null}};
 const ENG = { zx: ['zx_idle', 'zx_lo', 'zx_mid', 'zx_hi'], gh: ['gh_lo', 'gh_hi'], ev: ['ev_mo', 'ev_hi'] };
 const BRK = { zx: { disc: 0.4, tire: 0.75, all: 1.42, shot: 'brk_skid' }, gh: { disc: 0.45, tire: 0.6, all: 1.12, shot: 'brk_skid' }, ev: { disc: 0.4, tire: 0.55, all: 1.3, shot: 'brk_scoot' } }; // ev: less tyre screech (lighter bike), level kept within 3 dB of its motor
 let AC = null, master = null, motorOsc, motorGain, motorFilt, windGain, motorOsc2, sndOn = lsGet('moto_snd') !== '0';
@@ -1853,6 +1941,7 @@ function update(dt, last = true, fdt = dt) {
         if (fr.lat > hi) latV = Math.min(latV, (hi - fr.lat) * 3); if (fr.lat < lo) latV = Math.max(latV, (lo - fr.lat) * 3);
         const yawT = ty + Math.atan2(latV, Math.max(1, st.v)) * nd;
         st.yaw += angDiff(yawT, st.yaw) * Math.min(1, dt * 7 * hs); st.hsLean = steerIn * 0.28 * hs; } else st.hsLean = 0; }
+    driftTick(dt, steerIn, fr);
     const latA = st.v * st.v * (kappa + (st.kr || 0)); const leanT = THREE.MathUtils.clamp(Math.atan(latA / G) * 0.95 + (st.hsLean || 0), -0.95, 0.95) * (1 - 0.6 * THREE.MathUtils.clamp((st.v - 70) / 80, 0, 1)) * Math.min(1, Math.max(0, st.v) / 14);
     st.lean += (leanT - st.lean) * Math.min(1, dt * 5);
     // wheelie dynamics
@@ -1869,16 +1958,16 @@ function update(dt, last = true, fdt = dt) {
     const f2 = roadFrame(st.pos, st.hint); st.hint = f2.i;
     const head = new THREE.Vector3(Math.sin(st.yaw), 0, Math.cos(st.yaw)); const into = head.dot(f2.n) * st.v;
     const tangYaw = Math.atan2(f2.t.x, f2.t.z);
-    const railK = st.v > 55 ? 30 : 12; // at hyper speed a rail graze scrapes instead of throwing you off
+    const railK = st.v > 55 || Math.abs(st.slip || 0) > 0.1 ? 30 : 12; // drifting into a rail scrapes too // at hyper speed a rail graze scrapes instead of throwing you off
     if (f2.lat > LIM_OUT) { if (RAIL_OUT && into > railK) crash('rail', 1); else { st.pos.addScaledVector(f2.n, LIM_OUT - f2.lat); st.v *= RAIL_OUT ? 0.985 : 0.99; if (head.dot(f2.t) >= 0) st.yaw += angDiff(tangYaw, st.yaw) * 0.2; } }
     if (f2.lat < LIM_IN) { if (!M.open && -into > railK) crash('rail', -1); else { st.pos.addScaledVector(f2.n, LIM_IN - f2.lat); st.v *= 0.985; if (head.dot(f2.t) >= 0) st.yaw += angDiff(tangYaw, st.yaw) * 0.2; } }
     const f3 = roadFrame(st.pos, st.hint); const sy = surfaceY(f3, st.pos.x, st.pos.z); st.pos.y += (sy - st.pos.y) * Math.min(1, dt * 25); if (Math.abs(sy - st.pos.y) > 2) st.pos.y = sy;
     const bump = (fbm(f3.s * 0.7, f3.lat * 0.5) - 0.5) * (off ? 0.09 : 0.012) * Math.min(1, Math.abs(st.v) / 10);
     st.suspV += (-(st.susp) * 180 - st.suspV * 16 + (acc < -3 ? -0.4 : 0)) * dt; st.susp += st.suspV * dt;
-    bike.position.set(st.pos.x, st.pos.y + bump, st.pos.z); bike.rotation.set(0, st.yaw, 0, 'YXZ');
+    bike.position.set(st.pos.x, st.pos.y + bump, st.pos.z); bike.rotation.set(0, st.yaw + (st.slip || 0), 0, 'YXZ');
     bike.rotation.z = -st.lean;
     bikePitch.rotation.x = -st.pitch; bikeBody.position.y = -WR + st.susp;
-    st.wheelA += st.v * dt; wheelsR.forEach(w => w.rotation.x = st.wheelA / (w.userData.r || WR)); wheelsF.forEach(w => w.rotation.x = st.wheelA / (w.userData.r || WF));
+    st.wheelA += st.v * dt; wheelsR.forEach(w => w.rotation.x = (st.wheelA + (st.spinR || 0) * WR) / (w.userData.r || WR)); wheelsF.forEach(w => w.rotation.x = st.wheelA / (w.userData.r || WF));
     steerInner.quaternion.setFromAxisAngle(STEER_AX, st.vis);
     if (riderReady) { rider.rotation.z = st.lean * 0.12; if (last && Math.abs(st.vis - (st.visB || 0)) > 0.004) { st.visB = st.vis; armIK(); rebakeArms(); } }
     st.batt = Math.max(0, st.batt - Math.max(0, acc) * Math.abs(st.v) * dt * 0.00004);
@@ -1920,7 +2009,7 @@ function update(dt, last = true, fdt = dt) {
   // night: move pooled lamp lights to nearest lamps
   lampT += dt; if (lampLights.length && lampT > 0.25) { lampT = 0; const ps = lampPts.map(p => [p.distanceToSquared(tgt), p]).sort((a, b) => a[0] - b[0]); lampLights.forEach((l, i) => { if (ps[i]) l.position.copy(ps[i][1]); }); }
   if (!last) return;
-  dt = fdt; superFx(dt, spd);
+  dt = fdt; superFx(dt, spd); driftFx(dt);
   // HUD
   const kmh = spd * 3.6; const mode = crashed ? '—' : (input.back && st.v <= 0.4 && !input.fwd ? 'R' : (superG ? '超级档' + (input.boost ? '·S' : '') : gear + (input.boost ? 'S' : 'D')));
   hudSpd.textContent = Math.round(kmh); hudMode.textContent = mode; hudMode.className = superG ? 'super' : /S/.test(mode) ? 'boost' : ''; hudBat.textContent = Math.round(st.batt) + '%'; hudLean.textContent = crashed ? '—' : st.pitch > 0.08 ? ('翘头 ' + Math.round(st.pitch * 57.3) + '°') : ('倾角 ' + Math.round(Math.abs(st.lean) * 57.3) + '°' + (st.off ? ' · 越野' : ''));
