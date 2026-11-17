@@ -926,6 +926,7 @@ function x5Slab(parent, L, mats, pv) {
     const sh = new THREE.Shape(); mk(rings[0], sh); rings.slice(1).forEach(h => { const p = new THREE.Path(); mk(h, p); sh.holes.push(p); });
     const g0 = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: L.b > 0, bevelThickness: L.b, bevelSize: L.b * 0.8, bevelOffset: 0, bevelSegments: 3, curveSegments: 4 });
     g0.translate(0, 0, -d / 2); g0.rotateY(-Math.PI / 2);
+    if (L.tpy) { const A = g0.attributes.position, [[ya, fa], [yb, fb]] = L.tpy; for (let i = 0; i < A.count; i++) { const t = THREE.MathUtils.clamp((A.getY(i) + pv[1] - ya) / (yb - ya), 0, 1); A.setX(i, A.getX(i) * (fa + (fb - fa) * t)); } } // narrower towards the top (fairing: stays inside the nose shell)
     if (L.tp) { const A = g0.attributes.position, [[za, fa], [zb, fb]] = L.tp; for (let i = 0; i < A.count; i++) { const t = THREE.MathUtils.clamp((A.getZ(i) + pv[2] - za) / (zb - za), 0, 1); A.setX(i, A.getX(i) * (fa + (fb - fa) * t)); } } // narrower towards the nose / tail
     g0.translate(L.x, 0, 0);
     // regroup triangles: 0 = photo side (-x) face, 1 = other side (+x) face, 2 = edges/top; UVs = planar side projection in bike (z, y)
@@ -941,6 +942,194 @@ function x5Slab(parent, L, mats, pv) {
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g0.dispose();
     const m = new THREE.Mesh(g, L.wall && mats.walls[L.wall] ? [mats[0], mats[1], mats.walls[L.wall]] : mats); m.castShadow = m.receiveShadow = true; m.name = 'x5_' + L.n; parent.add(m); out.push(m); });
   return out;
+}
+// ======== polish pass: 3D front nose with the straightened front photo, padded quilted seat, 110/70-12 front wheel, spot lamps, aircraft strobes ========
+// smooth (cubic Hermite / Catmull-Rom) lookup through [x, y] knots
+function x5Spl(T, x) { const n = T.length; if (x <= T[0][0]) return T[0][1]; if (x >= T[n - 1][0]) return T[n - 1][1];
+  let i = 1; while (T[i][0] < x) i++; const x0 = T[i - 1][0], x1 = T[i][0], y0 = T[i - 1][1], y1 = T[i][1], h = x1 - x0, t = (x - x0) / h;
+  const m = j => j <= 0 ? (T[1][1] - T[0][1]) / (T[1][0] - T[0][0]) : j >= n - 1 ? (T[n - 1][1] - T[n - 2][1]) / (T[n - 1][0] - T[n - 2][0]) : (T[j + 1][1] - T[j - 1][1]) / (T[j + 1][0] - T[j - 1][0]);
+  const m0 = m(i - 1) * h, m1 = m(i) * h, t2 = t * t, t3 = t2 * t; return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * m1; }
+// tangent-space normal map from a height canvas (white = high), tiling
+function x5NormalTex(c, strength) { const w = c.width, h = c.height, g = c.getContext('2d'), src = g.getImageData(0, 0, w, h).data, out = g.createImageData(w, h), o = out.data;
+  const H = (x, y) => src[((((y % h) + h) % h) * w + (((x % w) + w) % w)) * 4] / 255;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const nx = -(H(x + 1, y) - H(x - 1, y)) * strength, ny = (H(x, y + 1) - H(x, y - 1)) * strength, l = Math.hypot(nx, ny, 1), k = (y * w + x) * 4;
+    o[k] = (nx / l * 0.5 + 0.5) * 255; o[k + 1] = (ny / l * 0.5 + 0.5) * 255; o[k + 2] = (1 / l * 0.5 + 0.5) * 255; o[k + 3] = 255; }
+  const c2 = document.createElement('canvas'); c2.width = w; c2.height = h; c2.getContext('2d').putImageData(out, 0, 0); const t = new THREE.CanvasTexture(c2); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; }
+function x5Cv(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return c; }
+function x5Tex(c, srgb = true) { const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t; }
+
+// ---- front nose: two-half shell (sharp centre crease, pointed V nose, raked screen), front-projected with the owner's front photo ----
+// x5_front.png = right bike of the front photo, straightened about its centre line (x5polish/front.py): texture u spans [U0, U1] of the fairing
+// half-width units (0.5 = centre line, 0.47 u = 0.144 m), rows are photo rows Y0..Y1. Rows map to height through a 20 deg-from-above view
+// (q = y cos t - z sin t), so the raked screen keeps its proportions; the lens bottom (row Yb) sits at y 0.66, the screen top (row Yt) at y 1.27 (above the bar, as in the photo); 1 u = 0.37 m keeps the photo's aspect.
+const X5N = { prof: [[0.60, 0.742], [0.66, 0.752], [0.72, 0.762], [0.80, 0.756], [0.86, 0.733], [0.92, 0.69], [1.0, 0.622], [1.06, 0.565], [1.12, 0.505], [1.17, 0.47], [1.23, 0.43], [1.27, 0.405], [1.33, 0.37]],
+  t: 0.35, U0: -0.06, U1: 1.06, Y0: 1068, Y1: 1500, Yb: 1492, Yt: 1080, yb: 0.66, yt: 1.27, mpu: 0.37 };
+X5N.zc = y => x5Spl(X5N.prof, y);
+X5N.sw = (x, y) => { const a = Math.min(1.4, Math.abs(x) / 0.175), w = THREE.MathUtils.smoothstep(y, 0.9, 1.03); return (0.026 * a + 0.062 * Math.pow(a, 1.9)) * (1 - w) + (0.014 * a + 0.05 * a * a) * w; };
+X5N.clampZ = y => X5N.zc(y) - X5N.sw(0.175, y) + 0.012 - 0.025 * THREE.MathUtils.smoothstep(y, 0.86, 1.0); // the traced side slab stays behind the shell
+function x5Nose(St, PV, tex, etex, night) {
+  const N = X5N, ct = Math.cos(N.t), stt = Math.sin(N.t), q = (x, y) => y * ct - (N.zc(y) - N.sw(x, y)) * stt;
+  const qB = q(0, N.yb), qT = q(0, N.yt), k = (qT - qB) / (N.Yb - N.Yt);
+  const solve = (x, Q) => { let lo = 0.4, hi = 1.45; for (let i = 0; i < 28; i++) { const m = (lo + hi) / 2; if (q(x, m) < Q) lo = m; else hi = m; } return (lo + hi) / 2; };
+  const NU = 28, NV = 80, mk = (ua, ub) => { const pos = [], uv = [], idx = [];
+    for (let j = 0; j <= NV; j++) { const Y = N.Y0 + (N.Y1 - N.Y0) * j / NV, Q = qB + (N.Yb - Y) * k;
+      for (let i = 0; i <= NU; i++) { const u = ua + (ub - ua) * i / NU, x = (u - 0.5) * N.mpu, y = solve(x, Q), z = N.zc(y) - N.sw(x, y);
+        pos.push(x - PV[0], y - PV[1], z - PV[2]); uv.push((u - N.U0) / (N.U1 - N.U0), 1 - (Y - N.Y0) / (N.Y1 - N.Y0)); } }
+    for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) { const a = j * (NU + 1) + i, b = a + 1, c = a + NU + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return g; };
+  const mat = phys({ map: tex, alphaTest: 0.5, roughness: 0.3, metalness: 0.05, clearcoat: 0.9, clearcoatRoughness: 0.1, emissive: 0xffffff, emissiveMap: etex, emissiveIntensity: night ? 1.7 : 1.15 });
+  mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * 0.22;'); }; // photo already carries its lighting: lift it a little
+  [mk(N.U0, 0.5), mk(0.5, N.U1)].forEach(g => { const m = new THREE.Mesh(g, mat); m.castShadow = true; m.name = 'x5_nose'; St.add(m); });
+}
+
+// ---- padded seat: lofted superellipse sections, crowned top, rolled edges, dip at the rider, rising + tapering to the rear, quilted ----
+function x5Seat(B) {
+  const zF = 0.035, zR = -0.81, NS = 110, NT = 64, crown = 0.02;
+  const top = [[-0.81, 0.93], [-0.78, 0.945], [-0.72, 0.955], [-0.60, 0.94], [-0.47, 0.91], [-0.36, 0.884], [-0.22, 0.869], [-0.12, 0.864], [-0.04, 0.85], [0.035, 0.815]];
+  const wid = [[-0.81, 0.085], [-0.78, 0.105], [-0.70, 0.125], [-0.55, 0.148], [-0.35, 0.156], [-0.15, 0.152], [-0.03, 0.135], [0.035, 0.10]];
+  const ybot = z => 0.677 + 0.244 * (-0.027 - z);
+  const sec = (z, th) => { const dE = Math.min(z - zR, zF - z), Rr = z > -0.3 ? 0.07 : 0.055, f = dE >= Rr ? 1 : Math.sqrt(Math.max(0, 1 - (1 - dE / Rr) ** 2));
+    const hw = x5Spl(wid, z), yt = x5Spl(top, z), yb = ybot(z), hh = (yt - crown - yb) / 2, yc = yb + hh, c = Math.cos(th), s = Math.sin(th), e = s > 0 ? 2.7 : 6;
+    let x = hw * Math.sign(c) * Math.abs(c) ** (2 / e), y = hh * Math.sign(s) * Math.abs(s) ** (2 / e); if (s > 0) y += crown * Math.max(0, 1 - (x / hw) ** 2) * s;
+    return [x * f, yc + y * f, z]; };
+  const pos = [], uv = [], idx = [], Q = 0.07;
+  for (let i = 0; i <= NS; i++) { const sp = 0.5 - 0.5 * Math.cos(Math.PI * i / NS), z = zF + (zR - zF) * sp; let arc = 0, prev = null; const ring = [];
+    for (let j = 0; j <= NT; j++) { const th = Math.PI / 2 + j / NT * Math.PI * 2, p = sec(z, th); if (prev) arc += Math.hypot(p[0] - prev[0], p[1] - prev[1]); prev = p; ring.push([p, arc]); }
+    ring.forEach(([p, a]) => { pos.push(...p); uv.push(a / Q, -z / Q); }); }
+  for (let i = 0; i < NS; i++) for (let j = 0; j < NT; j++) { const a = i * (NT + 1) + j, b = a + 1, c = a + NT + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  // quilt: diamond cells (stitched grooves on both diagonals), puffy foam between, a faint monogram flower in each cell
+  const S = 256, dist = (x, y) => { const m1 = (((x - y) % S) + S) % S, m2 = (((x + y) % S) + S) % S; return Math.min(Math.min(m1, S - m1), Math.min(m2, S - m2)) / Math.SQRT2; };
+  const hc = x5Cv(S, S, (c, W, H) => { const im = c.createImageData(W, H); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const d = dist(x, y), k = (y * W + x) * 4;
+      let h = Math.sqrt(Math.min(1, d / (S * 0.3))) * 0.9 + 0.1; if (d < 3.2) h = 0.02 + ((Math.floor((x + y) / 7) % 2) ? 0.0 : 0.05); im.data[k] = im.data[k + 1] = im.data[k + 2] = h * 255; im.data[k + 3] = 255; } c.putImageData(im, 0, 0); });
+  const col = x5Cv(S, S, (c, W, H) => { c.fillStyle = '#121214'; c.fillRect(0, 0, W, H); const sh = c.createImageData(W, H); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const d = dist(x, y), k = (y * W + x) * 4, b = Math.min(1, d / (S * 0.32));
+      const v = 12 + 16 * b; sh.data[k] = sh.data[k + 1] = v; sh.data[k + 2] = v + 2; sh.data[k + 3] = 255; if (d < 2.4 && (Math.floor((x + y) / 7) % 2) === 0) { sh.data[k] = sh.data[k + 1] = 96; sh.data[k + 2] = 100; } }
+    c.putImageData(sh, 0, 0); c.fillStyle = 'rgba(150,150,158,0.35)'; c.font = 'bold 40px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; [[W / 2, 0], [0, H / 2], [W, H / 2], [W / 2, H]].forEach(([x, y]) => c.fillText('✦', x, y));
+    c.font = '30px Georgia, serif'; c.fillStyle = 'rgba(150,150,158,0.22)'; [[W / 2, H / 2], [0, 0], [W, 0], [0, H], [W, H]].forEach(([x, y]) => c.fillText('✿', x, y)); });
+  const mat = phys({ map: x5Tex(col), normalMap: x5NormalTex(hc, 5), normalScale: new THREE.Vector2(1.1, 1.1), roughness: 0.5, metalness: 0, sheen: 0.8, sheenColor: 0x3c3c40, sheenRoughness: 0.45, clearcoat: 0.25, clearcoatRoughness: 0.4 });
+  const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true; m.name = 'x5_seat'; B.add(m);
+  // piping along both rolled edges + a lower side seam
+  const pip = new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.45, metalness: 0.1 });
+  [[0.30], [0.70], [-0.10], [1.10]].forEach(([th]) => { const pts = []; for (let i = 0; i <= 60; i++) { const sp = 0.5 - 0.5 * Math.cos(Math.PI * (0.03 + 0.94 * i / 60)); pts.push(new THREE.Vector3(...sec(zF + (zR - zF) * sp, th * Math.PI))); }
+    const t = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, th > 0 && th < 1 ? 0.0045 : 0.0032, 6), pip); B.add(t); });
+  return m;
+}
+
+// ---- front wheel: 110/70-12 sport tyre (lathe, rounded crown, grooved tread + sidewall lettering via normal map), polished multi-spoke rim, big drilled floating disc ----
+function x5FrontWheel(r, w, rimR) {
+  const g = new THREE.Group(), Rc = 0.064, half = [[rimR + 0.002, 0.039], [rimR + 0.012, 0.047], [rimR + 0.026, 0.0525], [0.186, 0.0556], [0.196, 0.0566]];
+  for (let i = 0; i <= 12; i++) { const a = (1 - i / 12) * 1.1; half.push([r - Rc + Rc * Math.cos(a), Rc * Math.sin(a)]); }
+  const full = half.map(p => [p[0], -p[1]]).concat(half.slice(0, -1).reverse()); const arc = [0]; for (let i = 1; i < full.length; i++) arc.push(arc[i - 1] + Math.hypot(full[i][0] - full[i - 1][0], full[i][1] - full[i - 1][1]));
+  const LA = arc[arc.length - 1], vS = arc[4] / LA; // sidewall band = bead .. widest point
+  const tg = new THREE.LatheGeometry(full.map(p => new THREE.Vector2(p[0], p[1])), 144); { const U = tg.attributes.uv, n = full.length; for (let i = 0; i < U.count; i++) U.setY(i, arc[i % n] / LA); } tg.rotateZ(Math.PI / 2);
+  const TW = 2048, TH = 512, around = 2 * Math.PI * r;
+  const paint = (c, W, H, hgt) => { c.fillStyle = hgt ? '#9a9a9a' : '#1d1d1f'; c.fillRect(0, 0, W, H);
+    if (!hgt) { c.fillStyle = '#232326'; c.fillRect(0, 0, W, vS * H); c.fillRect(0, (1 - vS) * H, W, vS * H); }
+    // sport tread: alternating swept grooves from near the centre line out to the shoulder
+    c.strokeStyle = hgt ? '#000' : '#0a0a0b'; c.lineCap = 'round'; const N = 30, P = W / N, mid = H / 2;
+    for (let k = 0; k < N; k++) { const x = k * P; [-1, 1].forEach(sd => { const off = sd < 0 ? P / 2 : 0; c.lineWidth = hgt ? 11 : 8; c.beginPath(); c.moveTo(x + off, mid + sd * H * 0.035); c.bezierCurveTo(x + off + P * 0.35, mid + sd * H * 0.09, x + off + P * 0.75, mid + sd * H * 0.17, x + off + P * 1.3, mid + sd * H * 0.27); c.stroke();
+      c.lineWidth = hgt ? 7 : 5; c.beginPath(); c.moveTo(x + off + P * 0.55, mid + sd * H * 0.2); c.lineTo(x + off + P * 0.85, mid + sd * H * 0.235); c.stroke(); }); }
+    c.fillStyle = hgt ? '#9a9a9a' : '#1d1d1f'; c.fillRect(0, mid - 3, W, 6); // centre strip
+    // sidewall lettering (raised, low contrast) on both sidewalls; the top band is rotated 180 deg so both read outward
+    const band = vS * H, items = [['SPORT·MAX', 'italic 900 40px Arial Black, Arial'], ['110/70-12  47L', 'bold 22px Arial'], ['TUBELESS', 'bold 22px Arial'], ['DOT 2026  MAX LOAD 175 kg', 'bold 16px Arial']];
+    const row = (y0, flip) => { c.save(); if (flip) { c.translate(W, y0 + band); c.rotate(Math.PI); } else c.translate(0, y0); c.fillStyle = hgt ? '#ffffff' : '#56565a'; c.textBaseline = 'middle'; c.textAlign = 'left';
+      const ws = items.map(([t, f]) => { c.font = f; return c.measureText(t).width; }), gap = (W / 2 - ws.reduce((a, b) => a + b, 0)) / items.length;
+      for (let rep = 0; rep < 2; rep++) { let x = rep * W / 2 + gap / 2; items.forEach(([t, f], i) => { c.font = f; c.fillText(t, x, band * 0.55); x += ws[i] + gap; }); } c.restore(); };
+    row((1 - vS) * H, false); row(0, true); };
+  const alb = x5Tex(x5Cv(TW, TH, (c, W, H) => paint(c, W, H, false))), nrm = x5NormalTex(x5Cv(TW, TH, (c, W, H) => paint(c, W, H, true)), 3.2);
+  const tire = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ map: alb, normalMap: nrm, normalScale: new THREE.Vector2(1.2, 1.2), roughness: 0.82, metalness: 0 })); tire.castShadow = tire.receiveShadow = true; tire.name = 'x5_ftire'; g.add(tire);
+  // rim: dark barrel + polished machined flanges
+  const rp = [[rimR + 0.010, -0.047], [rimR + 0.011, -0.041], [rimR + 0.001, -0.038], [rimR - 0.006, -0.028], [rimR - 0.011, -0.012], [rimR - 0.012, 0]]; const rfull = rp.concat(rp.slice(0, -1).reverse().map(p => [p[0], -p[1]]));
+  const rg = new THREE.LatheGeometry(rfull.map(p => new THREE.Vector2(p[0], p[1])), 96); rg.rotateZ(Math.PI / 2); g.add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: 0x1a1b1e, metalness: 0.8, roughness: 0.35, side: THREE.DoubleSide })));
+  const polish = new THREE.MeshStandardMaterial({ color: 0xe2e5ea, metalness: 1, roughness: 0.1 });
+  [-1, 1].forEach(s => { const lip = new THREE.Mesh(new THREE.TorusGeometry(rimR + 0.006, 0.0055, 10, 96), polish); lip.rotation.y = Math.PI / 2; lip.position.x = s * 0.043; g.add(lip);
+    const band = new THREE.Mesh(new THREE.RingGeometry(rimR - 0.004, rimR + 0.004, 96), polish); band.rotation.y = s * Math.PI / 2; band.position.x = s * 0.0395; g.add(band); });
+  // 6 split (Y) spokes = 12 thin polished arms, slightly swept
+  const shapes = [], hubR = 0.042, sr = rimR - 0.009;
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; [-1, 1].forEach(sd => { const aH = a + sd * 0.07, aR = a + sd * 0.16 + 0.05, wH = 0.0075, wR = 0.0052, sh = new THREE.Shape();
+    const P = (ang, rr, o) => [Math.cos(ang) * rr - Math.sin(ang) * o, Math.sin(ang) * rr + Math.cos(ang) * o];
+    sh.moveTo(...P(aH, hubR - 0.006, -wH)); sh.quadraticCurveTo(...P((aH + aR) / 2 + 0.02, (hubR + sr) / 2, -(wH + wR) / 2), ...P(aR, sr, -wR)); sh.lineTo(...P(aR, sr + 0.006, wR)); sh.quadraticCurveTo(...P((aH + aR) / 2 + 0.02, (hubR + sr) / 2, (wH + wR) / 2), ...P(aH, hubR - 0.006, wH)); sh.closePath(); shapes.push(sh); }); }
+  const sg = new THREE.ExtrudeGeometry(shapes, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.0025, bevelSegments: 2, curveSegments: 10 }); sg.translate(0, 0, -0.006 + 0.008); sg.rotateY(Math.PI / 2);
+  const spk = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0xd4d7dc, metalness: 1, roughness: 0.16 })); spk.castShadow = true; g.add(spk);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(hubR, hubR, 0.085, 32), new THREE.MeshStandardMaterial({ color: 0xc8cbd0, metalness: 1, roughness: 0.22 })); hub.rotation.z = Math.PI / 2; g.add(hub);
+  [-1, 1].forEach(s => { const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.012, 20), new THREE.MeshStandardMaterial({ color: 0x18181a, metalness: 0.8, roughness: 0.3 })); cap.rotation.z = Math.PI / 2; cap.position.x = s * 0.047; g.add(cap); });
+  { const v = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.03, 8), polish); v.position.set(0.02, rimR - 0.01, 0); v.rotation.z = 0.5; g.add(v); } // valve
+  // big drilled floating disc on the right (-x) with 10 buttons and a 5-arm carrier
+  const dR = 0.132, dI = 0.088, dc = x5Cv(512, 512, (d) => { d.fillStyle = '#fff'; d.beginPath(); d.arc(256, 256, 255, 0, 7); d.fill(); d.globalCompositeOperation = 'destination-out'; d.beginPath(); d.arc(256, 256, 256 * dI / dR, 0, 7); d.fill();
+    for (let k = 0; k < 60; k++) { const a = k / 60 * 6.283, rr = 256 * (0.75 + (k % 3) * 0.075); d.beginPath(); d.arc(256 + Math.cos(a + (k % 3) * 0.035) * rr, 256 + Math.sin(a + (k % 3) * 0.035) * rr, 5.5, 0, 7); d.fill(); } });
+  const discM = new THREE.MeshStandardMaterial({ color: 0xbfc1c6, metalness: 1, roughness: 0.3, alphaMap: new THREE.CanvasTexture(dc), alphaTest: 0.5, side: THREE.DoubleSide });
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(dR, 72), discM); disc.rotation.y = Math.PI / 2; disc.position.x = -0.072; g.add(disc);
+  const carrier = new THREE.Mesh(new THREE.TorusGeometry(dI - 0.004, 0.006, 6, 48), new THREE.MeshStandardMaterial({ color: 0x1b1c20, metalness: 0.8, roughness: 0.3 })); carrier.rotation.y = Math.PI / 2; carrier.position.x = -0.071; g.add(carrier);
+  const btn = new THREE.MeshStandardMaterial({ color: 0xd9a12a, metalness: 1, roughness: 0.25 });
+  for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, b = new THREE.Mesh(new THREE.CylinderGeometry(0.0065, 0.0065, 0.01, 12), btn); b.rotation.z = Math.PI / 2; b.position.set(-0.072, Math.sin(a) * (dI + 0.002), Math.cos(a) * (dI + 0.002)); g.add(b); }
+  for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2 + 0.3, arm = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.012, dI - hubR), carrier.material); arm.position.set(-0.066, Math.sin(a) * (dI + hubR) / 2, Math.cos(a) * (dI + hubR) / 2); arm.rotation.x = -a; g.add(arm); }
+  g.userData.r = r; return g;
+}
+// billet radial caliper behind/below the axle, on the right fork leg (non-rotating, steer group)
+function x5FrontCaliper(St, SLx, FR, FZ, fx) {
+  const bil = new THREE.MeshStandardMaterial({ color: 0xaeb2b9, metalness: 1, roughness: 0.26 }), ang = Math.atan2(-0.045, -0.095), rr = 0.11;
+  const c = new THREE.Group(); c.position.set(...SLx(-0.072, FR + Math.sin(ang) * rr, FZ + Math.cos(ang) * rr)); c.rotation.x = -(ang + Math.PI / 2); St.add(c);
+  const ks = new THREE.Shape(), kw = 0.05, kh = 0.024; ks.moveTo(-kw, -kh * 0.6); ks.quadraticCurveTo(-kw - 0.012, 0, -kw, kh); ks.quadraticCurveTo(0, kh + 0.012, kw, kh); ks.quadraticCurveTo(kw + 0.012, 0, kw, -kh * 0.6); ks.quadraticCurveTo(0, -kh * 0.15, -kw, -kh * 0.6);
+  const kg = new THREE.ExtrudeGeometry(ks, { depth: 0.01, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 3, curveSegments: 10 }); kg.translate(0, 0, -0.005); kg.rotateY(Math.PI / 2); kg.rotateX(Math.PI / 2); kg.rotateX(-Math.PI / 2);
+  [-1, 1].forEach(s => { const half = new THREE.Mesh(kg, bil); half.position.x = s * 0.0135; half.castShadow = true; c.add(half);
+    [-0.03, 0.03].forEach(o => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0055, 0.006, 6), new THREE.MeshStandardMaterial({ color: 0x1a1a1c, metalness: 0.8, roughness: 0.3 })); p.rotation.z = Math.PI / 2; p.position.set(s * 0.023, 0.012, o); c.add(p); });
+    const pc = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.008, 0.06), new THREE.MeshStandardMaterial({ color: 0xc0262a, metalness: 0.6, roughness: 0.35 })); pc.position.set(s * 0.0225, -0.002, 0); c.add(pc); }); // red accent inlay
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.012, 0.085), bil); bridge.position.y = 0.022; c.add(bridge);
+  // mounting bracket from the caliper to the fork-leg foot
+  tube(SLx(-0.082, FR + Math.sin(ang) * rr + 0.03, FZ + Math.cos(ang) * rr + 0.035), SLx(-fx, FR + 0.01, FZ - 0.005), 0.009, bil, St);
+}
+
+// ---- auxiliary spot lamps (射灯) on the fork legs: cube housings, chrome bezel, blue ring + white projector lens (bloom), one real SpotLight + visible beam cones ----
+function x5SpotLamps(St, SLx, SA, fx, night) {
+  const Y = 0.662, Z = 0.716, X = 0.222, tilt = 0.07, house = phys({ color: 0x0f0f12, metalness: 0.6, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.2 });
+  const lensM = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xf2f8ff).multiplyScalar(night ? 4 : 1.7), toneMapped: false }), ringM = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x2fb4ff).multiplyScalar(night ? 3 : 1.5), toneMapped: false });
+  const bez = new THREE.MeshStandardMaterial({ color: 0xe6e9ee, metalness: 1, roughness: 0.08 }), refl = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.05 });
+  // soft volumetric beam: additive, fades along its length and towards the silhouette (view-facing term), so it has no hard edges
+  const beamM = new THREE.ShaderMaterial({ uniforms: { col: { value: new THREE.Color(0xa8d4ff) }, k: { value: 0.55 } }, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
+    vertexShader: 'varying vec3 vN; varying vec3 vP; varying float vL; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vP = mv.xyz; vN = normalize(normalMatrix * normal); vL = uv.y; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 col; uniform float k; varying vec3 vN; varying vec3 vP; varying float vL; void main(){ float f = abs(dot(normalize(vN), normalize(-vP))); float a = pow(f, 2.0) * pow(vL, 2.2) * k; gl_FragColor = vec4(col * a, 1.0); }' });
+  [-1, 1].forEach(s => { const L = new THREE.Group(); L.position.set(...SLx(s * X, Y, Z)); L.rotation.x = tilt; St.add(L);
+    const hb = new THREE.Mesh(new THREE.BoxGeometry(0.064, 0.056, 0.058), house); hb.castShadow = true; L.add(hb);
+    for (let f = 0; f < 4; f++) { const fin = new THREE.Mesh(new THREE.BoxGeometry(0.066, 0.004, 0.006), house); fin.position.set(0, 0.03, -0.022 + f * 0.012); L.add(fin); }
+    const fr = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.06, 0.008), house); fr.position.z = 0.031; L.add(fr);
+    const cup = new THREE.Mesh(new THREE.CircleGeometry(0.026, 32), refl); cup.position.z = 0.0352; L.add(cup);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.019, 0.026, 40), ringM); ring.position.z = 0.0356; L.add(ring);
+    const lens = new THREE.Mesh(new THREE.SphereGeometry(0.016, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), lensM); lens.rotation.x = Math.PI / 2; lens.scale.set(1, 0.5, 1); lens.position.z = 0.0355; L.add(lens);
+    const bz = new THREE.Mesh(new THREE.TorusGeometry(0.0265, 0.0028, 8, 40), bez); bz.position.z = 0.0355; L.add(bz);
+    // U-bracket + clamp to the fork leg
+    tube(SLx(s * X, Y - 0.028, Z - 0.012), SLx(s * X, Y - 0.05, Z - 0.03), 0.006, bez, St); tube(SLx(s * X, Y - 0.05, Z - 0.03), SA(Y - 0.05, s * (fx + 0.012)), 0.0065, bez, St);
+    const cl = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.03, 18), house); cl.position.set(...SA(Y - 0.05, s * fx)); cl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, Math.cos(0.45), -Math.sin(0.45))); St.add(cl);
+    if (night) { const cg = new THREE.ConeGeometry(0.42, 3.4, 40, 8, true); cg.translate(0, -1.7, 0); cg.rotateX(-Math.PI / 2); const cone = new THREE.Mesh(cg, beamM); cone.position.z = 0.04; cone.rotation.y = s * 0.04; cone.renderOrder = 5; cone.frustumCulled = false; L.add(cone); } });
+  const sp = new THREE.SpotLight(0xdcebff, night ? 360 : 0, 70, 0.23, 0.7, 1.15), tgt = new THREE.Object3D(); sp.position.set(...SLx(0, Y, 1.1)); tgt.position.set(...SLx(0, 0.0, 18)); /* light sits in front of the fender tip, so the white fender is not blown out */ sp.target = tgt; sp.castShadow = false; St.add(sp, tgt);
+  return sp;
+}
+
+// ---- 飞机灯: aircraft-style strobes at the rear axle (red right / blue left double flashes), white strobe bar under the tail,
+// 七彩 LED strips under the swingarm + a ground glow pool, and one flashing PointLight so the tyre and road get lit ----
+function x5Strobes(B, RR, RZ, night) {
+  const em = c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false }), house = new THREE.MeshStandardMaterial({ color: 0x0c0c0e, metalness: 0.5, roughness: 0.35 });
+  const red = new THREE.Color(0xff1a2a), blue = new THREE.Color(0x2a5bff), white = new THREE.Color(0xf4f8ff), hue = new THREE.Color();
+  const units = [];
+  [[-1, red, 0], [1, blue, 0.5]].forEach(([s, c, ph]) => { const G = new THREE.Group(); G.position.set(s * 0.188, RR + 0.075, RZ + 0.085); B.add(G);
+    const hb = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.034, 0.056), house); G.add(hb); const lm = em(c.clone());
+    const ln = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.024, 0.046), lm); ln.position.x = s * 0.003; G.add(ln);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.012, 16, 8), lm); dome.scale.set(1, 0.7, 1.6); dome.position.set(s * 0.012, 0, 0); G.add(dome);
+    units.push({ m: lm, c, ph, k: 2 }); });
+  { const G = new THREE.Group(); G.position.set(0, 0.672, -0.935); G.rotation.x = 0.5; B.add(G); const bar = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.018, 0.026), house); G.add(bar); const lm = em(white.clone());
+    [-0.05, 0, 0.05].forEach(x => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.012, 0.004), lm); l.position.set(x, -0.001, -0.0135); G.add(l); const l2 = l.clone(); l2.rotation.x = Math.PI / 2; l2.position.set(x, -0.0095, 0); G.add(l2); });
+    units.push({ m: lm, c: white, ph: 0.25, k: 3, li: 0.45 }); }
+  const stripM = em(new THREE.Color(0xff00ff));
+  [[-0.152, 0.088], [0.156, 0.092]].forEach(([x, y]) => { const st = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.006, 0.62), stripM); st.position.set(x, y, -0.62); st.rotation.x = 0.035; B.add(st); });
+  const poolT = x5Tex(x5Cv(256, 256, (c, W) => { const gr = c.createRadialGradient(W / 2, W / 2, 0, W / 2, W / 2, W / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, W, W); }));
+  const poolM = new THREE.MeshBasicMaterial({ map: poolT, color: 0xff00ff, transparent: true, opacity: night ? 0.75 : 0.14, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -4 });
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.0), poolM); pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.006, -0.62); pool.renderOrder = 3; pool.frustumCulled = false; B.add(pool);
+  const pl = new THREE.PointLight(0xff00ff, 0, 3.4, 1.6); pl.position.set(0, 0.2, RZ + 0.12); pl.castShadow = false; B.add(pl);
+  const dbl = (x, k) => { for (let i = 0; i < k; i++) { const a = i * 0.085; if (x >= a && x < a + 0.04) return 1; } return 0; }; // k quick flashes per cycle, aircraft style
+  const base = night ? 1.0 : 0.25, fl = night ? 9 : 2.5;
+  pool.onBeforeRender = () => { const t = (B.userData.tOverride ?? performance.now() / 1000), cyc = (t % 1.2) / 1.2; hue.setHSL((t * 0.15) % 1, 1, 0.5); stripM.color.copy(hue).multiplyScalar(night ? 2.2 : 1.3);
+    let fc = null, any = 0; units.forEach(u => { const x = ((cyc - u.ph) % 1 + 1) % 1, on = dbl(x, u.k); u.m.color.copy(u.c).multiplyScalar(on ? (night ? 6 : 3) : 0.06); if (on && !fc) { fc = u.c; any = u.li || 1; } });
+    poolM.color.copy(fc || hue).multiplyScalar(fc ? 1.4 : 0.8); pl.color.copy(fc || hue); pl.intensity = base + any * fl; };
+  return { pl, pool };
 }
 function buildX5() {
   const B = new THREE.Group(), St = new THREE.Group(); bikeBody.add(B); steerInner.add(St);
@@ -965,8 +1154,14 @@ function buildX5() {
   const sparkT = x5Canvas(512, 512, (g, W, H) => { g.fillStyle = '#16141c'; g.fillRect(0, 0, W, H); const C = ['#ff4fd8', '#ffd23a', '#3ad8ff', '#ffffff', '#8a5cff'];
     for (let i = 0; i < 700; i++) { g.fillStyle = C[i % C.length]; g.globalAlpha = 0.35 + Math.random() * 0.5; g.fillRect(Math.random() * W, Math.random() * H, 2 + Math.random() * 5, 2 + Math.random() * 5); } g.globalAlpha = 1; });
   sparkT.wrapS = sparkT.wrapT = THREE.RepeatWrapping; sparkT.repeat.set(8, 8);
-  mats.walls = { spark: phys({ map: sparkT, color: 0x6a6a6a, metalness: 0.1, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.3 }), dark: phys({ color: 0x0e0f12, metalness: 0.2, roughness: 0.35, clearcoat: 0.8, clearcoatRoughness: 0.15 }), seat: phys({ map: seatT, color: 0xffffff, roughness: 0.62, sheen: 1, sheenColor: 0x555555, sheenRoughness: 0.5 }) };
-  X5L.forEach(L => x5Slab(L.st ? St : B, L, mats, L.st ? PV : [0, 0, 0]));
+  mats.walls = { white: phys({ color: 0xe9eaec, metalness: 0.05, roughness: 0.3, clearcoat: 0.9, clearcoatRoughness: 0.1 }), spark: phys({ map: sparkT, color: 0x6a6a6a, metalness: 0.1, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.3 }), dark: phys({ color: 0x0e0f12, metalness: 0.2, roughness: 0.35, clearcoat: 0.8, clearcoatRoughness: 0.15 }), seat: phys({ map: seatT, color: 0xffffff, roughness: 0.62, sheen: 1, sheenColor: 0x555555, sheenRoughness: 0.5 }) };
+  const NIGHT = !!M.night;
+  X5L.forEach(L => { if (L.n === 'seat') return; // replaced by the lofted padded seat (x5Seat)
+    if (L.n === 'fairing') L = { ...L, w: 0.29, tpy: [[0.84, 1], [1.06, 0.7]], wall: 'white', s: L.s.map(rs => rs.map(r => r.map(([z, y]) => [Math.min(z, X5N.clampZ(y)), y]))) }; // nose shell (x5Nose) takes the front
+    if (L.n === 'bars') L = { ...L, s: L.s.map(rs => rs.map(r => r.map(([z, y]) => [Math.min(z, X5N.zc(y) - 0.035), y]))) }; // phone/clamp stays behind the raised screen
+    if (L.n === 'fender') L = { ...L, wall: 'white' }; // clean gloss edges instead of the smeared side photo
+    x5Slab(L.st ? St : B, L, mats, L.st ? PV : [0, 0, 0]); });
+  x5Seat(B);
   { const sw = X5L.find(L => L.n === 'swing'); x5Slab(B, { ...sw, x: -sw.x + 0.004, w: 0.034, b: 0.006 }, mats, [0, 0, 0]); } // slimmer left swingarm
   // ---- rear wheel (13" hub motor + 225 slick) ----
   const wr = x5Wheel(RR, RW, 0.165, true); wr.position.set(0, RR, RZ); B.add(wr);
@@ -990,10 +1185,15 @@ function buildX5() {
 
   // ======== steering assembly (steer-local, rotates about the shared axis) ========
   const SA = (y, dx = 0) => SLx(dx, y, axisZ(y));
-  box(St, 0.24, 0.035, 0.07, silver, ...SA(1.08)); box(St, 0.24, 0.04, 0.07, silver, ...SA(0.92));
-  [-1, 1].forEach(s => { tube(SA(1.11, s * 0.078), SA(0.60, s * 0.078), 0.03, goldF, St); tube(SA(0.61, s * 0.078), SA(FR + 0.035, s * 0.078), 0.021, goldDk, St);
-    box(St, 0.04, 0.085, 0.06, silver, ...SA(FR + 0.04, s * 0.078), -0.45); const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.02, 16), blueA); cap.position.set(...SA(1.115, s * 0.078)); St.add(cap); });
-  { const c = SLx(-0.06, FR + 0.07, FZ - 0.085); box(St, 0.03, 0.09, 0.06, goldF, ...c, 0.6); } // radial caliper (right)
+  const FX = 0.11; // fork leg offset (wider: 110 tyre + big disc + caliper between the gold USD legs)
+  box(St, 0.31, 0.035, 0.07, silver, ...SA(1.08)); box(St, 0.31, 0.04, 0.07, silver, ...SA(0.92));
+  [-1, 1].forEach(s => { tube(SA(1.11, s * FX), SA(0.60, s * FX), 0.03, goldF, St); tube(SA(0.61, s * FX), SA(FR + 0.035, s * FX), 0.021, goldDk, St);
+    const rn = new THREE.Mesh(new THREE.TorusGeometry(0.023, 0.004, 8, 24), new THREE.MeshStandardMaterial({ color: 0xc0262a, metalness: 0.6, roughness: 0.3 })); rn.position.set(...SA(0.60, s * FX)); rn.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), AXd); St.add(rn);
+    box(St, 0.04, 0.085, 0.06, silver, ...SA(FR + 0.04, s * FX), -0.45); const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.02, 16), blueA); cap.position.set(...SA(1.115, s * FX)); St.add(cap);
+    const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.02, 6), black); nut.rotation.z = Math.PI / 2; nut.position.set(...SLx(s * (FX + 0.028), FR, FZ)); St.add(nut); });
+  tube(SLx(-FX - 0.02, FR, FZ), SLx(FX + 0.02, FR, FZ), 0.0085, silver, St); // axle
+  x5FrontCaliper(St, SLx, FR, FZ, FX); // billet radial caliper (right)
+  const spot = x5SpotLamps(St, SLx, SA, FX, NIGHT); x5Strobes(B, RR, RZ, NIGHT);
   // ---- wide bar, grips, bar-end mirrors, gold levers, reservoirs, phone holder (shows the dash) ----
   const GY = 1.165, GZ = 0.31, GX = 0.34; // grip centre (bike coords)
   { const c0 = SLx(0, GY - 0.045, GZ + 0.085); box(St, 0.08, 0.06, 0.05, silver, ...c0); [-1, 1].forEach(s => tube(SLx(s * 0.04, GY - 0.05, GZ + 0.085), SLx(s * 0.05, GY + 0.005, GZ + 0.045), 0.016, silver, St));
@@ -1009,13 +1209,10 @@ function buildX5() {
     box(St, 0.03, 0.05, 0.03, black, ...SLx(0, GY + 0.04, GZ + 0.055)); const ph = box(St, 0.16, 0.085, 0.012, gloss, ...SLx(0, GY + 0.085, GZ + 0.06), -0.35);
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.078), new THREE.MeshBasicMaterial({ map: dashTex, toneMapped: false })); scr.position.copy(ph.position); scr.rotation.set(0.35, Math.PI, 0); scr.translateZ(0.0075); St.add(scr);
     [-1, 1].forEach(s => box(St, 0.012, 0.03, 0.02, black, ...SLx(s * 0.083, GY + 0.085, GZ + 0.06), -0.35)); }
-  // front face: the owner's front photo (fairing, smoked screen, angel-eye projectors) on a card that follows the fairing nose (vertical at the headlights, raked above), shallow V across
-  { const t = ptex('x5_front.png'), path = [[0.665, 0.822], [0.885, 0.822], [0.97, 0.744], [1.06, 0.670], [1.135, 0.604]], len = [0]; for (let i = 1; i < path.length; i++) len.push(len[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
-    const g = new THREE.PlaneGeometry(0.28, 1, 2, 24), P = g.attributes.position, at = s => { s *= len[len.length - 1]; let i = 1; while (i < path.length - 1 && len[i] < s) i++; const f = (s - len[i - 1]) / (len[i] - len[i - 1]); return [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * f, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * f]; };
-    for (let i = 0; i < P.count; i++) { const x = P.getX(i), [y, z] = at(P.getY(i) + 0.5); P.setXYZ(i, x - PV[0], y - PV[1], z + 0.012 * (1 - Math.abs(x) / 0.14) - PV[2]); } g.computeVertexNormals();
-    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.35, roughness: 0.35, metalness: 0.05, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.4 })); St.add(m); }
+  // front face: 3D nose shell carrying the straightened front photo + emissive mask of the angel-eye projectors
+  x5Nose(St, PV, ptex('x5_front.png'), ptex('x5_front_e.jpg'), NIGHT);
   // ---- front wheel (12" silver multi-spoke, 110/70) ----
-  const wf = x5Wheel(FR, FW, 0.152, false); const fh = new THREE.Group(); fh.position.set(...SLx(0, FR, FZ)); St.add(fh); fh.add(wf);
+  const wf = x5FrontWheel(FR, FW, 0.152); const fh = new THREE.Group(); fh.position.set(...SLx(0, FR, FZ)); St.add(fh); fh.add(wf);
   wheelsR.push(wr); wheelsF.push(wf);
   return { B, St, glowColor: 0x000000, noGlow: true, ownSteer: true, gripIK: true, sound: 'ev', pitch: 0.86, head: [0, 0.80, 0.83], name: '雅迪 X5 军舰', rz: RZ, piv: [RR, RZ], wb: FZ - RZ, steerK: 0.8,
     // heavier than the Ninebot (big battery + 13" hub motor + 225 slick, 175 kg + 75 kg rider), a bit faster at the top, similar shove
