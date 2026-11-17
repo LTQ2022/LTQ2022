@@ -1099,7 +1099,7 @@ function x5SpotLamps(St, SLx, SA, fx, night) {
     // U-bracket + clamp to the fork leg
     tube(SLx(s * X, Y - 0.028, Z - 0.012), SLx(s * X, Y - 0.05, Z - 0.03), 0.006, bez, St); tube(SLx(s * X, Y - 0.05, Z - 0.03), SA(Y - 0.05, s * (fx + 0.012)), 0.0065, bez, St);
     const cl = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.03, 18), house); cl.position.set(...SA(Y - 0.05, s * fx)); cl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, Math.cos(0.45), -Math.sin(0.45))); St.add(cl);
-    if (night) { const cg = new THREE.ConeGeometry(0.42, 3.4, 40, 8, true); cg.translate(0, -1.7, 0); cg.rotateX(-Math.PI / 2); const cone = new THREE.Mesh(cg, beamM); cone.position.z = 0.04; cone.rotation.y = s * 0.04; cone.renderOrder = 5; cone.frustumCulled = false; L.add(cone); } });
+    if (night && !isMobile) { const cg = new THREE.ConeGeometry(0.42, 3.4, 40, 8, true); /* phones: X5 beam cones black out the centre of the frame on some mobile GPUs (verified on device 2026-11-17) */ cg.translate(0, -1.7, 0); cg.rotateX(-Math.PI / 2); const cone = new THREE.Mesh(cg, beamM); cone.position.z = 0.04; cone.rotation.y = s * 0.04; cone.renderOrder = 5; cone.frustumCulled = false; L.add(cone); } });
   const sp = new THREE.SpotLight(0xdcebff, night ? 360 : 0, 70, 0.23, 0.7, 1.15), tgt = new THREE.Object3D(); sp.position.set(...SLx(0, Y, 1.1)); tgt.position.set(...SLx(0, 0.0, 18)); /* light sits in front of the fender tip, so the white fender is not blown out */ sp.target = tgt; sp.castShadow = false; St.add(sp, tgt);
   return sp;
 }
