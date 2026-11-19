@@ -3349,7 +3349,7 @@ function update(dt, last = true, fdt = dt) {
   // night: move pooled lamp lights to nearest lamps
   lampT += dt; if (lampLights.length && lampT > 0.25) { lampT = 0; const ps = lampPts.map(p => [p.distanceToSquared(tgt), p]).sort((a, b) => a[0] - b[0]); lampLights.forEach((l, i) => { if (ps[i]) l.position.copy(ps[i][1]); }); }
   if (!last) return;
-  dt = fdt; superFx(dt, spd); driftFx(dt); if (GX) GX.frame(dt); if (FOOT) FOOT.frame(dt); if (GXV) GXV.frame(dt); if (GXM) GXM.frame(dt);
+  dt = fdt; superFx(dt, spd); driftFx(dt); if (GX) GX.frame(dt); if (!window.__mrg && tGlobal > 0.4 && bikeBody) { window.__mrg = gxMergeStatic(bikeBody); } if (FOOT) FOOT.frame(dt); if (GXV) GXV.frame(dt); if (GXM) GXM.frame(dt);
   // HUD
   const kmh = spd * 3.6; const mode = crashed ? '—' : (input.back && st.v <= 0.4 && !input.fwd ? 'R' : (superG ? '超级档' + (input.boost ? '·S' : '') : gear + (input.boost ? 'S' : 'D')));
   hudSpd.textContent = Math.round(kmh); hudMode.textContent = mode; hudMode.className = superG ? 'super' : /S/.test(mode) ? 'boost' : ''; hudBat.textContent = Math.round(st.batt) + '%'; hudLean.textContent = crashed ? '—' : st.pitch > 0.08 ? ('翘头 ' + Math.round(st.pitch * 57.3) + '°') : ('倾角 ' + Math.round(Math.abs(st.lean) * 57.3) + '°' + (st.off ? ' · 越野' : ''));
@@ -3977,6 +3977,15 @@ void main(){ vec3 c = clamp(texture2D(tDiffuse, vUv).rgb, 0.0, 1.0);
   apply(Q);
   return { get q() { return Q; }, apply, grade };
 })();
+// ---------- static mesh merge: under each parent, mesh children sharing a material are merged into one draw call ----------
+// (used on the X5 bike: ~180 small procedural parts -> ~80 draw calls; animated groups keep their own transforms)
+function gxMergeStatic(root) { let before = 0, after = 0; const parents = new Map();
+  root.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || o.children.length || !o.visible || o.morphTargetInfluences || Object.prototype.hasOwnProperty.call(o, 'onBeforeRender') || (o.userData && o.userData.noMerge)) return; let p = o.parent, hidden = false; while (p) { if (p.isBone) { hidden = true; break; } p = p.parent; } if (hidden) return; const k = o.parent; if (!parents.has(k)) parents.set(k, []); parents.get(k).push(o); });
+  parents.forEach((list, parent) => { const groups = new Map(); list.forEach(m => { const g = m.geometry; const sig = Object.keys(g.attributes).sort().join(',') + '|' + (g.index ? 1 : 0) + '|' + Object.keys(g.morphAttributes || {}).length; const key = m.material.uuid + '|' + sig + '|' + m.castShadow + m.receiveShadow + '|' + m.renderOrder + '|' + m.frustumCulled + '|' + (m.layers.mask);
+      if (Array.isArray(m.material)) return; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(m); });
+    groups.forEach(ms => { before += ms.length; if (ms.length < 2) { after += ms.length; return; } try { const geos = ms.map(m => { m.updateMatrix(); const g = m.geometry.clone(); g.applyMatrix4(m.matrix); if (m.matrix.determinant() < 0) { const ix = g.index; if (ix) { const a = ix.array; for (let i = 0; i < a.length; i += 3) { const t = a[i]; a[i] = a[i + 2]; a[i + 2] = t; } } else Object.values(g.attributes).forEach(at => { const a = at.array, k = at.itemSize; for (let i = 0; i + 3 * k <= a.length; i += 3 * k) for (let c = 0; c < k; c++) { const t = a[i + c]; a[i + c] = a[i + 2 * k + c]; a[i + 2 * k + c] = t; } }); } return g; });
+        const merged = mergeGeometries(geos, false); if (!merged) { after += ms.length; return; } const mm = new THREE.Mesh(merged, ms[0].material); mm.castShadow = ms[0].castShadow; mm.receiveShadow = ms[0].receiveShadow; mm.renderOrder = ms[0].renderOrder; mm.frustumCulled = ms[0].frustumCulled; mm.layers.mask = ms[0].layers.mask; mm.name = 'merged'; ms.forEach(m => parent.remove(m)); parent.add(mm); after++; } catch (e) { after += ms.length; } }); });
+  return [before, after]; }
 // ================= FOOT: get off the bike, walk / run / jump, steal cars, drive the tank / fly the plane, health, arrests =================
 // No weapons. The player is a CC0 rigged person (tevy.dev "Casual Walker", 55-joint skeleton) playing its own idle / walk clips;
 // the run is made from that same walk on the same skeleton (bigger joint swings, faster, leaning) – no retargeting.
