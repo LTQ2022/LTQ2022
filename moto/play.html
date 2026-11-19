@@ -688,6 +688,7 @@ var GXCAR = (function () {
 // 篮球场, central park with the 摩天轮, 人民医院, 公安局. East of the ring road: 国际机场 (runway, terminal, tower, airliners) and the
 // 军事基地 (fenced, gates, hangars) next to the runway. Shop interiors are procedural and batched into a handful of draw calls;
 // furniture, buildings and vehicles are CC0 glTF (tevy.dev) placed with GXA (instanced when repeated).
+var GXBASE = null;
 const GXCITY = { x0: -795, z0: -795, p: 106, sw: 8, bs: 90 };
 const gxBX = i => GXCITY.x0 + i * GXCITY.p + GXCITY.sw, gxBZ = j => GXCITY.z0 + j * GXCITY.p + GXCITY.sw; // block interior origin
 const GXROOMS = []; const GXPROPS = []; const GXSIGNS = []; const GXVEN = []; const GXPOI = [];
@@ -937,7 +938,7 @@ function gxAirport(W) {
     // helipad + apron markings for the jet
     { const hc = cvs(256, 256, (g) => { g.clearRect(0, 0, 256, 256); g.strokeStyle = '#f2f2ea'; g.lineWidth = 10; g.beginPath(); g.arc(128, 128, 110, 0, 6.283); g.stroke(); g.fillStyle = '#f2f2ea'; g.font = '900 150px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', 128, 136); });
       const h = new THREE.Mesh(new THREE.PlaneGeometry(22, 22).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: ctex(hc, true, false), transparent: true, depthWrite: false, roughness: 0.7 })); h.position.set(1480, 0.05, 620); scene.add(h); }
-    poi.base = { id: 'base', x: X0 - 20, z: 430, icon: '🪖', name: '军事基地' }; W.base = { X0, X1, Z0, Z1, tank: [1250, 520, 0], jet: [1490, 430, Math.PI / 2] }; }
+    poi.base = { id: 'base', x: X0 - 20, z: 430, icon: '🪖', name: '军事基地' }; W.base = GXBASE = { X0, X1, Z0, Z1, tank: [1250, 520, 0], jet: [1490, 430, Math.PI / 2] }; }
 }
 // ================= GX open world: one big city (都市), day or night =================
 // Built only when M.gx is set. Everything here is deterministic (seeded) so the minimap, mission points and colliders agree.
@@ -4335,7 +4336,145 @@ if (GXW && GX && FOOT) GXV = (function () {
   return { frame, mini, VEN, ICONS, FW, use, get busy() { return busy; }, get near() { return near; }, ball };
 })();
 if (GXV) window.GXVX = GXV;
+// ================= GXM: military base vehicles – main battle tank (drive, turret follows the camera, crushes cars) and a canard-delta fighter
+// (taxi, take off, fly, land; arcade flight model with lift, stall and landing checks). CC0 models from tevy.dev, flattened by GXA.
 var GXM = null;
+if (GXW && GX && FOOT && GXBASE) GXM = (function () {
+  const G = GX, F = FOOT.F, K = FOOT.K, clamp = THREE.MathUtils.clamp, mob = isMobile, B = GXBASE;
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const css = `.mb{position:fixed;border-radius:50%;background:rgba(15,18,24,.45);border:2px solid rgba(255,255,255,.4);color:#fff;display:none;align-items:center;justify-content:center;font:800 15px "PingFang SC",sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;z-index:4}.mb.on{background:rgba(255,255,255,.35)}
+#pUp{width:70px;height:70px;right:calc(150px + env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));border-color:rgba(120,200,255,.9)}#pDn{width:70px;height:70px;right:calc(150px + env(safe-area-inset-right));bottom:calc(66px + env(safe-area-inset-bottom));border-color:rgba(120,200,255,.9)}
+#vHud{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(10,12,18,.62);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:6px 14px;color:#fff;font:800 14px "PingFang SC",Arial,sans-serif;display:none;z-index:5;text-align:center;white-space:nowrap}#vHud b{color:#7dd8ff;font-size:20px;font-variant-numeric:tabular-nums}#vHud .w{color:#ff4a4a;animation:gxBl .5s steps(2) infinite}
+body.veh[data-veh=plane] #dash,body.veh[data-veh=tank] #dash{display:none!important}body.veh[data-veh=plane] .mb,body.veh[data-veh=plane] #vHud,body.veh[data-veh=tank] #vHud{display:flex}body.veh[data-veh=tank] #vHud{display:block}body.veh[data-veh=plane] #vHud{display:block}
+@media (max-height:430px){#pUp{bottom:calc(132px + env(safe-area-inset-bottom));width:60px;height:60px}#pDn{bottom:calc(64px + env(safe-area-inset-bottom));width:60px;height:60px}}`;
+  document.head.appendChild(Object.assign(document.createElement('style'), { textContent: css }));
+  const el = h => { const d = document.createElement('div'); d.innerHTML = h.trim(); const e = d.firstChild; document.body.appendChild(e); return e; };
+  const T = { up: 0, dn: 0 }; const bUp = el('<div class="mb" id="pUp">拉起</div>'), bDn = el('<div class="mb" id="pDn">俯冲</div>'); const hud = el('<div id="vHud"></div>');
+  [[bUp, 'up'], [bDn, 'dn']].forEach(([b, k]) => { const on = e => { e.preventDefault(); e.stopPropagation(); T[k] = 1; b.classList.add('on'); }, off = e => { e.preventDefault(); T[k] = 0; b.classList.remove('on'); };
+    b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false }); b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off); });
+  // ---------- engine sounds (WebAudio through master) ----------
+  function engine(kind) { const E = { g: null }; E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master); const o = AC.createOscillator(); o.type = 'sawtooth'; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = kind === 'tank' ? 260 : 1400; o.connect(f); f.connect(g);
+      const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = kind === 'tank' ? 'lowpass' : 'bandpass'; nf.frequency.value = kind === 'tank' ? 180 : 900; const ng = AC.createGain(); ng.gain.value = kind === 'tank' ? 0.9 : 0.6; n.connect(nf); nf.connect(ng); ng.connect(g); o.start(); n.start(); Object.assign(E, { g, o, f, nf }); };
+    E.set = (load, on) => { if (!E.g) return; const t = AC.currentTime; E.g.gain.setTargetAtTime(on ? (kind === 'tank' ? 0.16 + 0.12 * load : 0.1 + 0.16 * load) : 0, t, 0.15); E.o.frequency.setTargetAtTime(kind === 'tank' ? 38 + 40 * load : 90 + 160 * load, t, 0.2); E.nf.frequency.setTargetAtTime(kind === 'tank' ? 140 + 260 * load : 600 + 1800 * load, t, 0.2); }; return E; }
+  const thud = (f = 80, d = 0.3, v = 0.5) => { if (!AC || !master) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(f * 2, t); o.frequency.exponentialRampToValueAtTime(f * 0.5, t + d); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + d); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02); };
+  // ---------- explosion FX (pooled sprites) ----------
+  const fx = []; for (let i = 0; i < 24; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0xffa040, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); s.userData.t = 0; scene.add(s); fx.push(s); } let fxI = 0;
+  function boom(p, n = 18) { for (let k = 0; k < n; k++) { const s = fx[fxI++ % fx.length]; s.position.copy(p); s.userData.v = V((Math.random() - 0.5) * 14, Math.random() * 10, (Math.random() - 0.5) * 14); s.userData.t = 1.4 + Math.random(); s.material.color.set(k % 3 ? 0xff7a20 : 0x444444); s.material.blending = k % 3 ? THREE.AdditiveBlending : THREE.NormalBlending; s.scale.setScalar(3 + Math.random() * 3); } thud(50, 0.9, 0.9); }
+  function fxTick(dt) { fx.forEach(s => { if (s.userData.t > 0) { s.userData.t -= dt; s.position.addScaledVector(s.userData.v, dt); s.userData.v.multiplyScalar(1 - dt * 1.5); s.scale.multiplyScalar(1 + dt * 0.8); s.material.opacity = Math.min(0.9, s.userData.t * 0.6); } else s.material.opacity = 0; }); }
+  // ================= TANK =================
+  const TK = { ld: false, x: B.tank[0], z: B.tank[1], y: 0, yaw: B.tank[2], v: 0, tur: B.tank[2], gun: 0, pitch: 0, pv: 0, roll: 0, wa: 0, home: B.tank.slice(), eng: engine('tank'), kind: 'tank', r: 4.2, label: '🪖 开坦克', drag: true };
+  const RW = []; for (let i = 1; i <= 7; i++) RW.push('road_wheel_L' + i, 'road_wheel_R' + i);
+  GXA.rigged('main-battle-tank', 0, [...RW, 'sprocket_L', 'sprocket_R', 'idler_L', 'idler_R', 'turret', 'gun']).then(R => { TK.root = R.root; TK.parts = R.parts; scene.add(R.root); R.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // road wheels: two InstancedMeshes (left / right geometry), 7 each, re-posed every frame
+    TK.rw = ['L', 'R'].map(s => { const src = R.parts['road_wheel_' + s + '1']; const list = []; for (let i = 1; i <= 7; i++) { const p = R.parts['road_wheel_' + s + i]; list.push(p); p.visible = false; } return { list, ims: src.children.filter(o => o.isMesh).map(m => { const im = new THREE.InstancedMesh(m.geometry, m.material, 7); im.castShadow = true; im.frustumCulled = false; scene.add(im); return im; }) }; });
+    TK.ld = true; place(TK); }).catch(e => console.warn('tank', e));
+  function place(o) { o.y = GXW.gy(o.x, o.z, 5); if (o.root) { o.root.position.set(o.x, o.y, o.z); o.root.rotation.set(0, o.yaw, 0); } }
+  const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler();
+  function tankPose(dt) { const t = TK; if (!t.ld) return; t.root.position.set(t.x, t.y, t.z); _e.set(t.pitch, t.yaw, t.roll, 'YXZ'); t.root.quaternion.setFromEuler(_e);
+    t.parts.turret.quaternion.copy(t.parts.turret.userData.rest).multiply(_q.setFromAxisAngle(V(0, 1, 0), angDiff(t.tur, t.yaw))); t.parts.gun.quaternion.copy(t.parts.gun.userData.rest).multiply(_q.setFromAxisAngle(V(1, 0, 0), -t.gun));
+    ['sprocket_L', 'sprocket_R', 'idler_L', 'idler_R'].forEach(n => { const p = t.parts[n]; p.quaternion.copy(p.userData.rest).multiply(_q.setFromAxisAngle(V(1, 0, 0), t.wa * (n.startsWith('idler') ? 1.25 : 1.1))); });
+    t.root.updateMatrixWorld(true); t.rw.forEach(S => S.list.forEach((p, i) => { p.quaternion.copy(p.userData.rest).multiply(_q.setFromAxisAngle(V(1, 0, 0), t.wa)); p.updateMatrixWorld(true); S.ims.forEach(im => { im.setMatrixAt(i, p.matrixWorld); im.instanceMatrix.needsUpdate = true; }); })); }
+  TK.enter = () => { TK.eng.start(); F.camYaw = TK.tur; F.camPitch = 0.22; G.popup('🪖 坦克：方向键开，拖屏幕转炮塔', '#ffd54a'); if (G.WANT.stars < 2 && Math.hypot(TK.x - TK.home[0], TK.z - TK.home[1]) < 60) G.setStars(2, '偷开军队坦克！'); };
+  TK.exit = (force) => { if (!force && Math.abs(TK.v) > 2) { G.popup('先停稳', '#ffb34a'); return null; } TK.v = 0; TK.eng.set(0, false); const sx = Math.cos(TK.yaw), sz = -Math.sin(TK.yaw); return [TK.x - sx * 2.6, TK.z - sz * 2.6, TK.y, TK.yaw]; };
+  TK.tick = (dt) => { const t = TK; const thr = input.fwd ? 1 : 0, brk = input.back ? 1 : 0, steer = (input.left ? 1 : 0) - (input.right ? 1 : 0); const vmax = 16;
+    const a0 = t.v; if (thr) t.v += (t.v < -0.3 ? 7 : 3.2 * (1 - t.v / vmax)) * dt; else if (brk) t.v += (t.v > 0.3 ? -7 : -2.2 * (1 + t.v / 6)) * dt; else t.v -= Math.sign(t.v) * Math.min(Math.abs(t.v), 2.5 * dt);
+    const tr = steer * (0.62 - 0.32 * Math.min(1, Math.abs(t.v) / vmax)); t.yaw += tr * dt * (t.v < -0.3 ? -1 : 1);
+    t.x += Math.sin(t.yaw) * t.v * dt; t.z += Math.cos(t.yaw) * t.v * dt;
+    // buildings stop it (parked cars and street furniture do not)
+    const cs = GXW.cols(t.x, t.z, 2.3, t.y + 1); for (const b of cs) { if (b[6] !== 'b' || t.y + 1 > b[5]) continue; const r = 2.3; const px = Math.min(t.x + r - b[0], b[1] - (t.x - r)), pz = Math.min(t.z + r - b[2], b[3] - (t.z - r)); if (px <= 0 || pz <= 0) continue; if (px < pz) t.x += t.x < (b[0] + b[1]) / 2 ? -px : px; else t.z += t.z < (b[2] + b[3]) / 2 ? -pz : pz; if (Math.abs(t.v) > 4) { thud(60, 0.25, 0.4); } t.v *= 0.6; }
+    const e = GXW.ext; t.x = clamp(t.x, e.x0, e.x1); t.z = clamp(t.z, e.z0, e.z1);
+    // crush cars (traffic, police, stolen): flattened, stopped, heat
+    [...G.civ, ...G.cops].forEach(c => { if (!c.g.visible || c.crushed) return; const dx = c.x - t.x, dz = c.z - t.z, d = Math.hypot(dx, dz); if (d > 5.2) return; const fx = Math.sin(t.yaw), fz = Math.cos(t.yaw); const lz = dx * fx + dz * fz, lx = dx * fz - dz * fx;
+      if (Math.abs(lx) < 2.6 + c.HW * 0.5 && Math.abs(lz) < 4.6 + 1) { if (Math.abs(t.v) > 1.2) crush(c); else { c.x += dx / (d || 1) * 0.3; c.z += dz / (d || 1) * 0.3; } } });
+    // heavy suspension: pitch from acceleration, roll from turning
+    const acc = (t.v - a0) / Math.max(dt, 1e-3); t.pv += ((clamp(-acc * 0.01, -0.04, 0.04) - t.pitch) * 14 - t.pv * 4.5) * dt; t.pitch += t.pv * dt; t.roll += (-tr * t.v * 0.004 - t.roll) * Math.min(1, dt * 3);
+    t.y = GXW.gy(t.x, t.z, t.y + 2); t.wa += t.v * dt / 0.42;
+    t.tur += clamp(angDiff(F.camYaw, t.tur), -0.75 * dt, 0.75 * dt); t.gun += (clamp(F.camPitch * 0.6 - 0.05, -0.08, 0.3) - t.gun) * Math.min(1, dt * 2);
+    st.pos.set(t.x, t.y, t.z); st.yaw = t.yaw; st.v = t.v; F.x = t.x; F.z = t.z; F.y = t.y; F.spd = Math.abs(t.v); t.eng.set(Math.min(1, Math.abs(t.v) / vmax * 0.7 + (thr || brk ? 0.3 : 0)), true);
+    hud.innerHTML = `🪖 坦克 <b>${Math.round(Math.abs(t.v) * 3.6)}</b> km/h<br><small>▲▼ 前进后退 · ◀▶ 转向 · 拖屏幕转炮塔 · 能压扁汽车</small>`; };
+  function crush(c) { c.crushed = true; c.v = 0; c.body.scale.y = 0.32; c.body.position.y = -0.18; c.hideWheels = true; if (c.setStrobe) c.setStrobe(0, 0); thud(90, 0.4, 0.8); thud(160, 0.2, 0.4); G.popup('压扁了！', '#ffb34a');
+    const cop = G.cops.indexOf(c) >= 0; G.addHeat(cop ? 160 : 80, cop ? '坦克压警车！' : '坦克压车！'); if (G.WANT.stars < (cop ? 3 : 2)) G.setStars(cop ? 3 : 2, cop ? '坦克压警车！' : '坦克压车！');
+    if (cop) { c.mode = 'leave'; } c.crushT = tGlobal; }
+  TK.camTgt = (o) => o.set(TK.x, TK.y + 2.9, TK.z);
+  TK.camWant = (tg, w) => { const a = F.camYaw, ph = clamp(F.camPitch, 0.05, 0.6), d = 12.5; return w.set(tg.x - Math.sin(a) * Math.cos(ph) * d, tg.y + 1.2 + Math.sin(ph) * d, tg.z - Math.cos(a) * Math.cos(ph) * d); };
+  // ================= FIGHTER JET =================
+  const PN = ['canard_L', 'canard_R', 'elevon_inner_L', 'elevon_inner_R', 'elevon_outer_L', 'elevon_outer_R', 'rudder', 'canopy', 'gear_main_L', 'gear_main_R', 'gear_nose', 'gear_door_main_L', 'gear_door_main_R', 'gear_door_nose_L', 'gear_door_nose_R'];
+  const JT = { ok: false, pos: V(B.jet[0], 0, B.jet[1]), q: new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), B.jet[2]), v: 0, thr: 0, ground: true, gear: 1, home: B.jet.slice(), eng: engine('jet'), kind: 'plane', r: 6, label: '✈️ 开战斗机', ail: 0, elev: 0, rud: 0, stall: 0, dead: 0, crashT: 0 };
+  Object.defineProperty(JT, 'x', { get() { return JT.pos.x; } }); Object.defineProperty(JT, 'z', { get() { return JT.pos.z; } }); Object.defineProperty(JT, 'y', { get() { return JT.pos.y; } });
+  GXA.rigged('delta-fighter', 0, PN).then(R => { JT.root = R.root; JT.parts = R.parts; scene.add(R.root); R.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const ab = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0xff8a30, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); ab.position.set(0, 1.93, -6.4); ab.scale.set(2.2, 2.2, 1); R.root.add(ab); JT.ab = ab;
+    const ab2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0x7ab0ff, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); ab2.position.set(0, 1.93, -7.6); ab2.scale.set(1.2, 1.2, 1); R.root.add(ab2); JT.ab2 = ab2;
+    JT.ok = true; jetPose(); }).catch(e => console.warn('jet', e));
+  function jetPose() { const j = JT; if (!j.ok) return; j.root.position.copy(j.pos); j.root.quaternion.copy(j.q); const P = j.parts;
+    const rot = (n, ax, a) => { const p = P[n]; if (p) p.quaternion.copy(p.userData.rest).multiply(_q.setFromAxisAngle(ax, a)); };
+    rot('canard_L', V(1, 0, 0), -j.elev * 0.35); rot('canard_R', V(1, 0, 0), -j.elev * 0.35);
+    rot('elevon_inner_L', V(1, 0, 0), j.elev * 0.32 + j.ail * 0.3); rot('elevon_outer_L', V(1, 0, 0), j.elev * 0.25 + j.ail * 0.4); rot('elevon_inner_R', V(1, 0, 0), j.elev * 0.32 - j.ail * 0.3); rot('elevon_outer_R', V(1, 0, 0), j.elev * 0.25 - j.ail * 0.4);
+    rot('rudder', V(1, 0, 0), j.rud * 0.35);
+    ['gear_main_L', 'gear_main_R', 'gear_nose', 'gear_door_main_L', 'gear_door_main_R', 'gear_door_nose_L', 'gear_door_nose_R'].forEach(n => { const p = P[n]; if (!p) return; p.visible = j.gear > 0.02; p.scale.setScalar(Math.max(0.001, j.gear)); });
+    if (j.ab) { j.ab.material.opacity = j.thr > 0.75 ? (j.thr - 0.7) * 2.6 : j.thr * 0.25; j.ab.scale.setScalar(1.6 + j.thr * 2.4); j.ab2.material.opacity = j.thr > 0.8 ? 0.7 : 0; } }
+  const GR = 9.81, VR = 70, VSTALL = 60, TMAX = 26, DRAG = TMAX / (290 * 290);
+  const fwd = V(0, 0, 1), up = V(0, 1, 0), rgt = V(1, 0, 0);
+  JT.enter = () => { JT.eng.start(); JT.thr = 0; F.camPitch = 0.12; G.popup('✈️ ▲ 加油门滑跑，过了 250 km/h 按「拉起」起飞', '#7dd8ff'); if (G.WANT.stars < 2 && JT.ground && JT.pos.distanceTo(V(JT.home[0], 0, JT.home[1])) < 80) G.setStars(2, '偷开战斗机！'); };
+  JT.exit = (force) => { if (!force && (!JT.ground || JT.v > 3)) { G.popup(JT.ground ? '先停稳' : '空中不能跳机！先降落', '#ffb34a'); return null; } JT.thr = 0; JT.eng.set(0, false); const e = new THREE.Euler().setFromQuaternion(JT.q, 'YXZ'); const yw = e.y; const sx = Math.cos(yw), sz = -Math.sin(yw); return [JT.pos.x - sx * 4.5, JT.pos.z - sz * 4.5, JT.pos.y, yw]; };
+  function jetCrash(why) { const j = JT; boom(j.pos.clone().add(V(0, 2, 0)), 22); j.dead = 1; j.v = 0; j.thr = 0; if (j.root) j.root.visible = false; j.eng.set(0, false); G.banner('坠机了！', why || '', 'red', 2.4); j.crashT = tGlobal; FOOT.damage(500); }
+  JT.tick = (dt) => { const j = JT; if (j.dead) { st.v = 0; return; }
+    const thUp = K.KeyW || (input.fwd && !K.ArrowUp), thDn = K.KeyS || (input.back && !K.ArrowDown); const roll = (input.left ? 1 : 0) - (input.right ? 1 : 0); const pitch = (T.up || K.ArrowDown || K.Space ? 1 : 0) - (T.dn || K.ArrowUp ? 1 : 0);
+    if (thUp) j.thr = Math.min(1, j.thr + dt * 0.55); if (thDn) j.thr = Math.max(0, j.thr - dt * 0.7);
+    j.ail += (roll - j.ail) * Math.min(1, dt * 6); j.elev += (pitch - j.elev) * Math.min(1, dt * 6);
+    const f = fwd.clone().applyQuaternion(j.q), u = up.clone().applyQuaternion(j.q); const eul = new THREE.Euler().setFromQuaternion(j.q, 'YXZ'); const gy = GXW.gy(j.pos.x, j.pos.z, j.pos.y + 3);
+    if (j.ground) { // taxi / take-off run: nose-wheel steering, brakes on ▼ at zero throttle
+      const brake = thDn && j.thr < 0.02 ? 9 : 0; j.v += (j.thr * TMAX * 0.85 - 0.6 - brake * Math.sign(j.v) - DRAG * j.v * j.v) * dt; if (j.v < 0) j.v = Math.max(j.v, -2); if (!thUp && j.thr < 0.02 && Math.abs(j.v) < 0.6) j.v = 0;
+      const steer = roll * clamp(1.1 - j.v / 60, 0.08, 1) * 0.5; const yawE = eul.y + steer * dt * Math.min(1, Math.abs(j.v) / 3) * Math.sign(j.v || 1); j.rud += (roll - j.rud) * Math.min(1, dt * 5);
+      const rot = j.v > VR * 0.9 && pitch > 0; const px = rot ? Math.max(-0.26, eul.x - dt * 0.42) : eul.x * Math.max(0, 1 - dt * 4); // rotation (nose up) on the take-off run
+      j.q.setFromEuler(new THREE.Euler(px, yawE, 0, 'YXZ'));
+      j.pos.addScaledVector(V(Math.sin(yawE), 0, Math.cos(yawE)), j.v * dt); j.pos.y = gy;
+      if (j.v > VR && -eul.x > 0.12) { j.ground = false; j.vy = 2; G.popup('起飞！', '#7dd8ff'); }
+      if (!GXW.paved(j.pos.x, j.pos.z) && j.v > 30) jetCrash('冲出跑道了');
+    } else { // flight: pitch / roll rates scale with airspeed, bank turns, lift vs gravity, stall below VSTALL
+      const auth = clamp(j.v / 90, 0.25, 1.1); const pr = j.elev * 0.6 * auth, rr = j.ail * 1.7 * auth;
+      j.q.multiply(_q.setFromAxisAngle(rgt, -pr * dt)); j.q.multiply(_q.setFromAxisAngle(fwd, -rr * dt));
+      // auto-level the wings a little when the stick is centred (arcade)
+      const e2 = new THREE.Euler().setFromQuaternion(j.q, 'YXZ'); if (Math.abs(roll) < 0.1) e2.z *= Math.max(0, 1 - dt * 0.9); const turn = GR * Math.tan(clamp(-e2.z, -1.3, 1.3)) / Math.max(40, j.v); e2.y += turn * dt; j.q.setFromEuler(e2);
+      const f2 = fwd.clone().applyQuaternion(j.q); j.v += (j.thr * TMAX - DRAG * j.v * j.v - GR * f2.y) * dt; j.v = Math.max(0, j.v);
+      j.stall = j.v < VSTALL ? Math.min(1, (VSTALL - j.v) / 18) : 0;
+      if (j.stall > 0) { j.q.premultiply(_q.setFromAxisAngle(rgt.clone().applyQuaternion(j.q), j.stall * 0.9 * dt)); } // nose drops
+      const sink = j.stall * 14 + Math.max(0, 1 - Math.abs(Math.cos(e2.z))) * 3; j.pos.addScaledVector(f2, j.v * dt); j.pos.y -= sink * dt;
+      j.gear += ((j.pos.y - gy < 40 && j.v < 110 ? 1 : 0) - j.gear) * Math.min(1, dt * 0.8);
+      // ground contact: landing or crash
+      if (j.pos.y <= gy + 0.05) { const vs = f2.y * j.v - sink; const e3 = new THREE.Euler().setFromQuaternion(j.q, 'YXZ'); if (vs > -8.5 && Math.abs(e3.z) < 0.35 && e3.x > -0.25 && e3.x < 0.35 && j.gear > 0.8 && GXW.paved(j.pos.x, j.pos.z)) { j.ground = true; j.pos.y = gy; j.q.setFromEuler(new THREE.Euler(0, e3.y, 0, 'YXZ')); G.popup(vs > -3 ? '完美着陆！' : '着陆', '#7dff8a'); thud(70, 0.3, 0.6); if (vs > -3) G.addCash(200); }
+        else jetCrash(j.gear < 0.8 ? '没放起落架' : vs < -8.5 ? '下降太快' : '姿态不对'); }
+      // buildings
+      const cs = GXW.cols(j.pos.x, j.pos.z, 4, j.pos.y); if (cs.some(b => b[6] === 'b' && j.pos.y < b[5] && j.pos.y > b[4] - 1)) jetCrash('撞楼了');
+      if (j.pos.y > 1500) { j.pos.y = 1500; j.q.premultiply(_q.setFromAxisAngle(rgt.clone().applyQuaternion(j.q), 0.6 * dt)); }
+      if (Math.abs(j.pos.x) > 5000 || Math.abs(j.pos.z) > 5000) { const a = Math.atan2(-j.pos.x, -j.pos.z); const e4 = new THREE.Euler().setFromQuaternion(j.q, 'YXZ'); e4.y += angDiff(a, e4.y) * dt * 0.5; j.q.setFromEuler(e4); G.popup('超出空域，返航', '#ffb34a'); }
+    }
+    jetPose(); st.pos.copy(j.pos); st.yaw = new THREE.Euler().setFromQuaternion(j.q, 'YXZ').y; st.v = j.v; F.x = j.pos.x; F.z = j.pos.z; F.y = j.pos.y; F.spd = j.v; j.eng.set(j.thr * 0.85 + Math.min(0.15, j.v / 900), true);
+    const alt = Math.max(0, j.pos.y - gy); hud.innerHTML = `✈️ <b>${Math.round(j.v * 3.6)}</b> km/h · 高度 <b>${Math.round(alt)}</b> m · 油门 <b>${Math.round(j.thr * 100)}</b>%${j.stall > 0.1 ? ' · <span class="w">失速！</span>' : ''}${!j.ground && j.gear < 0.5 ? ' · 起落架收起' : ''}<br><small>▲▼ 油门 · ◀▶ 转弯 · 拉起 / 俯冲（键盘 W S 油门，A D 转弯，↓/空格 拉起，↑ 俯冲）</small>`; };
+  JT.camTgt = (o) => o.copy(JT.pos).add(up.clone().applyQuaternion(JT.q).multiplyScalar(2.6)).add(V(0, 1.2, 0));
+  JT.camWant = (tg, w) => { const e = new THREE.Euler().setFromQuaternion(JT.q, 'YXZ'); const d = JT.ground ? 20 : 24; const ph = JT.ground ? 0.14 : 0.1 - e.x * 0.5; return w.set(tg.x - Math.sin(e.y) * Math.cos(ph) * d, tg.y + Math.sin(ph) * d + 2, tg.z - Math.cos(e.y) * Math.cos(ph) * d); };
+  // ---------- registration with FOOT (enter prompt), respawn of wrecks ----------
+  TK.ok = () => !!TK.ld; FOOT.VEH.push(TK);
+  const JV = { kind: 'plane', r: 6, label: '✈️ 开战斗机', drag: false, get x() { return JT.pos.x; }, get z() { return JT.pos.z; }, get y() { return JT.pos.y; }, ok: () => JT.root && !JT.dead && JT.ground, enter: () => JT.enter(), exit: (f) => JT.exit(f), tick: (dt) => JT.tick(dt), camTgt: (o) => JT.camTgt(o), camWant: (t, w) => JT.camWant(t, w) };
+  FOOT.VEH.push(JV);
+  // gates: the barrier booms lift when anyone drives up
+  const gates = []; GXA.rigged('military-guard-tower', 1, ['boom', 'searchlight_head']).then(R => { [[1060, 421, -Math.PI / 2], [1060, 439, Math.PI / 2]].forEach(([x, z, yw], k) => { const root = k ? R.root.clone(true) : R.root; const b = []; root.traverse(o => { if (o.name === 'boom') b.push(o); if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      root.position.set(x - 3.6, 0, z - Math.sin(-yw) * 7.5); root.rotation.y = yw; scene.add(root); const boom = b[0]; if (boom) boom.scale.x = 0.95; gates.push({ x, z, boom, a: 0 }); GXW.addCol([x - 6.5, x - 0.8, root.position.z - 3, root.position.z + 3, 0, 9, 'b']); }); }).catch(() => null);
+  let FOG0 = null;
+  function frame(dt) { fxTick(dt);
+    const inT = FOOT.on && FOOT.mode === 'veh' && F.vo === TK, inJ = FOOT.on && FOOT.mode === 'veh' && F.vo === JV;
+    if (!inT && TK.ld) { TK.eng.set(0, false); if (Math.abs(TK.v) > 0.1) TK.v *= 0.9; }
+    if (TK.root && TK.rw) { if (!inT) { TK.y = GXW.gy(TK.x, TK.z, TK.y + 2); } if (inT || Math.hypot(TK.x - st.pos.x, TK.z - st.pos.z) < 300) tankPose(dt); }
+    if (scene.fog && scene.fog.isFog) { if (!FOG0) FOG0 = [scene.fog.near, scene.fog.far, camera.far]; const alt = inJ ? Math.max(0, JT.pos.y - 20) : 0; const k = 1 + Math.min(5, alt / 120); scene.fog.near = FOG0[0] * k; scene.fog.far = FOG0[1] * k; const cf = Math.max(FOG0[2], scene.fog.far * 1.05); if (Math.abs(camera.far - cf) > 20) { camera.far = cf; camera.updateProjectionMatrix(); } }
+    if (!inJ && JT.ok) { JT.eng.set(0, false); if (JT.ab) { JT.ab.material.opacity = 0; JT.ab2.material.opacity = 0; } }
+    if (JT.dead && tGlobal - JT.crashT > 8 && !inJ) { JT.dead = 0; JT.pos.set(JT.home[0], 0, JT.home[1]); JT.q.setFromAxisAngle(up, JT.home[2]); JT.v = 0; JT.ground = true; JT.gear = 1; JT.thr = 0; if (JT.root) JT.root.visible = true; jetPose(); }
+    // crushed cars clear away after a while
+    [...G.civ, ...G.cops].forEach(c => { if (c.crushed && tGlobal - c.crushT > 25 && Math.hypot(c.x - st.pos.x, c.z - st.pos.z) > 80) { c.crushed = false; c.body.scale.y = 1; c.body.position.y = 0; c.hideWheels = false; if (G.civ.indexOf(c) >= 0) c.C = null; else G.despawn(c); } });
+    gates.forEach(g => { const near = Math.hypot(st.pos.x - g.x, st.pos.z - g.z) < 32; g.a += ((near ? 1 : 0) - g.a) * Math.min(1, dt * 1.5); if (g.boom) g.boom.rotation.z = g.a * 1.35; });
+  }
+  { const h = document.getElementById('help'); if (h) h.innerHTML += '<br><b style="color:#ffcf5a">军事基地（机场跑道旁）：</b>🪖 坦克：▲▼ 前进后退，◀▶ 原地也能转，拖动屏幕转炮塔，碾过去能把车压扁（会被通缉）。✈️ 战斗机：▲ 加油门、▼ 收油门 / 刹车，◀▶ 地面转弯、空中压坡度转弯，「拉起」「俯冲」控制机头（键盘 W/S 油门，A/D 转弯，↓ 或空格 拉起，↑ 俯冲）。滑到跑道上加满油门，速度过 250 km/h 拉起就能起飞；低于约 190 km/h 会失速；降落时放慢速度、起落架会自动放下，下降别太猛、机翼放平，落在跑道或停机坪上。'; }
+  return { frame, TK, JT, JV, crush, boom, gates };
+})();
+if (GXM) window.GXMX = GXM;
 if (window.__g) window.__g.dbgY = () => { let a = 1e9, b = -1e9; P.forEach(p => { a = Math.min(a, p.y); b = Math.max(b, p.y); }); return [a, b, water && water.position.y, water && water.material.transparent, camera.near, camera.far]; };
 </script>
 </body></html>
