@@ -1,0 +1,7 @@
+3D models in this folder: tevy.dev (https://tevy.dev/models) – all CC0 1.0 (public domain).
+casual-walker, dog-walker, hiker, cyclist, road-worker, main-battle-tank, delta-fighter, light-aircraft, police-car, suv, hatchback,
+city-taxi, estate-car, pickup-truck, ambulance, hospital-building, police-station, control-tower, aircraft-hangar, narrowbody-airliner,
+jet-bridge, military-guard-tower, military-transport, tracked-infantry-fighting-vehicle, sandbag-wall-straight, camouflage-net-on-poles,
+ferris-wheel, basketball-court, basketball-hoop, noodle-shop, izakaya-front, street-food-stall-cart, glass-door-fridge-row,
+checkout-counter, coffee-bar-counter, takeaway-coffee-cup, stainless-stock-pot, four-seat-restaurant-table, restaurant-chair,
+low-plastic-stool, red-paper-lantern-string, large-red-paper-lantern, karaoke-building, drink-vending-machine-red.
