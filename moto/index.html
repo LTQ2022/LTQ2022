@@ -3349,7 +3349,7 @@ function update(dt, last = true, fdt = dt) {
   // night: move pooled lamp lights to nearest lamps
   lampT += dt; if (lampLights.length && lampT > 0.25) { lampT = 0; const ps = lampPts.map(p => [p.distanceToSquared(tgt), p]).sort((a, b) => a[0] - b[0]); lampLights.forEach((l, i) => { if (ps[i]) l.position.copy(ps[i][1]); }); }
   if (!last) return;
-  dt = fdt; superFx(dt, spd); driftFx(dt); if (GX) GX.frame(dt); if (!window.__mrg && tGlobal > 0.4 && bikeBody) { window.__mrg = gxMergeStatic(bikeBody); } if (FOOT) FOOT.frame(dt); if (GXV) GXV.frame(dt); if (GXM) GXM.frame(dt);
+  dt = fdt; superFx(dt, spd); driftFx(dt); if (GX) GX.frame(dt); if (bikeBody && !window.__mw) window.__mw = gxWatch(bikeBody); if (!window.__mrg && tGlobal > 1.2 && bikeBody) { window.__mrg = gxMergeStatic(bikeBody); } if (FOOT) FOOT.frame(dt); if (GXV) GXV.frame(dt); if (GXM) GXM.frame(dt);
   // HUD
   const kmh = spd * 3.6; const mode = crashed ? '—' : (input.back && st.v <= 0.4 && !input.fwd ? 'R' : (superG ? '超级档' + (input.boost ? '·S' : '') : gear + (input.boost ? 'S' : 'D')));
   hudSpd.textContent = Math.round(kmh); hudMode.textContent = mode; hudMode.className = superG ? 'super' : /S/.test(mode) ? 'boost' : ''; hudBat.textContent = Math.round(st.batt) + '%'; hudLean.textContent = crashed ? '—' : st.pitch > 0.08 ? ('翘头 ' + Math.round(st.pitch * 57.3) + '°') : ('倾角 ' + Math.round(Math.abs(st.lean) * 57.3) + '°' + (st.off ? ' · 越野' : ''));
@@ -3497,6 +3497,7 @@ function trafficTick(dt) {
 if (window.__g) { window.__g.tr = TR; window.__g.lineup = (gap = 9) => { const f = roadFrame(st.pos, st.hint); TR.list.forEach((v, j) => { v.s = f.s + 10 + j * gap; v.base = 0; v.spd = 0; placeVeh(v); }); }; }
 if (window.__g) window.__g.dirCheck = () => { const f = roadFrame(st.pos, st.hint); return [Math.cos(angDiff(Math.atan2(f.t.x, f.t.z), st.yaw)).toFixed(2), f.lat.toFixed(2), RSIGN, TR.list.map(v => v.o.type + ':' + v.lat.toFixed(1) + ':' + v.dir).join(' ')]; };
 if (window.__g) window.__g.orbSet = (t, p, d) => { orb.theta = t; orb.phi = p; orb.dist = d; };
+var GX_SC0 = scene.children.slice(); // world-build meshes (static), merged by GXPERF
 // ================= GX gameplay: wanted level + police chases, missions, city traffic, minimap, jumps =================
 var GX = null;
 (function () {
@@ -3977,15 +3978,93 @@ void main(){ vec3 c = clamp(texture2D(tDiffuse, vUv).rgb, 0.0, 1.0);
   apply(Q);
   return { get q() { return Q; }, apply, grade };
 })();
-// ---------- static mesh merge: under each parent, mesh children sharing a material are merged into one draw call ----------
-// (used on the X5 bike: ~180 small procedural parts -> ~80 draw calls; animated groups keep their own transforms)
-function gxMergeStatic(root) { let before = 0, after = 0; const parents = new Map();
-  root.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || o.children.length || !o.visible || o.morphTargetInfluences || Object.prototype.hasOwnProperty.call(o, 'onBeforeRender') || (o.userData && o.userData.noMerge)) return; let p = o.parent, hidden = false; while (p) { if (p.isBone) { hidden = true; break; } p = p.parent; } if (hidden) return; const k = o.parent; if (!parents.has(k)) parents.set(k, []); parents.get(k).push(o); });
-  parents.forEach((list, parent) => { const groups = new Map(); list.forEach(m => { const g = m.geometry; const sig = Object.keys(g.attributes).sort().join(',') + '|' + (g.index ? 1 : 0) + '|' + Object.keys(g.morphAttributes || {}).length; const key = m.material.uuid + '|' + sig + '|' + m.castShadow + m.receiveShadow + '|' + m.renderOrder + '|' + m.frustumCulled + '|' + (m.layers.mask);
-      if (Array.isArray(m.material)) return; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(m); });
-    groups.forEach(ms => { before += ms.length; if (ms.length < 2) { after += ms.length; return; } try { const geos = ms.map(m => { m.updateMatrix(); const g = m.geometry.clone(); g.applyMatrix4(m.matrix); if (m.matrix.determinant() < 0) { const ix = g.index; if (ix) { const a = ix.array; for (let i = 0; i < a.length; i += 3) { const t = a[i]; a[i] = a[i + 2]; a[i + 2] = t; } } else Object.values(g.attributes).forEach(at => { const a = at.array, k = at.itemSize; for (let i = 0; i + 3 * k <= a.length; i += 3 * k) for (let c = 0; c < k; c++) { const t = a[i + c]; a[i + c] = a[i + 2 * k + c]; a[i + 2 * k + c] = t; } }); } return g; });
-        const merged = mergeGeometries(geos, false); if (!merged) { after += ms.length; return; } const mm = new THREE.Mesh(merged, ms[0].material); mm.castShadow = ms[0].castShadow; mm.receiveShadow = ms[0].receiveShadow; mm.renderOrder = ms[0].renderOrder; mm.frustumCulled = ms[0].frustumCulled; mm.layers.mask = ms[0].layers.mask; mm.name = 'merged'; ms.forEach(m => parent.remove(m)); parent.add(mm); after++; } catch (e) { after += ms.length; } }); });
-  return [before, after]; }
+// ---------- static mesh merge (X5 bike) ----------
+// gxWatch marks every node under the bike whose transform or visibility the game writes (wheels, steering, suspension, lights…);
+// gxMergeStatic (a second later) merges every other visible mesh into the frame of its nearest written ("animated") ancestor, one draw
+// call per material per moving part. Meshes with their own onBeforeRender (strobe driver) or userData.noMerge are left alone.
+function gxMatSig(m) { const col = c => c ? c.getHexString() : '-'; return [m.type, m.visible, m.colorWrite, m.shadowSide, m.depthFunc, m.stencilWrite, m.dithering, m.name, col(m.color), col(m.emissive), m.emissiveIntensity, m.roughness, m.metalness, m.transparent, m.opacity, m.side, m.vertexColors, m.alphaTest, m.blending, m.depthWrite, m.depthTest, m.toneMapped, m.fog, m.polygonOffset, m.polygonOffsetFactor, m.polygonOffsetUnits, m.envMapIntensity, m.flatShading, m.wireframe, m.clearcoat, m.clearcoatRoughness, m.sheen, m.iridescence, m.transmission, m.ior, m.specularIntensity, m.normalScale && m.normalScale.x,
+  ...['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap', 'lightMap', 'bumpMap', 'envMap', 'clearcoatNormalMap', 'displacementMap'].map(k => m[k] ? m[k].uuid : '-'), m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile ? m.uuid : '', m.customProgramCacheKey !== THREE.Material.prototype.customProgramCacheKey ? m.uuid : '', m.isShaderMaterial ? m.uuid : '', m.defines ? JSON.stringify(m.defines) : ''].join('|'); }
+function gxWatch(root) { const undo = []; const mats = new Set();
+  root.traverse(o => { if (o.isMesh && !o.isSkinnedMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m && mats.add(m)); });
+  mats.forEach(m => { const mark = () => { m.userData.animW = 1; }; ['emissiveIntensity', 'opacity', 'roughness', 'metalness', 'envMapIntensity', 'visible', 'map', 'transparent'].forEach(k => { if (!(k in m)) return; let val = m[k]; Object.defineProperty(m, k, { get() { return val; }, set(n) { if (n !== val) mark(); val = n; }, configurable: true, enumerable: true }); undo.push(() => { delete m[k]; m[k] = val; }); });
+    ['color', 'emissive'].forEach(ck => { const c = m[ck]; if (!c) return; ['r', 'g', 'b'].forEach(k => { let val = c[k]; Object.defineProperty(c, k, { get() { return val; }, set(n) { if (n !== val) mark(); val = n; }, configurable: true, enumerable: true }); undo.push(() => { delete c[k]; c[k] = val; }); }); }); });
+  root.traverse(o => { if (o === root || o.isBone || o.isSkinnedMesh) return; const mark = () => { o.userData.animW = 1; };
+    const q = o.quaternion, r = o.rotation, qc = q._onChangeCallback, rc = r._onChangeCallback; q._onChange(() => { mark(); qc(); }); r._onChange(() => { mark(); rc(); }); undo.push(() => { q._onChange(qc); r._onChange(rc); });
+    [o.position, o.scale].forEach(v => ['x', 'y', 'z'].forEach(k => { let val = v[k]; Object.defineProperty(v, k, { get() { return val; }, set(n) { val = n; mark(); }, configurable: true, enumerable: true }); undo.push(() => { delete v[k]; v[k] = val; }); }));
+    let vis = o.visible; Object.defineProperty(o, 'visible', { get() { return vis; }, set(n) { if (n !== vis) mark(); vis = n; }, configurable: true, enumerable: true }); undo.push(() => { delete o.visible; o.visible = vis; }); });
+  return { undo: () => undo.forEach(f => f()) }; }
+function gxMergeStatic(root) { let before = 0, after = 0; const piv = new Map(); if (window.__mw && window.__mw.undo) window.__mw.undo();
+  root.updateMatrixWorld(true);
+  const pivotOf = (o) => { let p = o.parent, A = null; while (p) { if (p.isBone || !p.visible) return null; if (!A && (p === root || p.userData.animW)) A = p; if (p === root) break; p = p.parent; } return A; };
+  root.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || o.children.length || o.morphTargetInfluences || o.userData.animW || !o.visible || Object.prototype.hasOwnProperty.call(o, 'onBeforeRender') || (o.userData && o.userData.noMerge)) return;
+    const A = pivotOf(o); if (!A) return; if (!piv.has(A)) piv.set(A, []);
+    if (Array.isArray(o.material)) { const g = o.geometry; if (!g.groups.length) return; // multi-material mesh: one piece per material group
+      g.groups.forEach(gr => { const m = o.material[gr.materialIndex]; if (!m) return; let sub; if (g.index) { sub = g.clone(); sub.setIndex(new THREE.BufferAttribute(g.index.array.slice(gr.start, gr.start + gr.count), 1)); } else { sub = new THREE.BufferGeometry(); Object.entries(g.attributes).forEach(([an, at]) => { const k = at.itemSize; sub.setAttribute(an, new THREE.BufferAttribute(at.array.slice(gr.start * k, (gr.start + Math.min(gr.count, at.count - gr.start)) * k), k, at.normalized)); }); } sub.clearGroups(); piv.get(A).push({ src: o, geometry: sub, material: m, mw: o.matrixWorld, piece: true }); }); }
+    else piv.get(A).push({ src: o, geometry: o.geometry, material: o.material, mw: o.matrixWorld }); });
+  const inv = new THREE.Matrix4(), rel = new THREE.Matrix4(), drop = new Set();
+  piv.forEach((list, A) => { if (window.__NOPIV && A !== root) return; inv.copy(A.matrixWorld).invert(); const groups = new Map(); list.forEach(it => { const m = it.src, g = it.geometry; const sig = Object.keys(g.attributes).sort().join(',') + '|' + (g.index ? 1 : 0) + '|' + Object.keys(g.morphAttributes || {}).length; const key = (it.material.userData.animW ? it.material.uuid : gxMatSig(it.material)) + '|' + sig + '|' + m.castShadow + m.receiveShadow + '|' + m.renderOrder + '|' + m.frustumCulled + '|' + (m.layers.mask);
+      if (!groups.has(key)) groups.set(key, []); groups.get(key).push(it); });
+    groups.forEach(ms => { before += ms.length; if (ms.length < 2 && !ms[0].piece) { after += ms.length; return; } const F = ms[0].src.parent; inv.copy(F.matrixWorld).invert(); try { const geos = ms.map(it => { rel.multiplyMatrices(inv, it.mw); const g = it.piece ? it.geometry : it.geometry.clone(); g.applyMatrix4(rel); if (rel.determinant() < 0) { const ix = g.index; if (ix) { const a = ix.array; for (let i = 0; i < a.length; i += 3) { const t = a[i]; a[i] = a[i + 2]; a[i + 2] = t; } } else Object.values(g.attributes).forEach(at => { const a = at.array, k = at.itemSize; for (let i = 0; i + 3 * k <= a.length; i += 3 * k) for (let c = 0; c < k; c++) { const t = a[i + c]; a[i + c] = a[i + 2 * k + c]; a[i + 2 * k + c] = t; } }); } return g; });
+        const merged = geos.length > 1 ? mergeGeometries(geos, false) : geos[0]; if (!merged) { after += ms.length; return; } const s0 = ms[0].src; const mm = new THREE.Mesh(merged, ms[0].material); mm.castShadow = s0.castShadow; mm.receiveShadow = s0.receiveShadow; mm.renderOrder = s0.renderOrder; mm.frustumCulled = s0.frustumCulled; mm.layers.mask = s0.layers.mask; mm.name = 'merged'; ms.forEach(it => drop.add(it.src)); F.add(mm); after++; if (window.__MDBG) { const b1 = new THREE.Box3(); ms.forEach(it => { it.geometry.computeBoundingBox && 0; const bb = new THREE.Box3().setFromObject(it.src); if (bb) b1.union(bb); }); mm.updateMatrixWorld(true); const b2 = new THREE.Box3().setFromObject(mm); (window.__mrgDbg = window.__mrgDbg || []).push([ms.length, ms[0].src.name, A.name || A.type, b1.min.toArray().map(v => +v.toFixed(2)), b2.min.toArray().map(v => +v.toFixed(2)), b1.max.toArray().map(v => +v.toFixed(2)), b2.max.toArray().map(v => +v.toFixed(2))]); } } catch (e) { after += ms.length; } }); });
+  drop.forEach(m => m.parent && m.parent.remove(m));
+  // shadow proxy: everything opaque that casts, per moving part, as ONE position-only mesh seen only by the sun's shadow camera (layer 1)
+  let px = 0; const pz = new Map(); root.updateMatrixWorld(true);
+  root.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || !o.castShadow || !o.visible) return; const mats = Array.isArray(o.material) ? o.material : [o.material]; if (mats.some(m => m.transparent || m.blending !== THREE.NormalBlending || m.alphaTest > 0)) return; const A = o.userData.animW ? o : pivotOf(o); if (!A) return; if (!pz.has(A)) pz.set(A, []); pz.get(A).push(o); });
+  if (!window.__NOPX) pz.forEach((list, A) => { inv.copy(A.matrixWorld).invert(); const geos = []; list.forEach(o => { const g = new THREE.BufferGeometry(); g.setAttribute('position', o.geometry.attributes.position.clone()); if (o.geometry.index) g.setIndex(o.geometry.index.clone()); rel.multiplyMatrices(inv, o.matrixWorld); if (o !== A) g.applyMatrix4(rel); geos.push(g.index ? g : g); o.castShadow = false; });
+    const ig = geos.filter(g => g.index), ng = geos.filter(g => !g.index); [ig, ng].forEach(gs => { if (!gs.length) return; const mg = gs.length > 1 ? mergeGeometries(gs, false) : gs[0]; if (!mg) return; const m = new THREE.Mesh(mg, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide })); m.castShadow = true; m.receiveShadow = false; m.layers.set(1); m.frustumCulled = false; m.name = 'shadowProxy'; A.add(m); px++; }); });
+  sun.shadow.camera.layers.enable(1);
+  return [before, after, px]; }
+// ---------- city draw-call regroup (Stage D perf) ----------
+// The city was built as 3x3-block chunks, each owning ~17 InstancedMeshes (buildings, plinths, lawns, lamps, trees, benches, roof units,
+// traffic lights, parked cars…), so a view across the city cost 150+ draw calls plus the shadow pass. Here every chunk's instances of the
+// same kind are pooled into ONE InstancedMesh per kind: buildings / plinths / lawns stay static (cheap boxes, whole city in one call);
+// street furniture, trees and parked cars are refilled every few hundred ms with only the instances near the camera (same draw distance
+// as before), split into a near set that casts shadows and a far set that doesn't (the sun's shadow box only covers ~±50 m anyway).
+var GXPERF = (function () {
+  if (typeof GXW === 'undefined' || !GXW || !GXW.cities) return null;
+  const R = { far: isMobile ? 380 : 480, near: 75 }; const pools = []; let calls0 = 0; const CS = 64; // 64 m grid: a refill only visits the cells within draw distance
+  const sig = (o) => o.material.uuid + '|' + o.geometry.attributes.position.count + '|' + Object.keys(o.geometry.attributes).sort().join(',') + '|' + o.castShadow + o.receiveShadow + '|' + o.renderOrder;
+  GXW.cities.forEach(C => { const fam = new Map();
+    (C.groups || []).forEach(grp => { const det = grp.userData.det; grp.traverse(o => { if (!o.isInstancedMesh) return; calls0++; const k = (o.parent === det ? 'D' : 'S') + sig(o); if (!fam.has(k)) fam.set(k, []); fam.get(k).push(o); }); });
+    fam.forEach((list, k) => { const dyn = k[0] === 'D', o0 = list[0]; let N = 0; list.forEach(o => N += o.count);
+      const geo = new THREE.BufferGeometry(); Object.entries(o0.geometry.attributes).forEach(([n, a]) => { if (!a.isInstancedBufferAttribute) geo.setAttribute(n, a); }); if (o0.geometry.index) geo.setIndex(o0.geometry.index);
+      const M = new Float32Array(N * 16), Col = o0.instanceColor ? new Float32Array(N * 3) : null, IA = {}; Object.entries(o0.geometry.attributes).forEach(([n, a]) => { if (a.isInstancedBufferAttribute) IA[n] = new Float32Array(N * a.itemSize); });
+      let i = 0; list.forEach(o => { M.set(o.instanceMatrix.array.subarray(0, o.count * 16), i * 16); if (Col && o.instanceColor) Col.set(o.instanceColor.array.subarray(0, o.count * 3), i * 3);
+        Object.keys(IA).forEach(n => { const a = o.geometry.attributes[n]; if (a) IA[n].set(a.array.subarray(0, o.count * a.itemSize), i * a.itemSize); }); i += o.count; o.parent.remove(o); });
+      const mk = (cap, cast) => { const m = new THREE.InstancedMesh(geo.clone(), o0.material, Math.max(1, cap)); Object.keys(IA).forEach(n => m.geometry.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, cap) * o0.geometry.attributes[n].itemSize), o0.geometry.attributes[n].itemSize)));
+        if (Col) m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, cap) * 3), 3); m.castShadow = cast; m.receiveShadow = o0.receiveShadow; m.renderOrder = o0.renderOrder; m.name = 'pool'; scene.add(m); return m; };
+      if (!dyn) { const m = mk(N, o0.castShadow); m.instanceMatrix.array.set(M); if (Col) m.instanceColor.array.set(Col); Object.keys(IA).forEach(n => m.geometry.attributes[n].array.set(IA[n])); m.count = N; m.computeBoundingSphere(); return; }
+      const P = { N, M, Col, IA, x: new Float32Array(N), z: new Float32Array(N), cast: o0.castShadow, near: o0.castShadow ? mk(N, true) : null, far: mk(N, false) };
+      for (let j = 0; j < N; j++) { P.x[j] = M[j * 16 + 12]; P.z[j] = M[j * 16 + 14]; }
+      P.cells = new Map(); for (let j = 0; j < N; j++) { const k = Math.floor(P.x[j] / CS) * 4096 + Math.floor(P.z[j] / CS); let l = P.cells.get(k); if (!l) P.cells.set(k, l = []); l.push(j); }
+      [P.near, P.far].forEach(m => { if (m) { m.frustumCulled = false; m.count = 0; } }); pools.push(P); }); });
+  const put = (m, P, j) => { const c = m.count++; m.instanceMatrix.array.set(P.M.subarray(j * 16, j * 16 + 16), c * 16); if (P.Col) m.instanceColor.array.set(P.Col.subarray(j * 3, j * 3 + 3), c * 3);
+    for (const n in P.IA) { const a = m.geometry.attributes[n], s = a.itemSize; a.array.set(P.IA[n].subarray(j * s, j * s + s), c * s); } };
+  let lx = 1e9, lz = 1e9, t = 9;
+  function refill(force) { const cx = camera.position.x, cz = camera.position.z; if (!force && Math.hypot(cx - lx, cz - lz) < 6) return; lx = cx; lz = cz;
+    const f2 = R.far * R.far, n2 = R.near * R.near;
+    const i0 = Math.floor((cx - R.far) / CS), i1 = Math.floor((cx + R.far) / CS), k0 = Math.floor((cz - R.far) / CS), k1 = Math.floor((cz + R.far) / CS);
+    pools.forEach(P => { if (P.near) P.near.count = 0; P.far.count = 0;
+      for (let i = i0; i <= i1; i++) for (let k = k0; k <= k1; k++) { const l = P.cells.get(i * 4096 + k); if (!l) continue; for (let q = 0; q < l.length; q++) { const j = l[q]; const dx = P.x[j] - cx, dz = P.z[j] - cz, d = dx * dx + dz * dz; if (d > f2) continue; put(P.near && d < n2 ? P.near : P.far, P, j); } }
+      [P.near, P.far].forEach(m => { if (!m) return; m.instanceMatrix.needsUpdate = true; if (P.Col) m.instanceColor.needsUpdate = true; for (const n in P.IA) m.geometry.attributes[n].needsUpdate = true; m.visible = m.count > 0; }); }); }
+  refill(true); worldTick.push((dt) => { if ((t += dt) > 0.25) { t = 0; refill(false); } });
+  // static world meshes added straight to the scene by the world / city builders (ramps, kerbs, lamp masts, decks, signs, airport pieces…):
+  // merged per equivalent material into one mesh each (world transform baked in)
+  let wm = [0, 0];
+  if (typeof GX_SC0 !== 'undefined') { const fam = new Map(); const msig = gxMatSig;
+    GX_SC0.forEach(o => { if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || o.parent !== scene || o.children.length || !o.visible || Array.isArray(o.material) || o.morphTargetInfluences || Object.prototype.hasOwnProperty.call(o, 'onBeforeRender') || o.userData.noMerge || !o.matrixAutoUpdate && false) return;
+      if (o.material.isShaderMaterial || o.material.isMeshPhysicalMaterial && o.material.transmission > 0) return; const g = o.geometry; if (!g.attributes.position || g.attributes.position.count > 60000) return;
+      const k = msig(o.material) + '#' + Object.keys(g.attributes).sort().join(',') + (g.index ? 'i' : 'n') + o.castShadow + o.receiveShadow + o.renderOrder + o.frustumCulled; if (!fam.has(k)) fam.set(k, []); fam.get(k).push(o); });
+    fam.forEach(list => { if (list.length < 2) return; try { const geos = list.map(o => { o.updateMatrixWorld(true); const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); if (o.matrixWorld.determinant() < 0 && g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t2 = a[i]; a[i] = a[i + 2]; a[i + 2] = t2; } } return g; });
+      const mg = mergeGeometries(geos, false); if (!mg) return; const o0 = list[0]; const m = new THREE.Mesh(mg, o0.material); m.castShadow = o0.castShadow; m.receiveShadow = o0.receiveShadow; m.renderOrder = o0.renderOrder; m.frustumCulled = o0.frustumCulled; m.name = 'wmerge'; list.forEach(o => scene.remove(o)); scene.add(m); wm[0] += list.length; wm[1]++; } catch (e) { wm.push(String(e && e.message).slice(0, 80)); } }); }
+  return { pools, R, refill, calls0, wm, sc0: typeof GX_SC0 !== 'undefined' ? GX_SC0 : null };
+})();
+window.GXPERFX = GXPERF;
+// glow / smoke sprite pools (explosions, car strobes, steam…) sit at opacity 0 most of the time but still cost a draw call each:
+// any sprite first seen additive or fully transparent is shown only while its opacity is above zero.
+(function () { const spr = new Set(); let t = 9;
+  worldTick.push((dt) => { if ((t += dt) > 2) { t = 0; scene.traverse(o => { if (o.isSprite && !spr.has(o) && o.material && (o.material.blending === THREE.AdditiveBlending || o.material.opacity === 0)) spr.add(o); }); }
+    spr.forEach(s => { s.visible = s.material.opacity > 0.004; }); }); })();
 // ================= FOOT: get off the bike, walk / run / jump, steal cars, drive the tank / fly the plane, health, arrests =================
 // No weapons. The player is a CC0 rigged person (tevy.dev "Casual Walker", 55-joint skeleton) playing its own idle / walk clips;
 // the run is made from that same walk on the same skeleton (bigger joint swings, faster, leaning) – no retargeting.
