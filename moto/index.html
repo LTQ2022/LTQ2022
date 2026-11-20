@@ -54,10 +54,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div class="btn" id="bD" data-k="drift">漂移</div><div id="driftHud"></div><div class="btn" id="bX" data-k="boost">加速</div><div class="btn" id="bG">1挡</div><div class="btn" id="bS">超级<br>档</div>
 <button class="top" id="bMenu">🏍 <span id="mapName">地图</span><span class="lbl"> · 设置</span> ▾</button><button class="top" id="bReset">↻</button><button class="top" id="bCam">👁<span class="lbl"> 自由视角</span></button><button class="top" id="bTraffic">🚗<span class="lbl"> 车流</span> 关</button><div id="msg"></div>
 <div id="menu"><div class="card">
-<div id="help">加速键单按就猛给电并翘头，再加按 ▲ 会翘过头翻车，▼ 压车头。1 挡最高 200，2 挡 300，3 挡约 450。右侧「超级档」按钮（键盘 F）开启超级档：按住加速最高 1000 km/h，高速下方向键变成换道、车身自动回正；再按一次或按换挡退出。顶部 🚗 开关路上车流，撞车会摔。左侧「漂移」按钮（键盘 X）：25 km/h 以上按住，配合方向键甩尾漂移，冒烟留胎印、计分。烧胎：把前轮顶在护栏上再加油，后轮原地狂转冒大烟；没护栏的地方按住刹车 + 油门也能原地烧胎。键盘：方向键/WASD，空格加速，E 换挡，F 超级档，X 漂移，R 扶车。</div>
+<div id="help"><b style="color:#ffcf5a">玩法：</b>都市大地图，右上「☀️/🌙」切换白天和夜晚。骑雅迪 X5 军舰满城跑，随时下车步行；路上看到的车基本都能开：路边停的车、路上的出租车 / 公交车 / 垃圾车 / 警车，医院门口的救护车，军事基地的坦克和步兵战车和战斗机。接任务赚钱，惹事会被警察通缉，饿了去吃喝玩乐。<br><b style="color:#ffcf5a">骑 X5：</b>▲ 油门，▼ 刹车 / 倒车，◀▶ 压弯；「加速」猛给电会翘头（再按 ▲ 会翘过头翻车，▼ 压车头），「挡位」换挡；「漂移」25 km/h 以上按住配合方向甩尾，冒烟留胎印、计分；按住刹车 + 油门原地烧胎；摔车了点 ↻ 扶车。<br><b style="color:#ffcf5a">步行：</b>右上「🚶 下车」（停稳后才行）。左下摇杆走路，推到底或按「跑」跑步（双击锁定），「跳」跳起，拖屏幕转视角。走到车旁边点「🚗 上车 / 抢车」，回到摩托旁点「🏍 上车」。<br><b style="color:#ffcf5a">开车：</b>▲ 油门，▼ 刹车 / 倒车，◀▶ 转向。公交车、垃圾车很重：起步慢、刹车距离长、转弯要提前走大弯；坦克、步兵战车是履带，◀▶ 原地就能转，坦克拖屏幕转炮塔、能把车压扁。偷军车会被通缉。<br><b style="color:#ffcf5a">开飞机：</b>▲ 加油门 / ▼ 收油门（停住时按 ▼ 是刹车），◀▶ 地面转前轮、空中压坡度转弯，「拉起」「俯冲」控制机头，起落架自动收放。战斗机过 250 km/h 拉起；降落时放慢速度、机翼放平、别下降太猛，落在跑道上。<br><b style="color:#ffcf5a">任务 / 警察：</b>左上「📋 任务」或开进发光光柱接任务（竞速、外卖、甩掉警察、特技），赚的钱会保存。超速被看到、撞车、抢车会被通缉（右上星星）；远离警车、躲到楼后断开视线就能甩掉，被堵住停下来就会被捕。左上绿条是血量，归零后在医院醒来并扣医药费。<br><b style="color:#ffcf5a">吃喝玩乐：</b>小地图上的图标都能去：🍲 火锅、🍢 烧烤、🧋 奶茶、🏪 便利店（回血），🕹️ 游戏厅、🏀 篮球场（赢钱），🎡 摩天轮。走到柜台前点出现的按钮。✈️ 机场在环路东边，🪖 军事基地在跑道旁。<br><b style="color:#ffcf5a">键盘：</b>方向键 / WASD，空格加速，E 换挡，X 漂移，R 扶车，G 下车 / 上车，Shift 跑，M 任务；飞机：W/S 油门，A/D 转弯，↓ 或空格拉起，↑ 俯冲。</div>
 <h3>声音</h3><div class="row"><button class="opt sel" id="bSnd">🔊 声音 开<small>发动机声 + 刹车声</small></button><button class="opt sel" id="bBgm">🎵 音乐 开<small>背景音乐</small></button></div>
 <button id="mClose">开骑</button>
-<div id="credit">音效（除注明外均为 CC0 公共领域录音）：820RR 无可用原车录音，发动机声用 Triumph 直列三缸录音代替（Street Triple 675 与 Sprint ST，Internet Archive「Bike Engine Sounds」）；鬼火用 Gilera Runner SP50 二冲程踏板录音（Freesound lovretta #140384）；电摩用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车（三车同一套）用真实轮胎刹车吱声（Freesound RutgerMuller #104026、audible-edge #71737）+ 刹车片尖啸（Freesound WavJunction.com #456764）+ 踏板车刹车摩擦（Freesound 16HPanskaResatko_Matej #497971）；漂移/烧胎摩擦声用摩托车后轮抱死录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）。张雪机车 / ZXMOTO 商标归重庆张雪机车所有，仅作游戏车型外观还原。</div></div></div>
+<div id="credit">音效（除注明外均为 CC0 公共领域录音）：X5 电机声用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车用真实轮胎刹车吱声（Freesound RutgerMuller #104026、audible-edge #71737）+ 刹车片尖啸（Freesound WavJunction.com #456764）+ 踏板车刹车摩擦（Freesound 16HPanskaResatko_Matej #497971）；漂移 / 烧胎摩擦声用摩托车后轮抱死录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）。车辆、飞机、建筑模型为 CC0（tevy.dev）。</div></div></div>
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "cannon": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={"ph": "https://dl.polyhaven.org/file/ph-assets/", "hdr": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr", "riderBase": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r170/examples/models/gltf/", "waterN": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/waternormals.jpg"};</script>
 <script type="module">import * as THREE from 'three';
@@ -400,7 +400,7 @@ if (MAPID === 'coast') {
 // baked into vertex attributes, so a 26-material car becomes 3-4 draw calls. Glass (KHR_materials_transmission) becomes cheap
 // alpha-blended glass (no transmission pre-pass on phones). Moving parts stay separate nodes when asked for.
 var GXA = (function () {
-  const DIMS = { 'main-battle-tank': [3.78, 4.45, 9.68], 'delta-fighter': [10.10, 4.97, 16.15], 'casual-walker': [1.37, 1.79, 0.38], 'police-car': [2.13, 1.60, 5.22], 'suv': [2.14, 1.70, 4.65], 'hatchback': [2.03, 1.47, 4.10], 'city-taxi': [1.75, 1.73, 4.70], 'estate-car': [2.08, 1.50, 4.70], 'pickup-truck': [2.21, 1.82, 5.30], 'hospital-building': [54.00, 32.34, 38.50], 'police-station': [31.18, 19.36, 29.50], 'control-tower': [20.48, 44.13, 16.84], 'aircraft-hangar': [61.80, 18.74, 53.00], 'narrowbody-airliner': [35.27, 11.75, 38.17], 'light-aircraft': [11.28, 3.01, 8.29], 'jet-bridge': [4.76, 6.97, 34.34], 'military-guard-tower': [15.28, 10.50, 5.80], 'military-transport': [38.00, 10.95, 30.07], 'tracked-infantry-fighting-vehicle': [3.79, 3.94, 7.71], 'sandbag-wall-straight': [2.15, 1.17, 0.67], 'camouflage-net-on-poles': [6.23, 2.56, 5.83], 'ferris-wheel': [37.90, 40.61, 14.96], 'basketball-court': [32.10, 0.04, 19.10], 'basketball-hoop': [1.80, 3.95, 2.62], 'noodle-shop': [4.80, 8.01, 13.21], 'izakaya-front': [5.10, 6.89, 12.11], 'street-food-stall-cart': [3.18, 2.37, 1.70], 'glass-door-fridge-row': [3.75, 2.10, 1.01], 'checkout-counter': [3.52, 2.26, 1.73], 'coffee-bar-counter': [1.20, 0.96, 0.77], 'four-seat-restaurant-table': [1.20, 0.76, 0.75], 'restaurant-chair': [0.45, 0.86, 0.53], 'low-plastic-stool': [0.31, 0.43, 0.31], 'ambulance': [2.55, 3.01, 7.29], 'karaoke-building': [9.76, 21.36, 14.62], 'drink-vending-machine-red': [1.00, 1.83, 0.77] };
+  const DIMS = { 'main-battle-tank': [3.78, 4.45, 9.68], 'delta-fighter': [10.10, 4.97, 16.15], 'casual-walker': [1.37, 1.79, 0.38], 'police-car': [2.13, 1.60, 5.22], 'suv': [2.14, 1.70, 4.65], 'hatchback': [2.03, 1.47, 4.10], 'city-taxi': [1.75, 1.73, 4.70], 'estate-car': [2.08, 1.50, 4.70], 'pickup-truck': [2.21, 1.82, 5.30], 'hospital-building': [54.00, 32.34, 38.50], 'police-station': [31.18, 19.36, 29.50], 'control-tower': [20.48, 44.13, 16.84], 'aircraft-hangar': [61.80, 18.74, 53.00], 'narrowbody-airliner': [35.27, 11.75, 38.17], 'light-aircraft': [11.28, 3.01, 8.29], 'jet-bridge': [4.76, 6.97, 34.34], 'military-guard-tower': [15.28, 10.50, 5.80], 'military-transport': [38.00, 10.95, 30.07], 'tracked-infantry-fighting-vehicle': [3.79, 3.94, 7.71], 'sandbag-wall-straight': [2.15, 1.17, 0.67], 'camouflage-net-on-poles': [6.23, 2.56, 5.83], 'ferris-wheel': [37.90, 40.61, 14.96], 'basketball-court': [32.10, 0.04, 19.10], 'basketball-hoop': [1.80, 3.95, 2.62], 'noodle-shop': [4.80, 8.01, 13.21], 'izakaya-front': [5.10, 6.89, 12.11], 'street-food-stall-cart': [3.18, 2.37, 1.70], 'glass-door-fridge-row': [3.75, 2.10, 1.01], 'checkout-counter': [3.52, 2.26, 1.73], 'coffee-bar-counter': [1.20, 0.96, 0.77], 'four-seat-restaurant-table': [1.20, 0.76, 0.75], 'restaurant-chair': [0.45, 0.86, 0.53], 'low-plastic-stool': [0.31, 0.43, 0.31], 'ambulance': [2.55, 3.01, 7.29], 'karaoke-building': [9.76, 21.36, 14.62], 'drink-vending-machine-red': [1.00, 1.83, 0.77], 'city-bus': [2.80, 3.10, 12.40], 'garbage-truck': [3.20, 3.55, 9.96] };
   let basis = './t160/addons/libs/basis/'; try { if (import.meta && import.meta.resolve) basis = import.meta.resolve('three/addons/libs/basis/'); } catch (e) { }
   const ktx2 = new KTX2Loader().setTranscoderPath(CFG.basis || basis).detectSupport(renderer);
   const L = new GLTFLoader(); L.setKTX2Loader(ktx2); L.setMeshoptDecoder(MeshoptDecoder);
@@ -637,15 +637,19 @@ var GXCAR = (function () {
       if (c.glb) { if (!c.ready) continue; c.wheels.forEach((w, i) => { const h = w.userData.holder; c.wslot[i].forEach(W2 => { W2.im.setMatrixAt(W2.i, vis ? h.matrixWorld : _z); W2.im.instanceMatrix.needsUpdate = true; }); }); continue; }
       c.wheels.forEach((w, i) => { const W2 = c.wslot[i]; if (!vis) W2.im.setMatrixAt(W2.i, _z); else { W2.im.setMatrixAt(W2.i, w.matrixWorld); } W2.im.instanceMatrix.needsUpdate = true; }); } }
   // ---------- CC0 glTF cars (tevy.dev): stealable traffic + police. Body flattened (3-4 draw calls), wheels are per-model InstancedMeshes ----------
-  const GLBCAR = { police: 'police-car', suv: 'suv', hatch: 'hatchback', taxi: 'city-taxi', estate: 'estate-car', pickup: 'pickup-truck' };
-  const WN = ['wheel_FL', 'wheel_FR', 'wheel_RL', 'wheel_RR'];
+  const GLBCAR = { police: 'police-car', suv: 'suv', hatch: 'hatchback', taxi: 'city-taxi', estate: 'estate-car', pickup: 'pickup-truck', bus: 'city-bus', truck: 'garbage-truck', ambulance: 'ambulance', ifv: 'tracked-infantry-fighting-vehicle' };
+  const GLBLOD = { 'tracked-infantry-fighting-vehicle': 2 };
+  const WN = ['wheel_FL', 'wheel_FR', 'wheel_RL', 'wheel_RR', 'wheel_ML', 'wheel_MR'];
   const GW = {}; // slug -> { meshes: [InstancedMesh], n }
-  const glbTpl = {}; function carTpl(slug) { return glbTpl[slug] || (glbTpl[slug] = GXA.rigged(slug, 1, [...WN, 'light_bar_lens']).then(R => { const wf = R.parts.wheel_FL; const geoMeshes = wf.children.filter(o => o.isMesh);
+  const glbTpl = {}; function carTpl(slug) { return glbTpl[slug] || (glbTpl[slug] = GXA.rigged(slug, GLBLOD[slug] || 1, [...WN, 'light_bar_lens']).then(R => { const wf = R.parts.wheel_FL; const geoMeshes = wf ? wf.children.filter(o => o.isMesh) : [];
       const box = new THREE.Box3().setFromObject(R.root); const ims = geoMeshes.map(m => { const im = new THREE.InstancedMesh(m.geometry, m.material, 64); im.count = 0; im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false; scene.add(im); return im; });
       GW[slug] = { ims, n: 0 }; return { R, box }; })); }
+  // handling class per model: acceleration, top speed, braking, steering lock, mass (pushes other cars), turning in place (tracked)
+  const GXCLS = { bus: { cls: 'bus', acc: 3.2, vmax: 22, brk: 7.5, maxSteer: 0.62, mass: 4, roll: 2.4, pitchK: 2.2 }, truck: { cls: 'truck', acc: 2.8, vmax: 24, brk: 7, maxSteer: 0.58, mass: 4, roll: 2.2, pitchK: 2.2 }, ambulance: { cls: 'van', acc: 6, vmax: 38, brk: 12, maxSteer: 0.6, mass: 2, roll: 1.6, pitchK: 1.5 },
+    ifv: { cls: 'ifv', acc: 3.4, vmax: 18, brk: 8, maxSteer: 0.6, mass: 6, tracked: true, roll: 0.6, pitchK: 1.2 }, pickup: { cls: 'car', acc: 8.5, vmax: 42, mass: 1.4 } };
   function makeGlbCar(kind) { const slug = GLBCAR[kind]; const g = new THREE.Group(); const body = new THREE.Group(); g.add(body); const D = GXA.DIMS[slug];
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.renderOrder = 1; blob.scale.set(D[0] / 2.3, 1, D[2] / 5.2); g.add(blob);
-    const car = { g, body, wheels: [], wslot: [], kind, glb: true, ready: false, L: D[2] - 0.15, HW: D[0] / 2 - 0.12, WR: 0.34, wb: 2.8 }; cars.push(car);
+    const car = { g, body, wheels: [], wslot: [], kind, glb: true, ready: false, L: D[2] - 0.15, HW: D[0] / 2 - 0.12, H: D[1], WR: 0.34, wb: 2.8 }; cars.push(car); Object.assign(car, GXCLS[kind] || {});
     if (kind === 'police') { car.mR = new THREE.MeshStandardMaterial({ color: 0x3a0505, roughness: 0.15, emissive: 0xff1020, emissiveIntensity: 0 }); car.mB = new THREE.MeshStandardMaterial({ color: 0x050a3a, roughness: 0.15, emissive: 0x1040ff, emissiveIntensity: 0 });
       const mk = (col, x) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, fog: true })); s.position.set(x, 1.62, -0.19); s.scale.set(1.6, 1.0, 1); body.add(s); return s; };
       car.sR = mk(0xff2030, 0.3); car.sB = mk(0x2050ff, -0.3);
@@ -654,9 +658,9 @@ var GXCAR = (function () {
       if (kind === 'police') { const lb = R.parts.light_bar_lens; const bb = lb ? new THREE.Box3().setFromObject(lb) : null; const y = bb ? bb.max.y - 0.03 : 1.56, z = bb ? (bb.min.z + bb.max.z) / 2 : -0.19, w = bb ? (bb.max.x - bb.min.x) / 2 - 0.02 : 0.5;
         [[car.mR, w / 2], [car.mB, -w / 2]].forEach(([m, x]) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w - 0.02, 0.09, bb ? (bb.max.z - bb.min.z) * 0.9 : 0.22), m); b.position.set(x, y, z); body.add(b); }); car.sR.position.y = car.sB.position.y = y + 0.08; }
       else if (R.parts.light_bar_lens) R.parts.light_bar_lens.children.forEach(o => { if (o.isMesh) body.add(new THREE.Mesh(o.geometry, o.material)); });
-      const W = GW[slug]; WN.forEach((nm, i) => { const src = R.parts[nm]; const piv = new THREE.Group(); piv.position.copy(src.position); const holder = new THREE.Group(); holder.quaternion.copy(src.userData.rest); piv.add(holder); piv.userData.holder = holder; body.add(piv); car.wheels.push(piv);
+      const W = GW[slug]; WN.forEach((nm, i) => { const src = R.parts[nm]; if (!src) return; const piv = new THREE.Group(); piv.position.copy(src.position); const holder = new THREE.Group(); holder.quaternion.copy(src.userData.rest); piv.add(holder); piv.userData.holder = holder; body.add(piv); car.wheels.push(piv);
         car.wslot.push(W.ims.map(im => { const k = W.n; im.count = Math.max(im.count, k + 1); return { im, i: k }; })); W.n++; });
-      car.WR = Math.max(0.3, R.parts.wheel_FL.position.y); car.wb = Math.abs(R.parts.wheel_FL.position.z - R.parts.wheel_RL.position.z); car.ready = true; });
+      if (R.parts.wheel_FL) { car.WR = Math.max(0.3, R.parts.wheel_FL.position.y); const rr = R.parts.wheel_RL; car.wb = Math.abs(R.parts.wheel_FL.position.z - (R.parts.wheel_ML ? (rr.position.z + R.parts.wheel_ML.position.z) / 2 : rr.position.z)); } else car.WR = 0.42; car.ready = true; });
     return car; }
   function makeCar(kind, color) {
     if (GLBCAR[kind]) return makeGlbCar(kind);
@@ -681,7 +685,7 @@ var GXCAR = (function () {
   }
   const GLOW = ctex(cvs(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }), false, false);
 
-  return { GLBCAR, carTpl, syncWheels, NI, CAR, CARLO, carMats, makeCar, blobGeo, blobMat, GLOW, mirrorX };
+  return { GLBCAR, GXCLS, carTpl, syncWheels, NI, CAR, CARLO, carMats, makeCar, blobGeo, blobMat, GLOW, mirrorX };
 })();
 // ================= GX city: districts, landmarks and venues (都市) =================
 // Grid blocks (15 x 15, pitch 106 m) with a few special blocks near the spawn: 美食街 (hotpot + BBQ), 奶茶店 + 便利店, 游戏厅 + KTV,
@@ -691,6 +695,7 @@ var GXCAR = (function () {
 var GXBASE = null;
 const GXCITY = { x0: -795, z0: -795, p: 106, sw: 8, bs: 90 };
 const gxBX = i => GXCITY.x0 + i * GXCITY.p + GXCITY.sw, gxBZ = j => GXCITY.z0 + j * GXCITY.p + GXCITY.sw; // block interior origin
+const GXDRIVE = []; // drivable parked vehicles [kind, x, z, yaw] (gx_veh.js)
 const GXROOMS = []; const GXPROPS = []; const GXSIGNS = []; const GXVEN = []; const GXPOI = [];
 // generic infill building inside a special block: [cx, cz, w, h, d, style, tint, baseY]
 function gxFill(a, x0, z0, x1, z1, h, sty, shop = 0, base = 0) { const w = x1 - x0, d = z1 - z0; if (w < 4 || d < 4) return; a.ch.b.push([(x0 + x1) / 2, (z0 + z1) / 2, w, h, d, sty + 16 * shop, new THREE.Color().setHSL(0.08 + a.rnd() * 0.05, 0.08, 0.88 + a.rnd() * 0.1), base]); a.addCol([x0, x1, z0, z1, 0, base + h, 'b']); }
@@ -723,7 +728,7 @@ const GXSPEC = {
     GXPROPS.push(['ferris-wheel', 1, { x: X + 45, z: Z + 40, special: 'ferris' }]); a.addCol([X + 45 - 18, X + 45 + 18, Z + 40 - 3, Z + 40 + 3, 0, 44, 'b']); a.addCol([X + 45 - 11, X + 45 - 6, Z + 40 + 5, Z + 40 + 10, 0, 3, 'b']); },
   // 人民医院 (faces south)
   '4,6'(a) { const X = gxBX(4), Z = gxBZ(6); GXPROPS.push(['hospital-building', 1, { x: X + 45, z: Z + 36 }]); a.addCol([X + 45 - 27, X + 45 + 27, Z + 36 - 19.2, Z + 36 + 14, 0, 32, 'b']);
-    GXPROPS.push(['ambulance', 1, { x: X + 22, z: Z + 72, yaw: Math.PI / 2 }]); a.addCol([X + 18.4, X + 25.6, Z + 70.7, Z + 73.3, 0, 3, 'car']);
+    GXDRIVE.push(['ambulance', X + 22, Z + 72, Math.PI / 2]);
     GXSIGNS.push({ x: X + 45, y: 27.5, z: Z + 36 + 14.5, w: 22, h: 3.2, t: '人民医院', s: 'PEOPLE\'S HOSPITAL', col: '#d81e2a', bg: '#ffffff', yaw: 0 }); GXPOI.push({ id: 'hospital', x: X + 45, z: Z + 80, icon: '🏥', name: '医院' });
     a.ch.tree.push([X + 8, Z + 80, 0.8], [X + 82, Z + 80, 0.8], [X + 8, Z + 10, 0.8], [X + 82, Z + 10, 0.8]); },
   // 公安局
@@ -912,9 +917,10 @@ function gxAirport(W) {
     const st2 = ctex(sc, true, false); const sm = new THREE.Mesh(new THREE.PlaneGeometry(40, 10), new THREE.MeshStandardMaterial({ map: st2, emissiveMap: st2, emissive: 0xffffff, emissiveIntensity: night ? 1 : 0.2 })); sm.rotation.y = -Math.PI / 2; sm.position.set(tx0 - 0.5, 20, -450); scene.add(sm);
     GXA.place('jet-bridge', 1, [-560, -460, -360].map(z => ({ x: tx1 + 1, z: z - 12, yaw: Math.PI / 2 })), { cast: true });
     GXA.place('narrowbody-airliner', 1, [-560, -460, -360].map(z => ({ x: tx1 + 50, z: z - 6, yaw: -Math.PI / 2 })), { cast: true }); [-560, -460, -360].forEach(z => addCol([tx1 + 32, tx1 + 70, z - 10, z - 2, 0, 12, 'b']));
+    GXA.place('light-aircraft', 1, [{ x: 1250, z: -600, yaw: Math.PI }, { x: 1290, z: -600, yaw: Math.PI }]);
+    GXA.place('military-transport', 1, [{ x: 1400, z: 250, yaw: Math.PI / 2 }]); addCol([1385, 1415, 245, 255, 0, 8, 'b']);
     GXA.place('control-tower', 1, [{ x: 1150, z: -180 }]); addCol([1142, 1158, -188, -172, 0, 44, 'b']);
     GXA.place('aircraft-hangar', 1, [{ x: 1300, z: -710, yaw: 0 }]); addCol([1269, 1331, -736, -720, 0, 19, 'b']);
-    GXA.place('light-aircraft', 1, [{ x: 1250, z: -600, yaw: Math.PI }, { x: 1290, z: -600, yaw: Math.PI }]);
     poi.airport = { id: 'airport', x: 1035, z: -290, icon: '✈️', name: '机场' }; }
   // ---------- 军事基地: fence + 2 gates (guard towers with barrier booms), hangars, transport plane, IFVs, sandbags, camo nets ----------
   { const X0 = 1060, X1 = 1560, Z0 = 160, Z1 = 700; const fenceT = ctex(cvs(128, 128, (g) => { g.clearRect(0, 0, 128, 128); g.strokeStyle = 'rgba(190,195,200,0.95)'; g.lineWidth = 3; for (let i = -128; i < 256; i += 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 128, 128); g.stroke(); g.beginPath(); g.moveTo(i + 128, 0); g.lineTo(i, 128); g.stroke(); } }), true, true);
@@ -931,8 +937,7 @@ function gxAirport(W) {
     const st3 = ctex(sc, true, false); const sm = new THREE.Mesh(new THREE.PlaneGeometry(8, 2), new THREE.MeshStandardMaterial({ map: st3, emissiveMap: st3, emissive: 0xffffff, emissiveIntensity: night ? 0.8 : 0.15, side: THREE.DoubleSide })); sm.rotation.y = -Math.PI / 2; sm.position.set(X0 - 0.4, 4.6, 430 + 13); scene.add(sm);
     const sb = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4.6, 0.2), pm); sb.position.set(X0 - 0.4, 2.3, 430 + 9.2); scene.add(sb); const sb2 = sb.clone(); sb2.position.z = 430 + 16.8; scene.add(sb2);
     GXA.place('aircraft-hangar', 1, [{ x: 1140, z: 250, yaw: Math.PI / 2 }, { x: 1140, z: 610, yaw: Math.PI / 2 }]); [[250], [610]].forEach(([z]) => { addCol([1110, 1120, z - 31, z + 31, 0, 19, 'b']); addCol([1110, 1166, z - 31, z - 29, 0, 19, 'b']); addCol([1110, 1166, z + 29, z + 31, 0, 19, 'b']); });
-    GXA.place('military-transport', 1, [{ x: 1400, z: 250, yaw: Math.PI / 2 }]); addCol([1385, 1415, 245, 255, 0, 8, 'b']);
-    GXA.place('tracked-infantry-fighting-vehicle', 2, [{ x: 1250, z: 640, yaw: Math.PI }, { x: 1262, z: 640, yaw: Math.PI }, { x: 1274, z: 640, yaw: Math.PI }]); [1250, 1262, 1274].forEach(x => addCol([x - 1.9, x + 1.9, 636, 644, 0, 3, 'car']));
+    [1250, 1262, 1274].forEach(x => GXDRIVE.push(['ifv', x, 640, Math.PI]));
     GXA.place('camouflage-net-on-poles', 1, [{ x: 1262, z: 640, s: 2.2 }]);
     const sbl = []; for (let k = 0; k < 6; k++) sbl.push({ x: X0 + 14, z: 430 - 14 - k * 2.1, yaw: Math.PI / 2 }, { x: X0 + 14, z: 430 + 14 + k * 2.1, yaw: Math.PI / 2 }); GXA.place('sandbag-wall-straight', 2, sbl, { cast: !mob }); addCol([X0 + 13.5, X0 + 14.6, 430 - 26, 430 - 13, 0, 1.2, 'b']); addCol([X0 + 13.5, X0 + 14.6, 430 + 13, 430 + 26, 0, 1.2, 'b']);
     // helipad + apron markings for the jet
@@ -1153,8 +1158,8 @@ if (M.gx) {
       if (!isPark) for (let s = 0; s < 2; s++) { const o = bs * (s ? 0.62 : 0.38) + 4.5; if (frn() < 0.55) ch.furn.push([bx0 + o, bz0 + 1.15, 0]); if (frn() < 0.55) ch.furn.push([bx0 + bs - o, bz0 + bs - 1.15, Math.PI]); if (frn() < 0.45) ch.furn.push([bx0 + 1.15, bz0 + bs - o, Math.PI / 2]); if (frn() < 0.45) ch.furn.push([bx0 + bs - 1.15, bz0 + o, -Math.PI / 2]); }
       for (let s = 0; s < 4; s++) { const o = (s + 0.5) * bs / 4; if (rnd() < 0.6) ch.tree.push([bx0 + o + 2, bz0 + 1.8, 0.55]); if (rnd() < 0.6) ch.tree.push([bx0 + o - 2, bz0 + bs - 1.8, 0.55]); }
       // parked cars: on the kerb side of the outer lane, along x-streets (south side of block) and z-streets (west side)
-      if (!(spec && spec.noPark) && rnd() < 0.7) for (let s = 0; s < 3; s++) { if (rnd() < 0.45) continue; const o = 14 + s * (bs - 28) / 2; const x = bx0 + o, z = bz0 - 1.35; ch.cars.push([x, z, Math.PI / 2, Math.floor(rnd() * 9)]); addCol([x - 2.45, x + 2.45, z - 1.0, z + 1.0, y0, y0 + 1.5, 'car']); }
-      if (!(spec && spec.noPark) && rnd() < 0.6) for (let s = 0; s < 2; s++) { if (rnd() < 0.5) continue; const o = 18 + s * (bs - 36); const x = bx0 - 1.35, z = bz0 + o; ch.cars.push([x, z, 0, Math.floor(rnd() * 9)]); addCol([x - 1.0, x + 1.0, z - 2.45, z + 2.45, y0, y0 + 1.5, 'car']); }
+      if (!(spec && spec.noPark) && rnd() < 0.7) for (let s = 0; s < 3; s++) { if (rnd() < 0.45) continue; const o = 14 + s * (bs - 28) / 2; const x = bx0 + o, z = bz0 - 1.35; const cb = [x - 2.45, x + 2.45, z - 1.0, z + 1.0, y0, y0 + 1.5, 'car']; ch.cars.push([x, z, Math.PI / 2, Math.floor(rnd() * 9), cb]); (C.parked = C.parked || []).push(ch.cars[ch.cars.length - 1]); addCol(cb); }
+      if (!(spec && spec.noPark) && rnd() < 0.6) for (let s = 0; s < 2; s++) { if (rnd() < 0.5) continue; const o = 18 + s * (bs - 36); const x = bx0 - 1.35, z = bz0 + o; const cb = [x - 1.0, x + 1.0, z - 2.45, z + 2.45, y0, y0 + 1.5, 'car']; ch.cars.push([x, z, 0, Math.floor(rnd() * 9), cb]); (C.parked = C.parked || []).push(ch.cars[ch.cars.length - 1]); addCol(cb); }
       // traffic lights at the block's NW corner intersection (one pole per corner of each intersection is overkill; two diagonal poles)
       ch.tl.push([bx0 - 0.3, bz0 - 0.3, 0], [bx0 + bs + 0.3, bz0 + bs + 0.3, Math.PI]);
     }
@@ -1192,6 +1197,7 @@ if (M.gx) {
       const strip = g => { g = g.index ? NI(g) : g.clone(); Object.keys(g.attributes).forEach(a => { if (a !== 'position' && a !== 'normal') g.deleteAttribute(a); }); return g; };
       const col = (g, c) => { g = strip(g); const n = g.attributes.position.count, a = new Float32Array(n * 3), cc = new THREE.Color(c); for (let i = 0; i < n; i++) { a[i * 3] = cc.r; a[i * 3 + 1] = cc.g; a[i * 3 + 2] = cc.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; };
       return { paint: G.paint, det: mergeGeometries([col(G.glass, 0x0b1016), col(G.trim, 0x0c0d0f), col(G.black, 0x070808), ...wheelsG.map(g => col(g, 0x111111)), col(G.chrome, 0x9a9ea4), ...rimsG.map(g => col(g, 0x8d9197)), col(G.head, 0xc8ccd2), col(G.tail, 0x6a0a08)]) }; });
+    C.CARCOL = [0xf2f2f0, 0x111214, 0x9ea3a9, 0x6a6e74, 0x7a1414, 0x1d3a6a, 0xd8d0c0, 0x2a4a3a, 0xb8b0a0];
     const CARCOL = [0xf2f2f0, 0x111214, 0x9ea3a9, 0x6a6e74, 0x7a1414, 0x1d3a6a, 0xd8d0c0, 0x2a4a3a, 0xb8b0a0];
     const parkPaint = carMats.paint.clone(); parkPaint.color.set(0xffffff); const parkDet = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.45 });
     let nb = 0;
@@ -1246,7 +1252,12 @@ if (M.gx) {
     // outer ground: concrete lots + grass beyond the ring, distant low hills
     { const gm = pbr('aerial_grass_rock', 1, 0x9aa088); worldUV(gm, 18, 18); const sh = new THREE.Shape(); sh.moveTo(-4500, -4500); sh.lineTo(4500, -4500); sh.lineTo(4500, 4500); sh.lineTo(-4500, 4500); sh.closePath(); const e2 = n * p / 2 + sw - 1; const hole = new THREE.Path(); hole.moveTo(-e2, -e2); hole.lineTo(-e2, e2); hole.lineTo(e2, e2); hole.lineTo(e2, -e2); hole.closePath(); sh.holes.push(hole); // no grass under the city: overlapping planes z-fight on 16-bit depth buffers
       const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2); g.translate(0, -0.06, 0); const m = new THREE.Mesh(g, gm); m.receiveShadow = true; scene.add(m);
-      const hg = new THREE.CylinderGeometry(3200, 3400, 1, 96, 6, true); const pp = hg.attributes.position; for (let v = 0; v < pp.count; v++) { const x = pp.getX(v), z = pp.getZ(v), y = pp.getY(v); const a = Math.atan2(z, x); const hh = (y + 0.5) * (120 + 160 * fbm(a * 3 + 2, 1.3)); pp.setY(v, hh - 2); } hg.computeVertexNormals(); const hm = new THREE.Mesh(hg, new THREE.MeshStandardMaterial({ color: night ? 0x0a0c12 : 0x6a7a6a, roughness: 1, side: THREE.BackSide })); scene.add(hm); }
+      const hg = new THREE.CylinderGeometry(3200, 3400, 1, 96, 6, true); const pp = hg.attributes.position; for (let v = 0; v < pp.count; v++) { const x = pp.getX(v), z = pp.getZ(v), y = pp.getY(v); const a = Math.atan2(z, x); const hh = (y + 0.5) * (120 + 160 * fbm(a * 3 + 2, 1.3)); pp.setY(v, hh - 2); }
+      // distant hills: unlit and unfogged with their own aerial-perspective gradient (fog colour at the foot -> hazy blue-grey ridge). Fogged, the whole
+      // ring came out as a flat near-white wall above the horizon (most visible from the airport / military base, ~1.7 km from it).
+      { const c0 = new THREE.Color(night ? 0x0c1224 : 0xbfc8d2), c1 = new THREE.Color(night ? 0x05070d : 0x7d8c9e), cc = new THREE.Color(), col = new Float32Array(pp.count * 3);
+        for (let v = 0; v < pp.count; v++) { cc.copy(c0).lerp(c1, Math.min(1, Math.max(0, (pp.getY(v) + 2) / 140))); cc.toArray(col, v * 3); } hg.setAttribute('color', new THREE.BufferAttribute(col, 3)); }
+      const hm = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, side: THREE.BackSide })); scene.add(hm); }
     // low warehouses + billboards between grid and ring
     groundY = (x, z) => 0;
     spawn = [x0 + 7 * p - 3.0, z0 + 5 * p + 30, 0]; // right-hand lane of the central avenue, heading north (+z)
@@ -3625,7 +3636,7 @@ var GX = null;
     const ty = (yf + yr + yl + yR) / 4; c.y += (ty - c.y) * Math.min(1, dt * 14); if (Math.abs(ty - c.y) > 2) c.y = ty;
     const pitch = Math.atan2(yf - yr, 2 * L2), roll = Math.atan2(yR - yl, 2 * H2);
     c.g.position.set(c.x, c.y, c.z); c.g.rotation.set(-pitch, c.yaw, 0, 'YXZ'); c.g.rotateZ(roll);
-    c.body.rotation.z = clamp(-c.v * c.v * Math.tan(c.steer) / 2.85 * 0.004, -0.06, 0.06); c.body.rotation.x = clamp((c.lastV - c.v) / Math.max(dt, 1e-3) * 0.002, -0.04, 0.04) || 0; c.lastV = c.v;
+    const rk = c.roll || 1, pk = c.pitchK || 1; c.body.rotation.z += (clamp(-c.v * (c.yawRate !== undefined && c.player ? c.yawRate : c.v * Math.tan(c.steer) / (c.wb || 2.85)) * 0.004 * rk, -0.06 * rk, 0.06 * rk) - c.body.rotation.z) * Math.min(1, dt * (rk > 1.5 ? 3 : 12)); c.body.rotation.x += (clamp((c.lastV - c.v) / Math.max(dt, 1e-3) * 0.002 * pk, -0.04 * pk, 0.04 * pk) - c.body.rotation.x) * Math.min(1, dt * (pk > 1.5 ? 4 : 14)) || 0; c.lastV = c.v;
     c.wa = (c.wa || 0) + c.v * dt / c.WR; c.wheels.forEach((w, i) => { w.rotation.set(c.wa, i < 2 ? c.steer : 0, 0, 'YXZ'); });
   }
   function strobe(c, t, on) { if (!c.mR) return; let r = 0, b = 0; if (on) { const ph = (t * 1.6 + c.ph) % 1; r = (ph < 0.08 || (ph > 0.16 && ph < 0.24)) ? 1 : 0; b = (ph > 0.5 && ph < 0.58) || (ph > 0.66 && ph < 0.74) ? 1 : 0; if (ph > 0.3 && ph < 0.45) r = 0.25; if (ph > 0.8 && ph < 0.95) b = 0.25; }
@@ -3681,7 +3692,7 @@ var GX = null;
   // ================= city traffic (open maps): lane following on the street grid, turns at intersections =================
   const civ = []; const CIVN = open ? (mob ? 7 : 11) : 0; const COLS = [0xf2f2f0, 0x18191b, 0x9ea3a9, 0x7a1414, 0x1d3a6a, 0xd8d0c0, 0x3a5a4a, 0x5a5e66, 0xc8b070];
   const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]]; const right = d => [-DIRS[d][1], DIRS[d][0]]; // right-hand side of the travel direction (x,z): heading (sin yaw, cos yaw) -> right (-cos yaw, sin yaw)
-  for (let i = 0; i < CIVN; i++) { const c = GXCAR.makeCar(['suv', 'hatch', 'taxi', 'estate', 'pickup'][i % 5], COLS[i % COLS.length]); scene.add(c.g); civ.push(Object.assign(c, { x: 0, z: 0, y: 0, yaw: 0, v: 0, steer: 0, hint: 0, C: null, lane: 1.9 + (i % 2) * 2.5 })); }
+  for (let i = 0; i < CIVN; i++) { const c = GXCAR.makeCar(['suv', 'hatch', 'bus', 'taxi', 'estate', 'truck', 'pickup'][i % 7], COLS[i % COLS.length]); scene.add(c.g); civ.push(Object.assign(c, { x: 0, z: 0, y: 0, yaw: 0, v: 0, steer: 0, hint: 0, C: null, lane: 1.9 + (i % 2) * 2.5 })); }
   function civPlace(c) { const C = GXW.cities[0]; c.C = null; for (let k = 0; k < 80; k++) { const i = Math.floor(Math.random() * (C.nx + 1)), j = Math.floor(Math.random() * (C.nz + 1)); const d = Math.floor(Math.random() * 4); const ni = i + DIRS[d][0], nj = j + DIRS[d][1]; if (ni < 0 || nj < 0 || ni > C.nx || nj > C.nz) continue; const [ax, az] = interXZ(C, i, j); const dd = Math.hypot(ax - st.pos.x, az - st.pos.z); if (dd < 90 || dd > 420) continue; c.dir = d; c.ti = ni; c.tj = nj; c.seg = 0; c.mode = 'run'; const r = right(d); c.x = ax + DIRS[d][0] * (C.sw + 6) + r[0] * c.lane; c.z = az + DIRS[d][1] * (C.sw + 6) + r[1] * c.lane; c.yaw = Math.atan2(DIRS[d][0], DIRS[d][1]); c.v = 10; c.y = C.y; c.g.visible = true; c.C = C; return; } c.g.visible = false; }
   function civTick(c, dt) {
     if (c.player) return;
@@ -3689,7 +3700,7 @@ var GX = null;
     if (c.mode === 'run') { const [ix, iz] = interXZ(C, c.ti, c.tj); const r = right(c.dir); const ex = ix - DIRS[c.dir][0] * (sw + 1) + r[0] * c.lane, ez = iz - DIRS[c.dir][1] * (sw + 1) + r[1] * c.lane; const rem = (ex - c.x) * DIRS[c.dir][0] + (ez - c.z) * DIRS[c.dir][1];
       let vt = 12.5; // follow / stop for the player or another car ahead in the same lane
       const look = (ox, oz, gap) => { const lx = (ox - c.x) * DIRS[c.dir][0] + (oz - c.z) * DIRS[c.dir][1], la = Math.abs((ox - c.x) * r[0] + (oz - c.z) * r[1]); if (lx > 0 && lx < gap && la < 1.6) vt = Math.min(vt, Math.max(0, (lx - 6) * 0.9)); };
-      look(st.pos.x, st.pos.z, 22); civ.forEach(o => { if (o !== c && o.g.visible) look(o.x, o.z, 14); }); cops.forEach(o => { if (o.on) look(o.x, o.z, 14); });
+      look(st.pos.x, st.pos.z, 22); civ.forEach(o => { if (o !== c && o.g.visible) look(o.x, o.z, 8 + ((o.L || 4.6) + (c.L || 4.6)) / 2); }); cops.forEach(o => { if (o.on) look(o.x, o.z, 14); });
       if (rem < 12) vt = Math.min(vt, 7);
       c.v += clamp(vt - c.v, -12 * dt, 3 * dt); const s = c.v * dt; c.x += DIRS[c.dir][0] * s; c.z += DIRS[c.dir][1] * s; c.yaw = Math.atan2(DIRS[c.dir][0], DIRS[c.dir][1]); c.steer *= 0.9;
       if (rem <= 0) { // choose the next direction (no U-turn, stay inside the grid), build a Bezier through the intersection
@@ -3894,7 +3905,7 @@ var GX = null;
   if (open) { const s = resume || GXW.spawn; st.pos.set(s[0], 0, s[1]); st.yaw = s[2]; st.hint = roadFrame(st.pos, 0, true).i; st.pos.y = GXW.gy(s[0], s[1], 1e9); A.prevY = st.pos.y; A.safe = s.slice(); camInit = false; civ.forEach(civPlace); }
   setupStartMarks();
   // help text in the menu
-  { const h = document.getElementById('help'); if (h) h.innerHTML += '<br><b style="color:#ffcf5a">任务 / 警察：</b>左上角「📋 任务」或开到发光光柱里接任务（竞速、外卖速递、甩掉警察、特技表演），赚的钱会保存。超速被警车看到、撞车、撞警车会被通缉（右上角星星）；远离警车、躲到楼后断开视线一段时间就能甩掉，被警车堵住停下来就会被捕。新地图「都市白昼」「不夜城」「海岛」是可以自由穿街走巷的大地图，有跳台和高架。键盘：M 任务，P 招惹警察。'; }
+  
   function addCopCar() { const c = GXCAR.makeCar('police'); c.g.visible = false; scene.add(c.g); cops.push(Object.assign(c, { on: false, mode: 'off', x: 0, z: 0, y: 0, yaw: 0, v: 0, steer: 0, hint: 0, ph: Math.random() * 6, wp: null, last: null, stuck: 0, seen: false, off: [0, 0], lat: 0, s: 0 })); return c; }
   GX = { W: GXW, A, post, frame, cam, onReset, WANT, MS, cops, civ, setStars, startMission, endMission, get target() { return target; }, SAVE, spawnCop, addHeat, banner, popup, addCash, sfx, tone, despawn, poseCar, drive, collideWorld, los, busy, groundAt, addCopCar, drawStars, fmtCash, open };
   if (window.__g) window.__g.GX = GX;
@@ -4022,7 +4033,7 @@ function gxMergeStatic(root) { let before = 0, after = 0; const piv = new Map();
 // as before), split into a near set that casts shadows and a far set that doesn't (the sun's shadow box only covers ~±50 m anyway).
 var GXPERF = (function () {
   if (typeof GXW === 'undefined' || !GXW || !GXW.cities) return null;
-  const R = { far: isMobile ? 380 : 480, near: 75 }; const pools = []; let calls0 = 0; const CS = 64; // 64 m grid: a refill only visits the cells within draw distance
+  const R = { far: isMobile ? 380 : 480, near: 75 }; const pools = []; let calls0 = 0; const CS = 64;
   const sig = (o) => o.material.uuid + '|' + o.geometry.attributes.position.count + '|' + Object.keys(o.geometry.attributes).sort().join(',') + '|' + o.castShadow + o.receiveShadow + '|' + o.renderOrder;
   GXW.cities.forEach(C => { const fam = new Map();
     (C.groups || []).forEach(grp => { const det = grp.userData.det; grp.traverse(o => { if (!o.isInstancedMesh) return; calls0++; const k = (o.parent === det ? 'D' : 'S') + sig(o); if (!fam.has(k)) fam.set(k, []); fam.get(k).push(o); }); });
@@ -4036,7 +4047,7 @@ var GXPERF = (function () {
       if (!dyn) { const m = mk(N, o0.castShadow); m.instanceMatrix.array.set(M); if (Col) m.instanceColor.array.set(Col); Object.keys(IA).forEach(n => m.geometry.attributes[n].array.set(IA[n])); m.count = N; m.computeBoundingSphere(); return; }
       const P = { N, M, Col, IA, x: new Float32Array(N), z: new Float32Array(N), cast: o0.castShadow, near: o0.castShadow ? mk(N, true) : null, far: mk(N, false) };
       for (let j = 0; j < N; j++) { P.x[j] = M[j * 16 + 12]; P.z[j] = M[j * 16 + 14]; }
-      P.cells = new Map(); for (let j = 0; j < N; j++) { const k = Math.floor(P.x[j] / CS) * 4096 + Math.floor(P.z[j] / CS); let l = P.cells.get(k); if (!l) P.cells.set(k, l = []); l.push(j); }
+      P.hid = new Uint8Array(N); P.cells = new Map(); for (let j = 0; j < N; j++) { const k = Math.floor(P.x[j] / CS) * 4096 + Math.floor(P.z[j] / CS); let l = P.cells.get(k); if (!l) P.cells.set(k, l = []); l.push(j); }
       [P.near, P.far].forEach(m => { if (m) { m.frustumCulled = false; m.count = 0; } }); pools.push(P); }); });
   const put = (m, P, j) => { const c = m.count++; m.instanceMatrix.array.set(P.M.subarray(j * 16, j * 16 + 16), c * 16); if (P.Col) m.instanceColor.array.set(P.Col.subarray(j * 3, j * 3 + 3), c * 3);
     for (const n in P.IA) { const a = m.geometry.attributes[n], s = a.itemSize; a.array.set(P.IA[n].subarray(j * s, j * s + s), c * s); } };
@@ -4045,7 +4056,7 @@ var GXPERF = (function () {
     const f2 = R.far * R.far, n2 = R.near * R.near;
     const i0 = Math.floor((cx - R.far) / CS), i1 = Math.floor((cx + R.far) / CS), k0 = Math.floor((cz - R.far) / CS), k1 = Math.floor((cz + R.far) / CS);
     pools.forEach(P => { if (P.near) P.near.count = 0; P.far.count = 0;
-      for (let i = i0; i <= i1; i++) for (let k = k0; k <= k1; k++) { const l = P.cells.get(i * 4096 + k); if (!l) continue; for (let q = 0; q < l.length; q++) { const j = l[q]; const dx = P.x[j] - cx, dz = P.z[j] - cz, d = dx * dx + dz * dz; if (d > f2) continue; put(P.near && d < n2 ? P.near : P.far, P, j); } }
+      for (let i = i0; i <= i1; i++) for (let k = k0; k <= k1; k++) { const l = P.cells.get(i * 4096 + k); if (!l) continue; for (let q = 0; q < l.length; q++) { const j = l[q]; if (P.hid[j]) continue; const dx = P.x[j] - cx, dz = P.z[j] - cz, d = dx * dx + dz * dz; if (d > f2) continue; put(P.near && d < n2 ? P.near : P.far, P, j); } }
       [P.near, P.far].forEach(m => { if (!m) return; m.instanceMatrix.needsUpdate = true; if (P.Col) m.instanceColor.needsUpdate = true; for (const n in P.IA) m.geometry.attributes[n].needsUpdate = true; m.visible = m.count > 0; }); }); }
   refill(true); worldTick.push((dt) => { if ((t += dt) > 0.25) { t = 0; refill(false); } });
   // static world meshes added straight to the scene by the world / city builders (ramps, kerbs, lamp masts, decks, signs, airport pieces…):
@@ -4057,7 +4068,9 @@ var GXPERF = (function () {
       const k = msig(o.material) + '#' + Object.keys(g.attributes).sort().join(',') + (g.index ? 'i' : 'n') + o.castShadow + o.receiveShadow + o.renderOrder + o.frustumCulled; if (!fam.has(k)) fam.set(k, []); fam.get(k).push(o); });
     fam.forEach(list => { if (list.length < 2) return; try { const geos = list.map(o => { o.updateMatrixWorld(true); const g = o.geometry.clone(); g.applyMatrix4(o.matrixWorld); if (o.matrixWorld.determinant() < 0 && g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t2 = a[i]; a[i] = a[i + 2]; a[i + 2] = t2; } } return g; });
       const mg = mergeGeometries(geos, false); if (!mg) return; const o0 = list[0]; const m = new THREE.Mesh(mg, o0.material); m.castShadow = o0.castShadow; m.receiveShadow = o0.receiveShadow; m.renderOrder = o0.renderOrder; m.frustumCulled = o0.frustumCulled; m.name = 'wmerge'; list.forEach(o => scene.remove(o)); scene.add(m); wm[0] += list.length; wm[1]++; } catch (e) { wm.push(String(e && e.message).slice(0, 80)); } }); }
-  return { pools, R, refill, calls0, wm, sc0: typeof GX_SC0 !== 'undefined' ? GX_SC0 : null };
+  // hide / show the street-furniture instances at one spot (a parked car swapped for a drivable one)
+  function hide(x, z, on) { pools.forEach(P => { const l = P.cells.get(Math.floor(x / CS) * 4096 + Math.floor(z / CS)); if (l) l.forEach(j => { if (Math.abs(P.x[j] - x) < 0.3 && Math.abs(P.z[j] - z) < 0.3) P.hid[j] = on ? 1 : 0; }); }); refill(true); }
+  return { pools, R, refill, hide, calls0, wm, sc0: typeof GX_SC0 !== 'undefined' ? GX_SC0 : null };
 })();
 window.GXPERFX = GXPERF;
 // glow / smoke sprite pools (explosions, car strobes, steam…) sit at opacity 0 most of the time but still cost a draw call each:
@@ -4157,7 +4170,7 @@ body.foot .btn,body.foot #dash{display:none!important}body.car #bD,body.car #bG,
   function setUI() { const foot = F.on && F.mode === 'foot', car = F.on && F.mode === 'car', veh = F.on && F.mode === 'veh'; document.body.classList.toggle('foot', foot); document.body.classList.toggle('car', car); document.body.classList.toggle('veh', veh);
     document.body.dataset.veh = veh && F.vo ? F.vo.kind : ''; [bJump, bRun].forEach(b => b.style.display = foot ? 'flex' : 'none'); joy.style.display = foot ? 'block' : 'none'; }
   setUI(); drawHud(); bEnter.style.display = 'flex';
-  { const h = document.getElementById('help'); if (h) h.innerHTML += '<br><b style="color:#ffcf5a">下车 / 步行：</b>慢下来后点右上「🚶 下车」（键盘 G）。步行时左下摇杆走路（推到底或按「跑」跑步，双击「跑」锁定奔跑），右侧「跳」，拖动屏幕转视角（键盘 WASD + Shift 跑 + 空格跳）。走到车边点「🚗 抢车」/「🚓 抢警车」开车，走回摩托旁点「🏍 上车」。走到店门口 / 柜台会出现「吃」「玩」的按钮。左上绿条是血量：摔车、被车撞会掉血，吃东西回血；血量归零 WASTED，在医院醒来并扣医药费。被通缉时警察会下车追你，被抓住就 BUSTED。'; }
+  
   // ---------- audio ----------
   const thump = () => { if (!AC || !master) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(50, t + 0.1); g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.16); };
   // ---------- ground + collision for people ----------
@@ -4224,10 +4237,12 @@ body.foot .btn,body.foot #dash{display:none!important}body.car #bD,body.car #bG,
   const VEH = []; // special vehicles registered by other modules: { kind, x, z, y, r, label, enter(), tick(dt), cam(tg, w), exit(force) -> [x,z,y,yaw], drag }
   function nearVehicle() { let best = null, bd = 1e9; const px = F.x, pz = F.z;
     if (park.ok) { const d = Math.hypot(park.x - px, park.z - pz); if (d < 2.6) { best = { bike: true }; bd = d; } }
-    const cand = []; G.civ.forEach(c => { if (c.g.visible) cand.push(c); }); G.cops.forEach(c => { if (c.on || c.player) cand.push(c); }); STOLEN.forEach(c => { if (cand.indexOf(c) < 0) cand.push(c); });
-    cand.forEach(c => { if (c === F.veh || c.crushed) return; const d = Math.hypot(c.x - px, c.z - pz) - 1.2; if (d < 3.0 && d < bd && Math.abs(c.y - F.y) < 2) { bd = d; best = c; } });
+    const cand = []; G.civ.forEach(c => { if (c.g.visible) cand.push(c); }); G.cops.forEach(c => { if (c.on || c.player) cand.push(c); }); STOLEN.forEach(c => { if (cand.indexOf(c) < 0) cand.push(c); }); PARKED.forEach(c => { if ((c.g.visible || c.distCull) && cand.indexOf(c) < 0) cand.push(c); }); // distCull: hidden only because it is far from the camera
+    cand.forEach(c => { if (c === F.veh || c.crushed) return; const d = carDist(c, px, pz); if (d < 3.0 && d < bd && Math.abs(c.y - F.y) < 2) { bd = d; best = c; } });
     VEH.forEach(v => { if (!v.ok || !v.ok()) return; const d = Math.hypot(v.x - px, v.z - pz) - v.r; if (d < 2.5 && d < bd) { bd = d; best = { special: v }; } }); return best; }
-  const STOLEN = [];
+  const STOLEN = [], PARKED = [];
+  // distance from a point to a vehicle's footprint (buses and trucks are long: you can get in anywhere along the side)
+  function carDist(c, px, pz) { const dx = px - c.x, dz = pz - c.z, cy = Math.cos(c.yaw), sy = Math.sin(c.yaw); const lz = dx * sy + dz * cy, lx = dx * cy - dz * sy; return Math.hypot(Math.max(0, Math.abs(lx) - (c.HW || 0.9)), Math.max(0, Math.abs(lz) - (c.L || 4.6) / 2)) + 0.3; }
   function enterExit() { if (F.dead > 0 || !F.ready || G.busy()) return;
     if (!F.on) { if (crashed) return; if (Math.abs(st.v) > 7) { hudMsg.textContent = '先减速再下车'; hudMsg.style.opacity = 1; setTimeout(() => hudMsg.style.opacity = 0, 1200); return; } dismount(); return; }
     if (F.mode === 'car') { exitCar(); return; }
@@ -4242,20 +4257,20 @@ body.foot .btn,body.foot #dash{display:none!important}body.car #bD,body.car #bG,
   function enterVeh(v) { F.vo = v; F.mode = 'veh'; PL.g.visible = false; v.enter(); setUI(); bEnter.textContent = '🚶 下来'; }
   function exitVeh(force) { const v = F.vo; if (!v) return; const r = v.exit(force); if (!r) return; F.vo = null; placeFoot(r[0], r[1], r[2], r[3]); bEnter.textContent = '上车'; }
   function enterCar(c) { const isCop = G.cops.indexOf(c) >= 0; if (isCop) { G.cops.splice(G.cops.indexOf(c), 1); G.addCopCar(); c.mode = 'stolen'; G.addHeat(150, '抢警车！'); if (W0.stars < 2) G.setStars(2, '抢警车！'); }
-    else if (G.civ.indexOf(c) >= 0 && STOLEN.indexOf(c) < 0) { G.addHeat(70, '抢车了！'); if (W0.lastSeen < 2.5 && W0.stars === 0) G.setStars(1, '当着警察抢车！'); const p = PEDS.find(p => !p.on); if (p) { Object.assign(p, { on: true, x: c.x - Math.cos(c.yaw) * 1.4, z: c.z + Math.sin(c.yaw) * 1.4, y: c.y, hp: 100, st: 'flee', flee: 6, deadT: 0, fall: 0, C: null }); p.g.visible = true; p.g.rotation.set(0, 0, 0); p.anim('run', 0); F.alarm = 2; F.alarmX = c.x; F.alarmZ = c.z; } G.popup('抢车！', '#ffd54a'); }
-    c.player = true; c.v = 0; if (STOLEN.indexOf(c) < 0) STOLEN.push(c); if (c.setStrobe) c.setStrobe(0, 0);
+    else if (G.civ.indexOf(c) >= 0 && STOLEN.indexOf(c) < 0 || c.parked && !c.taken && c.alarm) { G.addHeat(70, '抢车了！'); if (W0.lastSeen < 2.5 && W0.stars === 0) G.setStars(1, '当着警察抢车！'); const p = PEDS.find(p => !p.on); if (p) { Object.assign(p, { on: true, x: c.x - Math.cos(c.yaw) * 1.4, z: c.z + Math.sin(c.yaw) * 1.4, y: c.y, hp: 100, st: 'flee', flee: 6, deadT: 0, fall: 0, C: null }); p.g.visible = true; p.g.rotation.set(0, 0, 0); p.anim('run', 0); F.alarm = 2; F.alarmX = c.x; F.alarmZ = c.z; } G.popup('抢车！', '#ffd54a'); }
+    c.player = true; c.v = 0; c.taken = true; if (c.onEnter) c.onEnter(c); if (STOLEN.indexOf(c) < 0) STOLEN.push(c); if (c.setStrobe) c.setStrobe(0, 0);
     F.veh = c; F.mode = 'car'; PL.g.visible = false; c.g.visible = true; st.pos.set(c.x, c.y, c.z); st.yaw = c.yaw; st.v = 0; setUI(); bEnter.textContent = '🚶 下车'; F.camYaw = c.yaw; }
   function exitCar(force) { const c = F.veh; if (!c) return; if (!force && Math.abs(c.v) > 6) { hudMsg.textContent = '先减速再下车'; hudMsg.style.opacity = 1; setTimeout(() => hudMsg.style.opacity = 0, 1200); return; }
     c.v = 0; c.abandon = tGlobal; F.veh = null; const sx = Math.cos(c.yaw), sz = -Math.sin(c.yaw); placeFoot(c.x - sx * (c.HW + 0.6), c.z - sz * (c.HW + 0.6), c.y, c.yaw); bEnter.textContent = '上车'; }
   // GTA-style car handling: weight transfer (body pitch/roll from accel / lateral g, done in poseCar), grip-limited steering, handbrake-less but tail steps out at speed
-  function carTick(dt) { const c = F.veh; bEnter.style.display = 'flex'; const thr = input.fwd ? 1 : 0, brk = input.back ? 1 : 0, steer = (input.left ? 1 : 0) - (input.right ? 1 : 0); const vmax = c.vmax || (c.kind === 'police' ? 52 : 44);
-    if (thr) c.v += (c.v < -0.5 ? 16 : (c.acc || 9.5) * Math.max(0, 1 - c.v / vmax) + 0.6) * dt; if (brk) { if (c.v > 0.5) c.v -= 17 * dt; else c.v = Math.max(-10, c.v - 6 * dt); }
+  function carTick(dt) { const c = F.veh; bEnter.style.display = 'flex'; const thr = input.fwd ? 1 : 0, brk = input.back ? 1 : 0, steer = (input.left ? 1 : 0) - (input.right ? 1 : 0); const vmax = c.vmax || (c.kind === 'police' ? 52 : 44); const heavy = (c.mass || 1) > 3;
+    if (thr) c.v += (c.v < -0.5 ? (c.brk || 17) : (c.acc || 9.5) * Math.max(0, 1 - c.v / vmax) + (heavy ? 0.2 : 0.6)) * dt; if (brk) { if (c.v > 0.5) c.v -= (c.brk || 17) * dt; else c.v = Math.max(heavy ? -4 : -10, c.v - (heavy ? 2.5 : 6) * dt); }
     if (!thr && !brk) c.v -= Math.sign(c.v) * Math.min(Math.abs(c.v), 2.4 * dt); c.v -= c.v * Math.abs(c.v) * 0.0009 * dt;
-    const vv = Math.max(4, Math.abs(c.v)); const maxS = Math.min(0.6, Math.atan(10.5 * 2.85 / (vv * vv)) + 0.06); c.steer += (steer * maxS - c.steer) * Math.min(1, dt * 5);
-    const wb = c.wb || 2.85; c.yawRate = c.v * Math.tan(c.steer) / wb; c.yaw += c.yawRate * dt; c.slip = (c.slip || 0) + ((Math.abs(c.v) > 18 ? clamp(c.yawRate * 0.35, -0.25, 0.25) : 0) - (c.slip || 0)) * Math.min(1, dt * 3);
+    const vv = Math.max(4, Math.abs(c.v)); const wb = c.wb || 2.85; const maxS = Math.min(c.maxSteer || 0.6, Math.atan(10.5 * wb / (vv * vv)) + 0.06); c.steer += (steer * maxS - c.steer) * Math.min(1, dt * (heavy ? 2.5 : 5));
+    c.yawRate = c.tracked ? steer * (0.62 - 0.3 * Math.min(1, Math.abs(c.v) / vmax)) * (c.v < -0.3 ? -1 : 1) : c.v * Math.tan(c.steer) / wb; c.yaw += c.yawRate * dt; c.slip = (c.slip || 0) + ((Math.abs(c.v) > 18 && !heavy && !c.tracked ? clamp(c.yawRate * 0.35, -0.25, 0.25) : 0) - (c.slip || 0)) * Math.min(1, dt * 3);
     const hd = c.yaw - c.slip; c.x += Math.sin(hd) * c.v * dt; c.z += Math.cos(hd) * c.v * dt;
-    const v0 = c.v; if (G.collideWorld(c, 1.3)) { if (Math.abs(v0) > 9 && tGlobal - (c.bonk || 0) > 0.5) { c.bonk = tGlobal; thump(); damage(Math.abs(v0) * 0.25); G.addHeat(6); } c.v *= 0.55; }
-    [...G.civ, ...G.cops].forEach(o => { if (o === c || !o.g.visible) return; const ex = c.x - o.x, ez = c.z - o.z, e = Math.hypot(ex, ez); if (e < 3.6 && e > 0.01) { const p = (3.6 - e) * 0.5; c.x += ex / e * p; c.z += ez / e * p; o.x -= ex / e * p * 0.6; o.z -= ez / e * p * 0.6; if (Math.abs(c.v) > 8 && tGlobal - (c.bonk || 0) > 0.6) { c.bonk = tGlobal; thump(); G.addHeat(G.cops.indexOf(o) >= 0 ? 90 : 40, G.cops.indexOf(o) >= 0 ? '撞警车！' : '肇事逃逸！'); if (G.cops.indexOf(o) >= 0 && W0.stars === 0) G.setStars(1, '撞警车！'); } c.v *= 0.8; } });
+    const v0 = c.v; if (G.collideWorld(c, heavy ? Math.min(2.2, c.HW + 0.4) : 1.3)) { if (Math.abs(v0) > 9 && tGlobal - (c.bonk || 0) > 0.5) { c.bonk = tGlobal; thump(); damage(Math.abs(v0) * 0.25); G.addHeat(6); } c.v *= 0.55; }
+    [...G.civ, ...G.cops, ...PARKED].forEach(o => { if (o === c || !o.g.visible) return; const ex = c.x - o.x, ez = c.z - o.z, e = Math.hypot(ex, ez), rr = Math.max(3.6, ((c.L || 4.6) + (o.L || 4.6)) * 0.36); if (e < rr && e > 0.01) { const mc = c.mass || 1, mo = o.mass || 1, p = (rr - e) * 0.5; c.x += ex / e * p * 1.6 * mo / (mc + mo); c.z += ez / e * p * 1.6 * mo / (mc + mo); o.x -= ex / e * p * 1.6 * mc / (mc + mo); o.z -= ez / e * p * 1.6 * mc / (mc + mo); if (o.parked) G.poseCar(o, 0.016); if (Math.abs(c.v) > 8 && tGlobal - (c.bonk || 0) > 0.6) { c.bonk = tGlobal; thump(); G.addHeat(G.cops.indexOf(o) >= 0 ? 90 : 40, G.cops.indexOf(o) >= 0 ? '撞警车！' : '肇事逃逸！'); if (G.cops.indexOf(o) >= 0 && W0.stars === 0) G.setStars(1, '撞警车！'); } c.v *= 0.8; } });
     [...PEDS, ...OFF].forEach(p => { if (!p.on || p.st === 'dead') return; const dx = p.x - c.x, dz = p.z - c.z; const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw); const lz = dx * sy + dz * cy, lx = dx * cy - dz * sy; if (Math.abs(lx) < c.HW + 0.35 && Math.abs(lz) < c.L / 2 + 0.3) { if (Math.abs(c.v) > 4) { hitNpc(p, Math.abs(c.v) * 12); thump(); } else { p.x += cy * (lx > 0 ? 0.4 : -0.4); p.z -= sy * (lx > 0 ? 0.4 : -0.4); } } });
     const e = GXW.ext; c.x = clamp(c.x, e.x0, e.x1); c.z = clamp(c.z, e.z0, e.z1); G.poseCar(c, dt); st.pos.set(c.x, c.y, c.z); st.yaw = c.yaw; st.v = c.v; F.x = c.x; F.y = c.y; F.z = c.z; F.spd = Math.abs(c.v); }
   // ================= on-foot movement =================
@@ -4293,7 +4308,7 @@ body.foot .btn,body.foot #dash{display:none!important}body.car #bD,body.car #bG,
     if (F.on && F.mode === 'foot' && W0.stars > 0 && !G.busy()) G.cops.forEach(c => { if (!c.on || c.mode !== 'chase' || c.player) return; const d = Math.hypot(c.x - px, c.z - pz); if (d < 24 && !c.unload && OFF.filter(o => o.on && o.st !== 'dead').length < OFFN) { c.unload = 1; c.hold = 1; c.player = true; c.v *= 0.3; spawnOfficers(c); } });
     G.cops.forEach(c => { if (!c.hold) return; c.v *= Math.max(0, 1 - dt * 3); G.poseCar(c, dt); const ph = (tGlobal * 1.6 + c.ph) % 1; if (c.setStrobe) c.setStrobe(ph < 0.1 ? 1 : 0, ph > 0.5 && ph < 0.6 ? 1 : 0);
       const d = Math.hypot(c.x - px, c.z - pz); if (!W0.stars || (F.mode !== 'foot' && d > 30) || d > 140) { c.hold = 0; c.player = false; c.unload = 0; } });
-    for (let i = STOLEN.length - 1; i >= 0; i--) { const c = STOLEN[i]; if (c === F.veh) continue; if (Math.hypot(c.x - px, c.z - pz) > 260) { STOLEN.splice(i, 1); c.player = false; if (G.civ.indexOf(c) >= 0) { c.C = null; } else { c.g.visible = false; } } }
+    for (let i = STOLEN.length - 1; i >= 0; i--) { const c = STOLEN[i]; if (c === F.veh) continue; if (Math.hypot(c.x - px, c.z - pz) > 260) { STOLEN.splice(i, 1); c.player = false; if (G.civ.indexOf(c) >= 0) { c.C = null; } else if (!c.parked) { c.g.visible = false; } } }
     regenT += dt; if (regenT > 8 && F.hp < 40 && F.dead <= 0) { F.hp = Math.min(40, F.hp + dt * 2); if ((pedT += dt) > 0.5) { pedT = 0; drawHud(); } }
     if (F.hurt > 0) { F.hurt -= dt * 1.6; hurt.style.opacity = Math.max(0, F.hurt).toFixed(2); }
     if (F.dead > 0) { F.dead -= dt; if (F.dead <= 0) respawn(); }
@@ -4301,12 +4316,12 @@ body.foot .btn,body.foot #dash{display:none!important}body.car #bD,body.car #bG,
   }
   // camera
   const camT = new THREE.Vector3();
-  function camTgt() { if (F.camOv) return F.camOv.tgt(camT); if (F.mode === 'veh' && F.vo) return F.vo.camTgt(camT); if (F.mode === 'car') return camT.set(st.pos.x, st.pos.y + 1.3, st.pos.z); return camT.set(F.x, F.y + 1.45 - (F.dead > 0 ? 1.0 : 0), F.z); }
-  function camWant(tg, w) { if (F.camOv) return F.camOv.want(tg, w); if (F.mode === 'veh' && F.vo) return F.vo.camWant(tg, w); if (F.mode === 'car') { const c = F.veh; const d = 6.6 + Math.min(2, Math.abs(c.v) * 0.04); return w.set(tg.x - Math.sin(c.yaw) * d, tg.y + 1.35, tg.z - Math.cos(c.yaw) * d); }
+  function camTgt() { if (F.camOv) return F.camOv.tgt(camT); if (F.mode === 'veh' && F.vo) return F.vo.camTgt(camT); if (F.mode === 'car') return camT.set(st.pos.x, st.pos.y + Math.max(1.3, (F.veh.H || 1.6) * 0.8), st.pos.z); return camT.set(F.x, F.y + 1.45 - (F.dead > 0 ? 1.0 : 0), F.z); }
+  function camWant(tg, w) { if (F.camOv) return F.camOv.want(tg, w); if (F.mode === 'veh' && F.vo) return F.vo.camWant(tg, w); if (F.mode === 'car') { const c = F.veh; const big = Math.max(0, (c.L || 4.6) - 4.6), d = 6.6 + big * 0.95 + Math.min(2, Math.abs(c.v) * 0.04); return w.set(tg.x - Math.sin(c.yaw) * d, tg.y + 1.35 + big * 0.25, tg.z - Math.cos(c.yaw) * d); } // longer / taller vehicles (bus, truck, IFV): camera further back and higher
     if (F.hurt > 0.6) { tg.x += (Math.random() - 0.5) * 0.08; tg.y += (Math.random() - 0.5) * 0.08; }
     const d = 3.6, ph = F.camPitch, a = F.camYaw;
     return w.set(tg.x - Math.sin(a) * Math.cos(ph) * d, tg.y + Math.sin(ph) * d + 0.15, tg.z - Math.cos(a) * Math.cos(ph) * d); }
-  return { get on() { return F.on; }, get mode() { return F.mode; }, F, K, T, tick, frame, carHit, forceRide, camTgt, camWant, damage, heal, enterExit, placeFoot, setUI, PEDS, OFF, STOLEN, VEH, get PL() { return PL; }, ready, drawHud, exitVeh };
+  return { get on() { return F.on; }, get mode() { return F.mode; }, F, K, T, PARKED, enterCar, carDist, tick, frame, carHit, forceRide, camTgt, camWant, damage, heal, enterExit, placeFoot, setUI, PEDS, OFF, STOLEN, VEH, get PL() { return PL; }, ready, drawHud, exitVeh };
 })();
 if (FOOT) window.FOOTX = FOOT;
 // ================= GXV: 去吃 / 去玩 – venue interactions (food heals, mini-games win money), ferris wheel ride, staff, minimap icons =================
@@ -4420,7 +4435,7 @@ if (GXW && GX && FOOT) GXV = (function () {
   function mini(mx, toS, clampR, Wc) { mx.font = '18px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; mx.textAlign = 'center'; mx.textBaseline = 'middle';
     ICONS.forEach(p => { const big = p.id === 'hospital' || p.id === 'police' || p.id === 'airport' || p.id === 'base'; let q = toS(p.x, p.z); if (big) q = clampR(q, Wc / 2 - 14); else if (Math.hypot(q[0] - Wc / 2, q[1] - Wc / 2) > Wc / 2 - 8) return;
       mx.fillStyle = 'rgba(10,12,18,.75)'; mx.beginPath(); mx.arc(q[0], q[1], 13, 0, 6.283); mx.fill(); mx.fillStyle = '#fff'; mx.fillText(p.icon, q[0], q[1] + 1); }); }
-  { const h = document.getElementById('help'); if (h) h.innerHTML += '<br><b style="color:#ffcf5a">吃喝玩乐：</b>小地图上的图标都能去：🍲 火锅、🍢 烧烤、🧋 奶茶、🏪 便利店（花钱回血），🕹️ 游戏厅打地鼠、🏀 篮球场投篮（赢钱），🎡 摩天轮俯瞰全城。走到柜台 / 摊位前点出现的按钮（键盘 E）。🏥 医院复活，🚓 被抓会被带到公安局，✈️ 机场在环路东边，🪖 军事基地在机场跑道旁。'; }
+  
   return { frame, mini, VEN, ICONS, FW, use, get busy() { return busy; }, get near() { return near; }, ball };
 })();
 if (GXV) window.GXVX = GXV;
@@ -4549,7 +4564,7 @@ body.veh[data-veh=plane] #dash,body.veh[data-veh=tank] #dash{display:none!import
       root.position.set(x - 3.6, 0, z - Math.sin(-yw) * 7.5); root.rotation.y = yw; scene.add(root); const boom = b[0]; if (boom) boom.scale.x = 0.95; gates.push({ x, z, boom, a: 0 }); GXW.addCol([x - 6.5, x - 0.8, root.position.z - 3, root.position.z + 3, 0, 9, 'b']); }); }).catch(() => null);
   let FOG0 = null;
   function frame(dt) { fxTick(dt);
-    const inT = FOOT.on && FOOT.mode === 'veh' && F.vo === TK, inJ = FOOT.on && FOOT.mode === 'veh' && F.vo === JV;
+    const inT = FOOT.on && FOOT.mode === 'veh' && F.vo === TK, inJ = FOOT.on && FOOT.mode === 'veh' && F.vo === JV; GV.frame(dt);
     if (!inT && TK.ld) { TK.eng.set(0, false); if (Math.abs(TK.v) > 0.1) TK.v *= 0.9; }
     if (TK.root && TK.rw) { if (!inT) { TK.y = GXW.gy(TK.x, TK.z, TK.y + 2); } if (inT || Math.hypot(TK.x - st.pos.x, TK.z - st.pos.z) < 300) tankPose(dt); }
     if (scene.fog && scene.fog.isFog) { if (!FOG0) FOG0 = [scene.fog.near, scene.fog.far, camera.far]; const alt = inJ ? Math.max(0, JT.pos.y - 20) : 0; const k = 1 + Math.min(5, alt / 120); scene.fog.near = FOG0[0] * k; scene.fog.far = FOG0[1] * k; const cf = Math.max(FOG0[2], scene.fog.far * 1.05); if (Math.abs(camera.far - cf) > 20) { camera.far = cf; camera.updateProjectionMatrix(); } }
@@ -4559,8 +4574,53 @@ body.veh[data-veh=plane] #dash,body.veh[data-veh=tank] #dash{display:none!import
     [...G.civ, ...G.cops].forEach(c => { if (c.crushed && tGlobal - c.crushT > 25 && Math.hypot(c.x - st.pos.x, c.z - st.pos.z) > 80) { c.crushed = false; c.body.scale.y = 1; c.body.position.y = 0; c.hideWheels = false; if (G.civ.indexOf(c) >= 0) c.C = null; else G.despawn(c); } });
     gates.forEach(g => { const near = Math.hypot(st.pos.x - g.x, st.pos.z - g.z) < 32; g.a += ((near ? 1 : 0) - g.a) * Math.min(1, dt * 1.5); if (g.boom) g.boom.rotation.z = g.a * 1.35; });
   }
-  { const h = document.getElementById('help'); if (h) h.innerHTML += '<br><b style="color:#ffcf5a">军事基地（机场跑道旁）：</b>🪖 坦克：▲▼ 前进后退，◀▶ 原地也能转，拖动屏幕转炮塔，碾过去能把车压扁（会被通缉）。✈️ 战斗机：▲ 加油门、▼ 收油门 / 刹车，◀▶ 地面转弯、空中压坡度转弯，「拉起」「俯冲」控制机头（键盘 W/S 油门，A/D 转弯，↓ 或空格 拉起，↑ 俯冲）。滑到跑道上加满油门，速度过 250 km/h 拉起就能起飞；低于约 190 km/h 会失速；降落时放慢速度、起落架会自动放下，下降别太猛、机翼放平，落在跑道或停机坪上。'; }
-  return { frame, TK, JT, JV, crush, boom, gates };
+  
+  // ================= GV: every other vehicle you can see is drivable =================
+  // · parked city cars (instanced, 1 draw call for all): walk up to one and it is swapped for a real car in the same spot (paint, pose)
+  // · ambulance at the hospital, 3 IFVs at the base: GLB vehicles parked as cars (IFVs are tracked: they turn on the spot)
+  // · buses and garbage trucks drive in the traffic (GXCAR kinds 'bus' / 'truck', heavy handling in FOOT.carTick)
+  // · a short controls card appears whenever you get into something
+  const GV = (function () {
+    const PK = FOOT.PARKED; const CIT = GXW.cities && GXW.cities[0];
+    // ---- controls card ----
+    const css = `#vHint{position:fixed;left:50%;top:calc(54px + env(safe-area-inset-top));transform:translateX(-50%);background:rgba(10,12,18,.72);border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:7px 14px;color:#fff;font:700 13px/1.45 "PingFang SC",Arial,sans-serif;z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .35s;max-width:86vw}#vHint b{color:#ffd54a;font-size:15px}#vHint.on{opacity:1}`;
+    document.head.appendChild(Object.assign(document.createElement('style'), { textContent: css }));
+    const card = document.createElement('div'); card.id = 'vHint'; document.body.appendChild(card); let cardT = 0;
+    const HINT = { bike: ['🏍 X5', '▲ 油门 · ▼ 刹车 · ◀▶ 压弯 · 🚶 下车'], car: ['🚗 汽车', '▲ 油门 · ▼ 刹车/倒车 · ◀▶ 转向 · 🚶 下车'], van: ['🚑 救护车', '▲ 油门 · ▼ 刹车/倒车 · ◀▶ 转向 · 车身长，转弯放慢'],
+      bus: ['🚌 公交车', '▲ 油门（起步慢）· ▼ 刹车 · ◀▶ 转向 · 车身 12 米：转弯要提前、走大弯'], truck: ['🚛 垃圾车', '▲ 油门（很重）· ▼ 刹车 · ◀▶ 转向 · 三轴重卡：转弯半径大，刹车距离长'],
+      ifv: ['🪖 步兵战车', '▲▼ 前进后退 · ◀▶ 履带原地转向'], tank: ['🪖 坦克', '▲▼ 前进后退 · ◀▶ 原地转向 · 拖屏幕转炮塔 · 能压扁汽车'],
+      jet: ['✈️ 战斗机', '▲ 加油门 · 过 250 km/h 按「拉起」· ◀▶ 压坡度转弯 · 拉起/俯冲 控制机头 · 落地前收油门，起落架自动放'],
+      airliner: ['✈️ 客机（很重）', '▼ 停住时按住＝推出/倒车 · ◀▶ 前轮转向，慢慢滑到跑道 · ▲ 油门推满，280 km/h 轻按「拉起」· 坡度最大 30°，转弯很慢 · 降落：250 km/h 左右、慢慢下降'],
+      light: ['🛩 小飞机', '▲ 油门 · 过 105 km/h 按「拉起」· ◀▶ 转弯 · 拉起/俯冲 控制机头'], transport: ['✈️ 运输机', '▲ 油门推满 · 过 210 km/h 按「拉起」· ◀▶ 慢慢转弯 · 拉起/俯冲'] };
+    function show(cls) { const h = HINT[cls] || HINT.car; card.innerHTML = `<b>${h[0]}</b><br>${h[1]}`; card.classList.add('on'); cardT = 5; }
+    window.GXVH = { show };
+    // ---- GLB vehicles parked around the map (ambulance, IFVs) ----
+    function park(kind, x, z, yaw, extra) { const c = GXCAR.makeCar(kind); scene.add(c.g); Object.assign(c, { x, z, y: GXW.gy(x, z, 5), yaw, v: 0, steer: 0, hint: 0, parked: true, alarm: kind === 'ifv', distCull: true }, extra || {}); PK.push(c); const t = setInterval(() => { if (c.ready) { clearInterval(t); G.poseCar(c, 1); } }, 300); G.poseCar(c, 1); return c; }
+    (typeof GXDRIVE !== 'undefined' ? GXDRIVE : []).forEach(([k, x, z, yaw]) => park(k, x, z, yaw, k === 'ifv' ? { onEnter: () => { if (G.WANT.stars < 2) G.setStars(2, '偷开步兵战车！'); } } : {}));
+    // ---- parked city cars: swap the instanced one for a real car when you walk up ----
+    const POOL = { sedan: [], suv: [] }; const MAXP = 3; let scanT = 0;
+    function slotKind(s) { return s[3] % 3 === 2 ? 'suv' : 'sedan'; }
+    function release(c) { const s = c.slot; if (!s) return; if (GXPERF) GXPERF.hide(s[0], s[1], false); if (s[4] && s.cb0) { for (let i = 0; i < 6; i++) s[4][i] = s.cb0[i]; } s.car = null; c.slot = null; c.g.visible = false; }
+    function claim(s) { const k = slotKind(s); const L = POOL[k]; let c = L.find(o => !o.slot && o !== F.veh); if (!c && L.length < MAXP) { c = GXCAR.makeCar(k, 0xffffff); scene.add(c.g); Object.assign(c, { v: 0, steer: 0, hint: 0, parked: true, kind: k }); L.push(c); PK.push(c); }
+      if (!c) { c = L.filter(o => o !== F.veh && STOLE(o) === false).sort((a, b) => Math.hypot(b.x - F.x, b.z - F.z) - Math.hypot(a.x - F.x, a.z - F.z))[0]; if (!c) return null; release(c); }
+      const col = CIT && CIT.CARCOL ? CIT.CARCOL[s[3]] : 0xffffff; c.body.children.forEach(m => { if (m.isMesh && m.geometry === GXCAR.CAR[k].paint) m.material.color.set(col); });
+      Object.assign(c, { x: s[0], z: s[1], y: GXW.gy(s[0], s[1], 5), yaw: s[2] + (s[3] % 2 ? Math.PI : 0), v: 0, steer: 0, taken: false, crushed: false }); c.g.visible = true; c.slot = s; s.car = c; c.lastV = 0;
+      if (s[4]) { s.cb0 = s.cb0 || s[4].slice(0, 6); for (let i = 0; i < 4; i++) s[4][i] = -1e7; } if (GXPERF) GXPERF.hide(s[0], s[1], true); G.poseCar(c, 1); return c; }
+    const STOLE = (c) => FOOT.STOLEN.indexOf(c) >= 0 && Math.hypot(c.x - F.x, c.z - F.z) < 120;
+    function frame(dt) { if (cardT > 0) { cardT -= dt; if (cardT <= 0) card.classList.remove('on'); }
+      // which vehicle are we in? show its card once per entry
+      const key = !F.on ? 'bike' : F.mode === 'car' && F.veh ? (F.veh.cls || 'car') : F.mode === 'veh' && F.vo ? (F.vo === TK ? 'tank' : F.vo.cls || '') : 'foot';
+      const who = !F.on ? 'bike' : F.mode === 'car' ? F.veh : F.mode === 'veh' ? F.vo : null; if (who !== frame.who) { frame.who = who; if (key !== 'foot' && key !== '' && !(key === 'bike' && tGlobal < 3) && (F.mode !== 'veh' || F.vo === TK)) show(key); }
+      // parked GLB vehicles sit still with their wheels on the ground
+      // parked GLB vehicles (ambulance, IFVs) are drawn only within 420 m of the camera (each is a few draw calls + shadow casters)
+      if ((frame.cullT = (frame.cullT || 0) + dt) > 0.5) { frame.cullT = 0; const cx = camera.position.x, cz = camera.position.z; PK.forEach(c => { if (c.distCull) c.g.visible = c === F.veh || FOOT.STOLEN.indexOf(c) >= 0 || Math.hypot(c.x - cx, c.z - cz) < 420; }); }
+      PK.forEach(c => { if (c === F.veh || !c.g.visible || Math.abs(c.v) < 0.01) return; c.v *= Math.max(0, 1 - dt * 3); c.x += Math.sin(c.yaw) * c.v * dt; c.z += Math.cos(c.yaw) * c.v * dt; G.poseCar(c, dt); });
+      if (!CIT || !CIT.parked || !F.on || F.mode !== 'foot' || (scanT += dt) < 0.25) return; scanT = 0;
+      let best = null, bd = 7; for (const s of CIT.parked) { if (s.car) continue; const d = Math.hypot(s[0] - F.x, s[1] - F.z); if (d < bd) { bd = d; best = s; } }
+      if (best) claim(best); }
+    return { frame, show, PK, POOL, claim, release, CIT };
+  })();
+  return { frame, TK, JT, JV, GV, crush, boom, gates, gy: (x, z, y) => GXW.gy(x, z, y) };
 })();
 if (GXM) window.GXMX = GXM;
 if (window.__g) window.__g.dbgY = () => { let a = 1e9, b = -1e9; P.forEach(p => { a = Math.min(a, p.y); b = Math.max(b, p.y); }); return [a, b, water && water.position.y, water && water.material.transparent, camera.near, camera.far]; };
