@@ -60,6 +60,13 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div id="credit">音效（除注明外均为 CC0 公共领域录音）：X5 电机声用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车用真实轮胎刹车吱声（Freesound RutgerMuller #104026、audible-edge #71737）+ 刹车片尖啸（Freesound WavJunction.com #456764）+ 踏板车刹车摩擦（Freesound 16HPanskaResatko_Matej #497971）；漂移 / 烧胎摩擦声用摩托车后轮抱死录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）。车辆、飞机、建筑模型为 CC0（tevy.dev）。</div></div></div>
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "cannon": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={"ph": "https://dl.polyhaven.org/file/ph-assets/", "hdr": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr", "riderBase": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r170/examples/models/gltf/", "waterN": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/waternormals.jpg"};</script>
+<script src="gx/emb/ap1.js"></script>
+<script src="gx/emb/ap2.js"></script>
+<script src="gx/emb/ap3.js"></script>
+<script src="gx/emb/mm1.js"></script>
+<script src="gx/emb/mm2.js"></script>
+<script src="gx/emb/mm3.js"></script>
+<script src="gx/emb/mm4.js"></script>
 <script type="module">import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
@@ -2863,24 +2870,32 @@ function driftFx(dt) {
     else if (DR.showT > 0) { DR.showT -= dt; if (DR.showT <= 0) driftHud.style.opacity = 0; } }
 }
 
-// ---------------- rider (ReadyPlayerMe, recoloured: Black guy, no helmet) ----------------
+// ---------------- white mummy: ONE character for riding AND walking (bandage-wrapped, RPM skeleton) ----------------
+// mummy_slim.glb (2.18 MB, bandage textures as 1024px JPEG) embedded as base64 - same text-only push channel trick as the Apache.
+// The same embedded model drives the bike rider below and the on-foot player in FOOT (soldier.glb Mixamo clips retargeted onto it).
+const MUMMY_B64 = window.__MMB.join('');
+const MUMMY_ON = true;
+function parseEmbeddedGLB(b64) { const bin = atob(b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return new Promise((ok, no) => new GLTFLoader().parse(buf.buffer, '', g => ok(g), e => no(e))); }
+// ---------------- rider (ReadyPlayerMe skeleton; skinned as the white mummy, see above) ----------------
 const RIDERS = [['rpm', '黑人小哥', 'readyplayer.me.glb', 'rpm.glb'], ['rpm2', '精神小伙', 'readyplayer.me.glb', 'rpm.glb'], ['soldier', '特种兵', 'Soldier.glb', 'soldier.glb'], ['xbot', '机器人', 'Xbot.glb', 'xbot.glb'], ['michelle', '女骑手', 'Michelle.glb', 'michelle.glb']];
 const RIDER_ID = (() => { const q = new URLSearchParams(location.search).get('rider') || lsGet('moto_rider'); return 'rpm'; })();
 const RDEF = RIDERS.find(r => r[0] === RIDER_ID);
 const rider = new THREE.Group(); bikeBody.add(rider);
 let riderReady = false, riderBones = {}, riderModel = null; const restPose = [];
-new GLTFLoader(loadMgr).load(CFG.riderBase ? CFG.riderBase + RDEF[2] : RDEF[3], (g) => {
+const _riderCB = (g) => {
   riderModel = g.scene; rider.add(riderModel);
   riderModel.traverse(o => { if (o.isMesh || o.isSkinnedMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; if (/Headwear|Beard/.test(o.name)) o.visible = false; } if (o.isBone) riderBones[o.name.replace(/^mixamorig:?/, '')] = o; });
   if (RIDER_ID === 'rpm2' && typeof rzDressBody === 'function') rzDressBody(riderModel);
-  else if (RIDER_ID === 'rpm' || RIDER_ID === 'rpm2') { const C = RIDER_ID === 'rpm' ? [0xd2a283, 0x8a8c90, 0x34405a, 0xf2f2f2] : [0xd9a07a, 0xc8102e, 0x111114, 0xf4f4f4]; // rider = the same young guy you walk as: grey hoodie, jeans, white trainers
+  else if (!MUMMY_ON && (RIDER_ID === 'rpm' || RIDER_ID === 'rpm2')) { const C = RIDER_ID === 'rpm' ? [0xd2a283, 0x8a8c90, 0x34405a, 0xf2f2f2] : [0xd9a07a, 0xc8102e, 0x111114, 0xf4f4f4]; // rider = the same young guy you walk as: grey hoodie, jeans, white trainers
     riderModel.traverse(o => { if (!o.isMesh || !o.material) return; const n = o.material.name || ''; const set = (hex, extra) => { o.material = o.material.clone(); o.material.color.setHex(hex); if (extra) extra(o.material); };
       if (/Skin|Body/.test(n) || /Wolf3D_Head|Wolf3D_Body/.test(o.name)) set(C[0], m => { m.roughness = 0.55; });
       else if (/Outfit_Top/.test(o.name)) set(C[1]); else if (/Outfit_Bottom/.test(o.name)) set(C[2]); else if (/Footwear/.test(o.name)) set(C[3]); }); }
-  if (RIDER_ID === 'rpm') riderModel.traverse(o => { if (o.isMesh && /Outfit_(Top|Bottom)/.test(o.name)) { o.material.map = null; o.material.needsUpdate = true; } });
+  if (RIDER_ID === 'rpm' && !MUMMY_ON) riderModel.traverse(o => { if (o.isMesh && /Outfit_(Top|Bottom)/.test(o.name)) { o.material.map = null; o.material.needsUpdate = true; } });
   riderModel.traverse(o => { if (o.isBone) restPose.push([o, o.quaternion.clone(), o.position.clone()]); });
-  poseRider(); bakeRider(); if (RIDER_ID === 'rpm2' && typeof rzAddHead === 'function') rzAddHead(); else if (RIDER_ID === 'rpm') addHairAndChain(); riderReady = true;
-});
+  poseRider(); bakeRider(); if (RIDER_ID === 'rpm2' && typeof rzAddHead === 'function') rzAddHead(); else if (RIDER_ID === 'rpm' && !MUMMY_ON) addHairAndChain(); riderReady = true;
+};
+if (MUMMY_ON) parseEmbeddedGLB(MUMMY_B64).then(_riderCB).catch(e => { console.warn('mummy rider parse failed, falling back to rpm.glb', e); new GLTFLoader(loadMgr).load(CFG.riderBase ? CFG.riderBase + RDEF[2] : RDEF[3], _riderCB, undefined, () => {}); });
+else new GLTFLoader(loadMgr).load(CFG.riderBase ? CFG.riderBase + RDEF[2] : RDEF[3], _riderCB, undefined, () => {});
 const DEF_POSE = { hip: [0, 0.91, -0.36], foot: [0.15, 0.44, 0.20], knee: [0.25, 0.6, 1], grip: [0.30, 0.13, -0.05] };
 const carPose = () => (curCar && curCar.pose) || DEF_POSE;
 const GRIP_L = new THREE.Vector3(0.30, 0.13, -0.05), GRIP_R = new THREE.Vector3(-0.30, 0.13, -0.05);
@@ -4117,11 +4132,22 @@ if (GXW && GX && GX.open) FOOT = (function () {
   const PEDS_SLUGS = ['casual-walker', 'dog-walker', 'hiker', 'cyclist', 'road-worker'];
   const tevyClips = (g) => { const c = {}; g.animations.forEach(a => { c[a.name] = tevyInPlace(a); }); c.run = makeRun(c.walk, g.scene); return c; };
   const prepSk = (root, cast) => { root.traverse(o => { if (o.isMesh) { o.castShadow = cast; o.receiveShadow = true; o.frustumCulled = false; } }); };
-  const ready = new Promise(r => { const w = () => window.__ready ? r() : setTimeout(w, 300); w(); }).then(() => GXA.get('casual-walker', 0)).then(g => {
-    prepSk(g.scene, true); PL = rig(g.scene, tevyClips(g)); PL.g = new THREE.Group(); PL.g.add(g.scene); PL.g.visible = false; scene.add(PL.g); PL.anim('idle', 0); F.ready = true;
-    // pedestrians + officers load after the player (they are not needed to get off the bike)
+  // on foot the player is the SAME white mummy as on the bike: the embedded model, locomotion borrowed from
+  // soldier.glb's Mixamo clips with the 'mixamorig:' track prefix stripped so they bind to the RPM skeleton.
+  // Officers (COPM) are set up from that same soldier load. Any failure -> the old casual-walker player.
+  const retarget = (clip, rest) => { if (!clip) return null; const c = clip.clone(); c.tracks.forEach(t => { const i = t.name.lastIndexOf('.'); const node = t.name.slice(0, i).replace(/^mixamorig:?/, ''); t.name = node + t.name.slice(i); if (rest && node === 'Hips' && t.name.endsWith('.position')) { const v = t.values; for (let k = 0; k < v.length; k += 3) { v[k] = rest.x; v[k + 2] = rest.z; } } }); return c; };
+  function loadPL() {
+    const solP = load(CFG.riderBase ? CFG.riderBase + 'Soldier.glb' : 'soldier.glb').then(sol => { const s = {}; sol.animations.forEach(c => { s[c.name.toLowerCase()] = inPlace(c); }); COPM = { scene: sol.scene, clips: { idle: s.idle, walk: s.walk, run: s.run } }; return COPM.clips; }).catch(() => null);
+    const mumP = parseEmbeddedGLB(MUMMY_B64).catch(() => null);
+    return Promise.all([solP, mumP]).then(([clips, mg]) => {
+      if (clips && clips.idle && clips.walk && mg) { let rest = null; mg.scene.traverse(o => { if (o.isBone && o.name === 'Hips') rest = o.position; }); mg.__clips = { idle: retarget(clips.idle, rest), walk: retarget(clips.walk, rest), run: retarget(clips.run, rest) || retarget(clips.walk, rest) }; return mg; }
+      return GXA.get('casual-walker', 0);
+    });
+  }
+  const ready = new Promise(r => { const w = () => window.__ready ? r() : setTimeout(w, 300); w(); }).then(() => loadPL()).then(g => {
+    prepSk(g.scene, true); PL = rig(g.scene, g.__clips || tevyClips(g)); PL.g = new THREE.Group(); PL.g.add(g.scene); PL.g.visible = false; scene.add(PL.g); PL.anim('idle', 0); F.ready = true;
+    // pedestrians load after the player (they are not needed to get off the bike)
     Promise.all(PEDS_SLUGS.map(s => GXA.get(s, 1).then(g2 => { prepSk(g2.scene, !mob); PEDT.push({ scene: g2.scene, clips: tevyClips(g2), slug: s }); }).catch(() => null))).then(initPeds);
-    load(CFG.riderBase ? CFG.riderBase + 'Soldier.glb' : 'soldier.glb').then(sol => { const s = {}; sol.animations.forEach(c => { s[c.name.toLowerCase()] = inPlace(c); }); COPM = { scene: sol.scene, clips: { idle: s.idle, walk: s.walk, run: s.run } }; }).catch(() => null);
   }).catch(e => { F.err = String(e && e.message || e); console.warn('FOOT assets', F.err); });
   // ---------- HUD + touch controls ----------
   const css = `#fHud{position:fixed;left:calc(12px + env(safe-area-inset-left));top:calc(198px + env(safe-area-inset-top));width:132px;pointer-events:none;z-index:3}
@@ -4657,79 +4683,35 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
   const AIRL = [[1110, -566, -Math.PI / 2], [1110, -466, -Math.PI / 2], [1110, -366, -Math.PI / 2], [1190, -275, Math.PI / 2], [1700, -745, 0]].map(([x, z, y]) => makePlane('airliner', 'narrowbody-airliner', x, z, y, { parts: ALP }));
   const LIGHT = [[1250, -600, Math.PI], [1290, -600, Math.PI]].map(([x, z, y]) => makePlane('light', 'light-aircraft', x, z, y, { parts: ['aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'flap_L', 'flap_R', 'propeller', 'rudder'] }));
   const TRN = [makePlane('transport', 'military-transport', 1400, 250, Math.PI / 2, { parts: ['propeller_L_outer', 'propeller_L_inner', 'propeller_R_inner', 'propeller_R_outer', 'flap_L', 'flap_R', 'aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'rudder', 'gear_nose', 'gear_main_L_front', 'gear_main_L_rear', 'gear_main_R_front', 'gear_main_R_rear', 'gear_door_nose_L', 'gear_door_nose_R', 'gear_door_main_L', 'gear_door_main_R'], onEnter: () => { if (G.WANT.stars < 2) G.setStars(2, '偷开军用运输机！'); } })];
-  // ================= APACHE: procedural AH-64 on the base helipad (no GLB exists for it) =================
-  // Signature shapes, all from shared unit geometries + 8 shared materials (~59 meshes): stepped tandem cockpit
-  // (gunner low / pilot high) with dark segmented glass, chin sensor turret + cannon, side engine nacelles with
-  // upturned exhausts, stub-wing rocket pods (merged 7-tube muzzle ring) + missile rails, wire cutters,
-  // tail-dragger gear with oleo struts, 4-blade main rotor on coning pivots, crossed-pair tail rotor.
-  // Flight: rotor spools up before she can lift; ▲/▼ command a climb rate, hands off = altitude hold (hover);
-  // 俯冲 tips the nose and she accelerates into forward flight, 拉起 flares and bleeds speed; ◀▶ yaws with a
-  // touch of bank. Ground effect cushions the last 3 m. Hard sink / bad attitude / buildings = crashP-style boom.
+  // ================= APACHE: real AH-64D model (GLB, embedded base64) + full rotor flight model =================
+  // Model: "Boeing AH-64D Apache Combat Helicopter" by Muhamad Mirza Arrafi (Sketchfab),
+  // licensed CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/). Pre-processed in Blender:
+  // scaled to real size (fuselage ~15.1 m, overall length 17.76 m), main/tail rotors split into
+  // rotor_main / rotor_tail nodes with per-blade cone_0..3 pivots, chin turret as 'cannon'.
+  // The GLB ships embedded as base64 because the repo push channel is text-only.
+  // Flight model (unchanged): collective = lift (needs rpm > 0.85), W/S or ▲/▼ = pitch fwd/back,
+  // A/D = yaw, Q/E = strafe, SHIFT = descend, SPACE (on ground) = rotor brake; touchdown rules:
+  // sink faster than -6 m/s, |pitch/roll| beyond 0.6 rad or rotor not spooled = crash.
   function rotorEng() { const E = { g: null }; E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master);
       const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 13; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 200; o.connect(f); f.connect(g);
       const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 420; nf.Q.value = 0.8; const ng = AC.createGain(); ng.gain.value = 0.85; n.connect(nf); nf.connect(ng); ng.connect(g); o.start(); n.start(); Object.assign(E, { g, o, nf }); };
     E.set = (rpm, on) => { if (!E.g) return; const t = AC.currentTime; E.g.gain.setTargetAtTime(on ? 0.04 + 0.13 * rpm : 0, t, 0.25); E.o.frequency.setTargetAtTime(11 + 15 * rpm, t, 0.4); E.nf.frequency.setTargetAtTime(280 + 620 * rpm, t, 0.4); }; return E; }
   const HL = { kind: 'heli', cls: 'heli', label: '🚁 开阿帕奇直升机', r: 5, drag: false, x: 1480, z: 620, y: 0, yaw: Math.PI / 2, vf: 0, vy: 0, rpm: 0, rot: 0, rotT: 0, att: 0, rollV: 0, elevS: 0, holdY: 0, ground: true, dead: 0, why: null, crashT: 0, airT: 0, home: [1480, 620, Math.PI / 2], eng: rotorEng(), col: null, root: null, rotor: null, cones: [], tailR: null, cannon: null };
   HL.y = GXW.gy(HL.x, HL.z, 5);
-  { // ---- build the model (nose = local +Z, ground = y 0) ----
-    const olive = new THREE.MeshStandardMaterial({ color: 0x4b5344, roughness: 0.82, metalness: 0.28 });
-    const oliveD = new THREE.MeshStandardMaterial({ color: 0x353c30, roughness: 0.86, metalness: 0.25 });
-    const glassM = new THREE.MeshStandardMaterial({ color: 0x10161f, roughness: 0.06, metalness: 0.9, envMapIntensity: 1.5 });
-    const darkM = new THREE.MeshStandardMaterial({ color: 0x24282a, roughness: 0.5, metalness: 0.65 });
-    const tireM = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.95 });
-    const hubM = new THREE.MeshStandardMaterial({ color: 0x6a6e66, roughness: 0.5, metalness: 0.6 });
-    const yelM = new THREE.MeshStandardMaterial({ color: 0xd8a920, roughness: 0.6 });
-    const misM = new THREE.MeshStandardMaterial({ color: 0x969ca2, roughness: 0.45, metalness: 0.5 });
-    const BG = new THREE.BoxGeometry(1, 1, 1), CG = new THREE.CylinderGeometry(1, 1, 1, 12), SG = new THREE.SphereGeometry(1, 14, 10), KG = new THREE.ConeGeometry(1, 1, 10);
-    const root = new THREE.Group(); root.name = 'apache'; root.rotation.order = 'YXZ';
-    const part = (parent, geo, mat, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.scale.set(sx, sy, sz); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
-    // landing gear: two mains with oleo struts + tail wheel (tail-dragger like the real AH-64)
-    [-1, 1].forEach(s => { part(root, CG, darkM, 0.09, 1.15, 0.09, s * 0.95, 1.0, 1.15, 0, 0, -s * 0.16); part(root, CG, tireM, 0.40, 0.26, 0.40, s * 1.04, 0.40, 1.15, 0, 0, Math.PI / 2); part(root, CG, hubM, 0.17, 0.28, 0.17, s * 1.04, 0.40, 1.15, 0, 0, Math.PI / 2); });
-    part(root, CG, darkM, 0.07, 0.95, 0.07, 0, 0.72, -4.8, 0.28, 0, 0); part(root, CG, tireM, 0.26, 0.16, 0.26, 0, 0.26, -4.95, 0, 0, Math.PI / 2);
-    // fuselage + stepped tandem cockpit: front glass low, rear glass on a higher step, dark frames between
-    part(root, BG, olive, 1.8, 1.5, 6.6, 0, 1.95, 0.1);
-    part(root, BG, oliveD, 1.5, 0.7, 5.2, 0, 1.12, 0.3);
-    part(root, BG, olive, 1.45, 1.0, 1.7, 0, 1.62, 3.55, 0.10, 0, 0);
-    part(root, BG, glassM, 1.3, 0.8, 1.8, 0, 2.38, 2.8, -0.16, 0, 0);
-    part(root, BG, oliveD, 1.45, 0.22, 1.9, 0, 2.86, 2.62, -0.16, 0, 0);
-    part(root, BG, glassM, 1.4, 0.9, 1.6, 0, 2.74, 0.8, -0.10, 0, 0);
-    part(root, BG, oliveD, 1.5, 0.24, 1.8, 0, 3.24, 0.68, -0.10, 0, 0);
-    part(root, BG, olive, 1.25, 0.55, 2.6, 0, 3.02, -0.9); // doghouse / transmission deck
-    [-1, 1].forEach(s => part(root, BG, olive, 0.55, 0.85, 2.6, s * 1.08, 1.85, 2.1)); // cheek fairings
-    // engine nacelles + upturned exhausts
-    [-1, 1].forEach(s => { part(root, BG, olive, 0.66, 0.78, 2.8, s * 1.15, 2.78, -0.6); part(root, CG, darkM, 0.20, 0.85, 0.20, s * 1.3, 3.02, -2.0, -0.6, 0, 0); });
-    // chin turret: sensor ball with a glass eye + cannon (swings a little with the pitch input, see heliPose)
-    part(root, CG, darkM, 0.16, 0.3, 0.16, 0, 1.0, 3.5);
-    part(root, SG, darkM, 0.34, 0.34, 0.34, 0, 0.8, 3.55);
-    part(root, SG, glassM, 0.13, 0.13, 0.13, 0, 0.8, 3.85);
-    const cannonG = new THREE.Group(); cannonG.position.set(0, 0.68, 3.45); root.add(cannonG);
-    part(cannonG, BG, darkM, 0.18, 0.2, 0.55, 0, 0, 0.15); part(cannonG, CG, darkM, 0.05, 1.15, 0.05, 0, 0, 0.85, Math.PI / 2, 0, 0);
-    // wire cutters (above the nose, under the belly)
-    part(root, BG, darkM, 0.06, 0.55, 0.3, 0, 3.12, 2.35, 0.35, 0, 0);
-    part(root, BG, darkM, 0.06, 0.45, 0.26, 0, 0.6, 1.6, -0.4, 0, 0);
-    // stub wing: rocket pods inboard (muzzle ring merged into one geometry), missile rails outboard
-    part(root, BG, olive, 4.9, 0.16, 1.15, 0, 2.05, 0.35);
-    const tubeG = new THREE.CylinderGeometry(0.08, 0.08, 0.16, 8); const mz = [];
-    [[0, 0], [0.19, 0], [-0.19, 0], [0.095, 0.165], [-0.095, 0.165], [0.095, -0.165], [-0.095, -0.165]].forEach(([ox, oy]) => { const g2 = tubeG.clone(); g2.rotateX(Math.PI / 2); g2.translate(ox, oy, 0); mz.push(g2); });
-    const muzzleG = mergeGeometries(mz);
-    [-1, 1].forEach(s => { part(root, CG, oliveD, 0.35, 2.0, 0.35, s * 1.55, 1.78, 0.4, Math.PI / 2, 0, 0); const mzM = new THREE.Mesh(muzzleG, darkM); mzM.position.set(s * 1.55, 1.78, 1.42); mzM.castShadow = true; root.add(mzM);
-      part(root, BG, darkM, 0.12, 0.14, 1.7, s * 2.32, 1.92, 0.35); part(root, CG, misM, 0.095, 1.7, 0.095, s * 2.32, 1.7, 0.35, Math.PI / 2, 0, 0); part(root, KG, misM, 0.095, 0.38, 0.095, s * 2.32, 1.7, 1.39, Math.PI / 2, 0, 0); part(root, BG, misM, 0.36, 0.03, 0.3, s * 2.32, 1.7, -0.42); });
-    // tail: tapered 6-sided boom, fin, stabilator, 4-blade tail rotor (two crossed pairs) on the port side
-    const boomG = new THREE.CylinderGeometry(0.52, 0.30, 5.2, 6); boomG.rotateX(Math.PI / 2); const boomM = new THREE.Mesh(boomG, olive); boomM.position.set(0, 2.1, -4.35); boomM.castShadow = boomM.receiveShadow = true; root.add(boomM);
-    part(root, BG, olive, 0.16, 1.6, 1.0, 0, 2.9, -6.7);
-    part(root, BG, olive, 2.3, 0.1, 0.65, 0, 1.8, -6.5);
-    const tailG = new THREE.Group(); tailG.position.set(-0.16, 2.95, -6.7); root.add(tailG);
-    part(tailG, CG, darkM, 0.09, 0.22, 0.09, 0, 0, 0, 0, 0, Math.PI / 2);
-    part(tailG, BG, darkM, 0.04, 1.5, 0.18, 0, 0, 0); part(tailG, BG, darkM, 0.04, 0.18, 1.5, 0, 0, 0);
-    // main rotor: mast + swashplate + hub fairing; 4 blades on coning pivots (droop at rest, cone up at speed), yellow tips
-    part(root, CG, darkM, 0.13, 0.55, 0.13, 0, 3.35, 0.2);
-    part(root, CG, darkM, 0.3, 0.12, 0.3, 0, 3.5, 0.2);
-    const rotorG = new THREE.Group(); rotorG.position.set(0, 3.66, 0.2); root.add(rotorG);
-    part(rotorG, SG, oliveD, 0.5, 0.26, 0.5, 0, 0, 0);
-    const cones = [];
-    for (let k = 0; k < 4; k++) { const yg = new THREE.Group(); yg.rotation.y = k * Math.PI / 2; rotorG.add(yg); const cg2 = new THREE.Group(); yg.add(cg2); cones.push(cg2);
-      part(cg2, BG, darkM, 5.9, 0.045, 0.40, 3.15, 0, 0); part(cg2, BG, yelM, 0.55, 0.05, 0.41, 5.9, 0, 0); }
-    HL.root = root; HL.rotor = rotorG; HL.cones = cones; HL.tailR = tailG; HL.cannon = cannonG; scene.add(root);
+  const APACHE_B64 = window.__APB.join('');
+  { // ---- decode + load the embedded GLB (async; heliPose/crashH guard on HL.root) ----
+    const _bin = atob(APACHE_B64), _buf = new Uint8Array(_bin.length);
+    for (let i = 0; i < _bin.length; i++) _buf[i] = _bin.charCodeAt(i);
+    new GLTFLoader().parse(_buf.buffer, '', (g) => {
+      const inner = g.scene, root = new THREE.Group();
+      root.name = 'apache'; root.rotation.order = 'YXZ'; root.add(inner);
+      inner.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      const cones = [];
+      for (let k = 0; k < 4; k++) { const c = inner.getObjectByName('cone_' + k); if (c) cones.push(c); }
+      HL.root = root; HL.rotor = inner.getObjectByName('rotor_main'); HL.cones = cones;
+      HL.tailR = inner.getObjectByName('rotor_tail'); HL.cannon = inner.getObjectByName('cannon');
+      scene.add(root); heliPose(0);
+    }, (e) => console.warn('apache GLB load failed', e));
   }
   function colOnH() { const h = HL; const s = Math.abs(Math.sin(h.yaw)), c = Math.abs(Math.cos(h.yaw)); const hx = s * 5.6 + c * 1.8, hz = c * 5.6 + s * 1.8; if (!h.col) h.col = [0, 0, 0, 0, 0, 0, 'b']; const b = h.col; b[0] = h.x - hx; b[1] = h.x + hx; b[2] = h.z - hz; b[3] = h.z + hz; b[4] = h.y; b[5] = h.y + 3.4; GXW.addCol(b); }
   function colOffH() { const b = HL.col; if (b) b[0] = b[1] = b[2] = b[3] = -1e7; }
@@ -4740,12 +4722,12 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     h.rotT = (h.rotT + h.rpm * 80 * dt) % 6.2832; h.tailR.rotation.x = h.rotT;
     if (h.cannon) h.cannon.rotation.x = h.elevS * 0.10; }
   HL.ok = () => !HL.dead;
-  HL.enter = () => { HL.eng.start(); F.camYaw = HL.yaw; F.camPitch = 0.16; camInit = false; colOffH(); hint('heli'); G.popup('🚁 阿帕奇：旋翼加速中，▲ 升空', '#ffd54a'); if (G.WANT.stars < 2 && Math.hypot(HL.x - HL.home[0], HL.z - HL.home[1]) < 60) G.setStars(2, '偷开武装直升机！'); }; // camYaw astern + camInit=false: the camera snaps straight onto the camWant framing instead of lerping in from the on-foot position
+  HL.enter = () => { HL.eng.start(); F.camYaw = HL.yaw + Math.PI / 2; F.camPitch = 0.16; camInit = false; colOffH(); hint('heli'); G.popup('🚁 阿帕奇：旋翼加速中，▲ 升空', '#ffd54a'); if (G.WANT.stars < 2 && Math.hypot(HL.x - HL.home[0], HL.z - HL.home[1]) < 60) G.setStars(2, '偷开武装直升机！'); }; // camYaw astern + camInit=false: the camera snaps straight onto the camWant framing instead of lerping in from the on-foot position
   HL.exit = (force) => { const h = HL; const sx = Math.cos(h.yaw), sz = -Math.sin(h.yaw);
     if (!h.dead && !force && (!h.ground || Math.abs(h.vf) > 2 || Math.abs(h.vy) > 1)) { G.popup(h.ground ? '先停稳' : '空中不能跳机！先降落', '#ffb34a'); return null; }
     h.vf = 0; h.vy = 0; h.eng.set(0, false); if (!h.dead) colOnH(); return [h.x - sx * 3.4, h.z - sz * 3.4, h.y, h.yaw]; };
   HL.camTgt = (o) => o.set(HL.x, HL.y + 2.4, HL.z);
-  HL.camWant = (tg, w) => { const a = F.camYaw, ph = clamp(F.camPitch, 0.06, 0.6), d = 20; return w.set(tg.x - Math.sin(a) * Math.cos(ph) * d, tg.y + 1.0 + Math.sin(ph) * d, tg.z - Math.cos(a) * Math.cos(ph) * d); }; // 20 m orbit: ~19.7 m astern and ~6.6 m up at the default pitch — the whole airframe and the full rotor disc fit the frame
+  HL.camWant = (tg, w) => { const a = HL.yaw, ph = clamp(F.camPitch, 0.06, 0.6), d = 20; return w.set(tg.x - Math.sin(a) * Math.cos(ph) * d, tg.y + 1.0 + Math.sin(ph) * d, tg.z - Math.cos(a) * Math.cos(ph) * d); }; // heading-locked (a = HL.yaw, same recipe as the fixed-wing camWant): camera sits dead astern, ~19.7 m back and ~6.6 m up at the default pitch — the whole airframe and the full rotor disc fit the frame
   HL.tick = (dt) => { const h = HL; if (h.dead) { st.v = 0; return; }
     // camera guards (heli only): the free-orbit radius (drag / pinch / wheel all write orb.dist, whose
     // bike-sized default of 3.2 m is inside the fuselage) and the smoothed camera position itself may
@@ -4786,7 +4768,7 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     hud.innerHTML = `🚁 阿帕奇 <b>${Math.round(Math.abs(h.vf) * 3.6)}</b> km/h · 高度 <b>${Math.round(Math.max(0, h.y - gy))}</b> m · 旋翼 <b>${Math.round(h.rpm * 100)}</b>%${!h.ground && h.vy < -5 ? ' · <span class="w">下降太快！</span>' : ''}${h.rpm < 0.85 ? ' · 旋翼加速中…' : ''}<br><small>▲ 升 ▼ 降 · 松开自动悬停 · 俯冲 前飞 · 拉起 减速/后退 · ◀▶ 转向</small>`; };
   function heliFrame(dt) { const h = HL; const inH = FOOT.on && FOOT.mode === 'veh' && F.vo === h;
     if (inH) return; // HL.tick drives her
-    if (h.dead) { if (F.vo !== h && tGlobal - h.crashT > 8) { h.dead = 0; h.why = null; h.x = h.home[0]; h.z = h.home[1]; h.yaw = h.home[2]; h.y = GXW.gy(h.x, h.z, 5); h.vf = h.vy = 0; h.att = h.rollV = 0; h.ground = true; h.rpm = 0; h.root.visible = true; colOnH(); heliPose(0); } return; }
+    if (h.dead) { if (F.vo !== h && tGlobal - h.crashT > 8) { h.dead = 0; h.why = null; h.x = h.home[0]; h.z = h.home[1]; h.yaw = h.home[2]; h.y = GXW.gy(h.x, h.z, 5); h.vf = h.vy = 0; h.att = h.rollV = 0; h.ground = true; h.rpm = 0; if (h.root) h.root.visible = true; colOnH(); heliPose(0); } return; }
     if (h.rpm > 0) h.rpm = Math.max(0, h.rpm - dt / 3); // spool-down after you climb out
     if (Math.hypot(h.x - st.pos.x, h.z - st.pos.z) < 300) heliPose(dt); }
   colOnH(); FOOT.VEH.push(HL); heliPose(0);
