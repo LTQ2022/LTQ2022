@@ -6,4 +6,5 @@ ferris-wheel, basketball-court, basketball-hoop, noodle-shop, izakaya-front, str
 checkout-counter, coffee-bar-counter, takeaway-coffee-cup, stainless-stock-pot, four-seat-restaurant-table, restaurant-chair,
 low-plastic-stool, red-paper-lantern-string, large-red-paper-lantern, karaoke-building, drink-vending-machine-red.
 apache helicopter (embedded as base64 GLB in moto/index.html and moto/play.html): "Boeing AH-64D Apache Combat Helicopter" by Muhamad Mirza Arrafi (Sketchfab, https://sketchfab.com/3d-models/c3b58008c46b45048fdd7dd283a3c8c8) – CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/).
-speedboat (embedded as base64 GLB in gx/emb/bt1.js): original model built procedurally for this game (Blender, hull loft + center console + twin outboards) — no third-party assets, no license restrictions.
+speedboat (embedded as base64 GLB in gx/emb/bt1.js): "Speedboat" by vinish.dev (https://vinish.dev/free-3d-models/boats) — CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/); rescaled to 7.0m, waterline re-based, materials re-tuned in Blender.
+coast textures (embedded as base64 JPEG in gx/emb/wn1.js, sd1.js, sd2.js, sw1.js, wd1.js): waternormals.jpg from the three.js project (MIT License); sand/wood PBR textures "aerial_beach_01", "damp_beach_sand" and "wood_floor_deck" from Poly Haven (https://polyhaven.com) — CC0 1.0 (public domain).
