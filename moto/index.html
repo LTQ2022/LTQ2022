@@ -66,6 +66,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <script src="gx/emb/mm1.js"></script>
 <script src="gx/emb/mm2.js"></script>
 <script src="gx/emb/bt1.js"></script>
+<script src="gx/emb/ws1.js"></script>
+<script src="gx/emb/ws2.js"></script>
 <script src="gx/emb/wn1.js"></script>
 <script src="gx/emb/sd1.js"></script>
 <script src="gx/emb/sd2.js"></script>
@@ -1273,7 +1275,7 @@ if (M.gx) {
     const SEA_LVL = -0.35;
     const smC = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
     const shoreOff = (z) => 11 * Math.sin(z * 0.0105 + 0.8) + 6 * Math.sin(z * 0.027 + 2.1); // waterline wanders +-17m along z: no ruler-straight shore (GLSL profY in the shore layer mirrors this exactly)
-    const coastY = (x, z) => { const xx = x - shoreOff(z); let y = 0.35 * smC(1740, 1820, xx); y += (0.72 - y) * smC(1820, 1852, xx); y += (0.25 - y) * smC(1852, 1871, xx); y += (-0.35 - y) * smC(1871, 1880, xx); y += (-1.5 - y) * smC(1880, 1900, xx); y += (-2.6 - y) * smC(1900, 1980, xx); y += (-4.3 - y) * smC(1980, 2150, xx); const dx = x - 2680, dz = z - 260, d2 = dx * dx + dz * dz; if (d2 < 32400) y += 6.9 * Math.exp(-d2 / 18050); return y; };
+    const coastY = (x, z) => { const xx = x - shoreOff(z); let y = 0.35 * smC(1740, 1820, xx); y += (0.72 - y) * smC(1820, 1852, xx); y += (0.25 - y) * smC(1852, 1871, xx); y += (-0.35 - y) * smC(1871, 1880, xx); y += (-1.5 - y) * smC(1880, 1900, xx); y += (-2.6 - y) * smC(1900, 1980, xx); y += (-4.3 - y) * smC(1980, 2150, xx); const dxI = x - 2680, dzI = z - 260; y += (-9.6 - y) * smC(2350, 3050, xx) * smC(170, 430, Math.sqrt(dxI * dxI + dzI * dzI)); const dx = x - 2680, dz = z - 260, d2 = dx * dx + dz * dz; if (d2 < 32400) y += 6.9 * Math.exp(-d2 / 18050); return y; };
     groundY = coastY;
     const embTex = (arr, srgb) => { const t = texLoader.load('data:image/jpeg;base64,' + arr.join(''), x => { x.wrapS = x.wrapT = THREE.RepeatWrapping; }); const phC = document.createElement('canvas'); phC.width = phC.height = 4; t.image = phC; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
     coastTex = { waterN: embTex(window.__WNA, false), sandDry: embTex(window.__SDA, true), sandWet: embTex(window.__SWA, true), sandNor: embTex(window.__SDN, false), wood: embTex(window.__WDA, true) };
@@ -1310,6 +1312,13 @@ if (M.gx) {
     { // the sea: Water component for the open bay only (starts where it is ~1.4m deep); shallows are the layer below
       const wtr = new Water(new THREE.PlaneGeometry(1620, 3400), { textureWidth: mob ? 256 : 512, textureHeight: mob ? 256 : 512, waterNormals: coastTex.waterN, sunDirection: sunDir.clone(), sunColor: 0xffffff, waterColor: 0x0a3644, distortionScale: 2.4, fog: true });
       wtr.rotation.x = -Math.PI / 2; wtr.position.set(2705, SEA_LVL, 0); wtr.material.uniforms.size.value = 1.6; scene.add(wtr);
+      { // v4 sea: dual-layer normals (broad swell over wind chop), one coherent drift direction, tight sun glitter + soft sheen
+        const fs4 = wtr.material.fragmentShader
+          .replace('vec2 uv0 = ( uv / 103.0 ) + vec2(time / 17.0, time / 29.0);', 'vec2 uv0 = ( uv / 103.0 ) + vec2(time / 23.0, time / 61.0);')
+          .replace('vec2 uv1 = uv / 107.0-vec2( time / -19.0, time / 31.0 );', 'vec2 uv1 = uv / 107.0 + vec2( time / 19.0, time / 47.0 );')
+          .replace('return noise * 0.5 - 1.0;', 'vec2 uvS = uv / 887.0 + vec2( time / 131.0, time / 197.0 ); vec4 swell = texture2D( normalSampler, uvS ); return ( noise + swell * 1.7 ) * 0.35 - 1.0;')
+          .replace('sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight );', 'sunLight( surfaceNormal, eyeDirection, 260.0, 1.35, 0.5, diffuseLight, specularLight ); sunLight( surfaceNormal, eyeDirection, 24.0, 0.35, 0.0, diffuseLight, specularLight );');
+        if (fs4 !== wtr.material.fragmentShader) { wtr.material.fragmentShader = fs4; wtr.material.needsUpdate = true; } }
       worldTick.push((dt) => { wtr.material.uniforms.time.value += dt * 0.55; coastU.value += dt; }); }
     { // near-shore layer: depth-tinted shallows (sand shows through) + breathing foam line, from the same profile as coastY
       const shoreMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: true,
@@ -1320,10 +1329,11 @@ if (M.gx) {
 uniform float uTime; varying vec3 vWp;
 float vhash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(vhash(i), vhash(i + vec2(1, 0)), f.x), mix(vhash(i + vec2(0, 1)), vhash(i + vec2(1, 1)), f.x), f.y); }
-float profY(vec2 p){ float x = p.x - (11.0 * sin(p.y * 0.0105 + 0.8) + 6.0 * sin(p.y * 0.027 + 2.1)); float y = 0.35 * smoothstep(1740.0, 1820.0, x); y = mix(y, 0.72, smoothstep(1820.0, 1852.0, x)); y = mix(y, 0.25, smoothstep(1852.0, 1871.0, x)); y = mix(y, -0.35, smoothstep(1871.0, 1880.0, x)); y = mix(y, -1.5, smoothstep(1880.0, 1900.0, x)); y = mix(y, -2.6, smoothstep(1900.0, 1980.0, x)); y = mix(y, -4.3, smoothstep(1980.0, 2150.0, x)); vec2 d = p - vec2(2680.0, 260.0); float d2 = dot(d, d); if (d2 < 32400.0) y += 6.9 * exp(-d2 / 18050.0); return y; }
+float profY(vec2 p){ float x = p.x - (11.0 * sin(p.y * 0.0105 + 0.8) + 6.0 * sin(p.y * 0.027 + 2.1)); float y = 0.35 * smoothstep(1740.0, 1820.0, x); y = mix(y, 0.72, smoothstep(1820.0, 1852.0, x)); y = mix(y, 0.25, smoothstep(1852.0, 1871.0, x)); y = mix(y, -0.35, smoothstep(1871.0, 1880.0, x)); y = mix(y, -1.5, smoothstep(1880.0, 1900.0, x)); y = mix(y, -2.6, smoothstep(1900.0, 1980.0, x)); y = mix(y, -4.3, smoothstep(1980.0, 2150.0, x)); y = mix(y, -9.6, smoothstep(2350.0, 3050.0, x) * smoothstep(170.0, 430.0, distance(p, vec2(2680.0, 260.0)))); vec2 d = p - vec2(2680.0, 260.0); float d2 = dot(d, d); if (d2 < 32400.0) y += 6.9 * exp(-d2 / 18050.0); return y; }
 void main(){ float depth = -0.35 - profY(vWp.xz); if (depth < -0.60) discard; float t = uTime;
   vec2 p = vWp.xz;
   vec3 col = vec3(0.150, 0.330, 0.300);
+  col = mix(vec3(0.235, 0.375, 0.315), col, smoothstep(0.02, 0.30, depth));
   col = mix(col, vec3(0.045, 0.235, 0.245), smoothstep(0.05, 0.7, depth));
   col = mix(col, vec3(0.014, 0.140, 0.168), smoothstep(0.7, 1.8, depth));
   col = mix(col, vec3(0.004, 0.058, 0.082), smoothstep(1.8, 3.4, depth));
@@ -1341,6 +1351,9 @@ void main(){ float depth = -0.35 - profY(vWp.xz); if (depth < -0.60) discard; fl
   float band = 1.0 - smoothstep(0.015, 0.15, abs(depth - surge));
   float lace = vnoise(p * 9.0 + vec2(t * 0.05, 0.0)) * 0.55 + vnoise(p * 23.0 - vec2(0.0, t * 0.04)) * 0.45;
   float foam = smoothstep(0.50, 0.74, lace) * band;
+  float band2 = (1.0 - smoothstep(0.02, 0.20, abs(depth - 0.34 - surge * 0.6))) * 0.55;
+  foam += smoothstep(0.55, 0.80, lace) * band2;
+  foam += smoothstep(0.62, 0.92, vnoise(vec2(p.x * 1.4, p.y * 9.0) + vec2(t * 0.03, 0.0))) * smoothstep(0.85, 0.25, depth) * 0.35;
   float fleck = smoothstep(0.82, 0.96, vnoise(p * 17.0 + vec2(t * 0.09, 0.0))) * smoothstep(1.1, 0.3, depth) * 0.16;
   col = mix(col, vec3(0.88, 0.93, 0.90), clamp(foam + fleck, 0.0, 1.0));
   alpha = max(alpha, foam * 0.95);
@@ -3296,11 +3309,20 @@ function audioTick(dt, sp, thr, braking) {
 // plus exhaust noise (bandpass for petrol, lowpass rumble for diesel). Profiles differ in fundamental
 // range, filter, firing multiplier and level, so a bus sounds nothing like a sedan.
 const CARP = {
-  car:    { f0: 52, f1: 195, lp0: 650, lp1: 2800, fire: 2, am: 0.22, sub: 0.50, nType: 'bandpass', n0: 480, n1: 1500, nG: 0.30, vol: 0.15, vLoad: 0.20 },
-  van:    { f0: 47, f1: 168, lp0: 560, lp1: 2300, fire: 2, am: 0.24, sub: 0.55, nType: 'bandpass', n0: 420, n1: 1250, nG: 0.32, vol: 0.16, vLoad: 0.20 },
-  diesel: { f0: 40, f1: 118, lp0: 420, lp1: 1500, fire: 3, am: 0.34, sub: 0.60, nType: 'lowpass',  n0: 240, n1: 640,  nG: 0.55, vol: 0.17, vLoad: 0.21 },
-  ifv:    { f0: 36, f1: 102, lp0: 380, lp1: 1250, fire: 3, am: 0.38, sub: 0.65, nType: 'lowpass',  n0: 200, n1: 540,  nG: 0.65, vol: 0.19, vLoad: 0.22 },
+  car:    { f0: 52, f1: 195, lp0: 650, lp1: 2800, fire: 2, am: 0.22, sub: 0.50, nType: 'bandpass', n0: 480, n1: 1500, nG: 0.40, vol: 0.15, vLoad: 0.20 },
+  van:    { f0: 47, f1: 168, lp0: 560, lp1: 2300, fire: 2, am: 0.24, sub: 0.55, nType: 'bandpass', n0: 420, n1: 1250, nG: 0.42, vol: 0.16, vLoad: 0.20 },
+  diesel: { f0: 40, f1: 118, lp0: 420, lp1: 1500, fire: 3, am: 0.34, sub: 0.60, nType: 'lowpass',  n0: 240, n1: 640,  nG: 0.68, vol: 0.17, vLoad: 0.21, clat: 1500 },
+  ifv:    { f0: 36, f1: 102, lp0: 380, lp1: 1250, fire: 3, am: 0.38, sub: 0.65, nType: 'lowpass',  n0: 200, n1: 540,  nG: 0.78, vol: 0.19, vLoad: 0.22, clat: 1300 },
 };
+// ---- shared engine-synth helpers (round 2: towards a real internal-combustion sound) ----
+// Pulse-shaped AM: a sine LFO through this curve becomes a train of exhaust pulses (one dip per
+// firing) instead of a sinusoidal tremolo - the strongest single 'putt-putt' cue a synth can fake.
+const PULSE_CURVE = (() => { const c = new Float32Array(1025); for (let i = 0; i < 1025; i++) { const s = (i / 1024) * 2 - 1; c[i] = Math.pow(0.5 + 0.5 * s, 3); } return c; })();
+function pulseAM(lfo, depth) { const sh = AC.createWaveShaper(); sh.curve = PULSE_CURVE; const g = AC.createGain(); g.gain.value = -depth; lfo.connect(sh); sh.connect(g); return g; } // connect the returned gain to an AudioParam; depth stays live via g.gain
+// Idle wander: two slow detuned sine LFOs summed onto .detune (cents) - a real engine never holds
+// an exact rpm at idle; +-20-35 cents of slow random-walk pitch drift kills the 'electronic organ' feel.
+function wander(osc, cents, f1, f2) { const a = AC.createOscillator(); a.frequency.value = f1 || 0.11; const ag = AC.createGain(); ag.gain.value = cents * 0.62; a.connect(ag); ag.connect(osc.detune); const b = AC.createOscillator(); b.frequency.value = f2 || 0.043; const bg = AC.createGain(); bg.gain.value = cents * 0.38; b.connect(bg); bg.connect(osc.detune); a.start(); b.start(); }
+function noiseSrc() { const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; return n; }
 AU.veh = {}; AU.vehCur = null;
 function carEng(profile) {
   if (AU.veh[profile]) return AU.veh[profile];
@@ -3308,22 +3330,31 @@ function carEng(profile) {
   E.start = () => { if (!AC || !master || E.g) return;
     const g = AC.createGain(); g.gain.value = 0; g.connect(master);
     const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = P.lp0; lp.connect(g);
-    const am = AC.createGain(); am.gain.value = 1 - P.am; am.connect(lp);
+    const am = AC.createGain(); am.gain.value = 1; am.connect(lp);
     const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = P.f0; o.connect(am);
     const o2 = AC.createOscillator(); o2.type = 'square'; o2.frequency.value = P.f0; o2.detune.value = 9; const og2 = AC.createGain(); og2.gain.value = 0.35; o2.connect(og2); og2.connect(am);
     const os = AC.createOscillator(); os.type = 'sine'; os.frequency.value = P.f0 / 2; const osg = AC.createGain(); osg.gain.value = P.sub; os.connect(osg); osg.connect(am);
-    const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = P.f0 * P.fire; const lg = AC.createGain(); lg.gain.value = P.am; lfo.connect(lg); lg.connect(am.gain);
-    const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1;
-    const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = P.nType; nf.frequency.value = P.n0; if (P.nType === 'bandpass') nf.Q.value = 0.7;
-    const ng = AC.createGain(); ng.gain.value = P.nG; n.connect(nf); nf.connect(ng); ng.connect(g);
+    const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = P.f0 * P.fire;
+    const amD = pulseAM(lfo, P.am); amD.connect(am.gain); // exhaust pulses, not tremolo
+    wander(o, 26); wander(o2, 26); wander(lfo, 26);
+    const n = noiseSrc(); const nf = AC.createBiquadFilter(); nf.type = P.nType; nf.frequency.value = P.n0; if (P.nType === 'bandpass') nf.Q.value = 0.5;
+    const ng = AC.createGain(); ng.gain.value = P.nG * 0.5; n.connect(nf); nf.connect(ng); ng.connect(g);
+    let cg = null;
+    if (P.clat) { // diesel knock: band noise at ~1.3-1.5 kHz chopped at the firing rate (loudest at idle, the classic clatter)
+      const cn = noiseSrc(); const cf = AC.createBiquadFilter(); cf.type = 'bandpass'; cf.frequency.value = P.clat; cf.Q.value = 0.9;
+      const cgain = AC.createGain(); cgain.gain.value = 0.55; const cd = pulseAM(lfo, 0.45); cd.connect(cgain.gain);
+      cg = AC.createGain(); cg.gain.value = P.nG * 0.5; cn.connect(cf); cf.connect(cgain); cgain.connect(cg); cg.connect(g); cn.start(); }
     o.start(); o2.start(); os.start(); lfo.start(); n.start();
-    Object.assign(E, { g, o, o2, os, lp, nf, lfo }); };
+    Object.assign(E, { g, o, o2, os, lp, nf, ng, lfo, amD, cg }); };
   E.set = (load, on) => { if (!E.g) return; const t = AC.currentTime, f = P.f0 + (P.f1 - P.f0) * load;
     E.g.gain.setTargetAtTime(on ? P.vol + P.vLoad * load : 0, t, 0.12);
     E.o.frequency.setTargetAtTime(f, t, 0.1); E.o2.frequency.setTargetAtTime(f, t, 0.1); E.os.frequency.setTargetAtTime(f / 2, t, 0.1);
     E.lfo.frequency.setTargetAtTime(f * P.fire, t, 0.1);
     E.lp.frequency.setTargetAtTime(P.lp0 + (P.lp1 - P.lp0) * load, t, 0.12);
-    E.nf.frequency.setTargetAtTime(P.n0 + (P.n1 - P.n0) * load, t, 0.12); };
+    E.nf.frequency.setTargetAtTime(P.n0 + (P.n1 - P.n0) * load, t, 0.12);
+    E.ng.gain.setTargetAtTime(P.nG * (0.5 + 1.1 * load), t, 0.15); // exhaust noise works harder under load, not just pitch
+    E.amD.gain.setTargetAtTime(-(P.am * (0.8 + 0.45 * load)), t, 0.15);
+    if (E.cg) E.cg.gain.setTargetAtTime(P.nG * (0.5 + 0.35 * load), t, 0.15); };
   AU.veh[profile] = E; return E;
 }
 function carSndProfile(c) { const k = (c && (c.cls || c.kind)) || 'car'; return k === 'ifv' ? 'ifv' : (k === 'bus' || k === 'truck') ? 'diesel' : k === 'van' ? 'van' : 'car'; }
@@ -4465,6 +4496,56 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
     P.mixer.timeScale = F.swim ? (F.spd > 0.3 ? 1.35 : 0.7) : an === 'walk' ? clamp(F.spd / 1.3, 0.55, 1.5) : an === 'run' ? clamp(F.spd / 2.5, 0.9, 1.9) : 1;
     P.mixer.update(F.air ? dt * 0.25 : dt);
     P.g.position.set(F.x, F.y, F.z); P.g.rotation.set(0, F.head, 0);
+    // idle stance: the borrowed soldier clips land on this skeleton with the arm chain swung up
+    // (left hand up in front of the face, right hand behind the back — a scarecrow, not a stance).
+    // While idling on dry land, ease both arm chains onto a relaxed hang by aiming each segment in
+    // character space: upper arms straight down with a slight outward tilt, forearms down with a
+    // gentle forward bend. Blended by F.armW so walk / run / swim keep the raw clips untouched.
+    const idleArm = P.cur === 'idle' && !F.swim && (F.swimP || 0) < 0.05 && F.dead <= 0 && F.down <= 0 && !F.air;
+    F.armW = (F.armW || 0) + clamp((idleArm ? 1 : 0) - (F.armW || 0), -dt * 3.5, dt * 3.5);
+    if (F.armW > 0.003 && P.B.LeftArm && P.B.RightArm) { const w = F.armW * 0.92, B = P.B;
+      if (!P._aim) P._aim = { q1: new THREE.Quaternion(), q2: new THREE.Quaternion(), q3: new THREE.Quaternion(), q4: new THREE.Quaternion(), v1: new THREE.Vector3(), v2: new THREE.Vector3() };
+      const A = P._aim, gi = P.g.getWorldQuaternion(A.q3).invert().clone();
+      const aimSeg = (bone, child, dx, dy, dz) => { if (!bone || !child) return;
+        const rel = gi.clone().multiply(bone.getWorldQuaternion(A.q1)); // bone orientation in character space
+        const cur = A.v1.copy(child.position).normalize().applyQuaternion(rel); // current segment direction
+        const nrel = A.q2.setFromUnitVectors(cur, A.v2.set(dx, dy, dz).normalize()).multiply(rel);
+        const prel = gi.clone().multiply(bone.parent.getWorldQuaternion(A.q1));
+        bone.quaternion.slerp(prel.invert().multiply(nrel), w); };
+      aimSeg(B.LeftArm, B.LeftForeArm, 0.14, -0.99, 0.03); aimSeg(B.LeftForeArm, B.LeftHand, 0.06, -0.974, 0.225);
+      aimSeg(B.RightArm, B.RightForeArm, -0.14, -0.99, 0.03); aimSeg(B.RightForeArm, B.RightHand, -0.06, -0.974, 0.225); }
+    // walk / run arm swing: the borrowed clips land on this skeleton with the arm chains' swing
+    // rolled out of the sagittal plane (left arm pinned forward, right arm pinned back, the swing
+    // itself bobbing vertically — a scarecrow, not a gait). A constant per-side rotation per gait,
+    // fitted offline from measured swing cones (moto_tests/fit_armfix.py), rotates each arm
+    // segment's direction back into the sagittal plane in character space; the clip's own phase
+    // and amplitude are untouched. F.armFixW gates it to walk / run (idle keeps the hang override
+    // above; swim / ride untouched) and F.armRunW blends between the walk and run fits.
+    const fixArm = (P.cur === 'walk' || P.cur === 'run') && !F.swim && (F.swimP || 0) < 0.05 && F.dead <= 0 && F.down <= 0;
+    F.armFixW = (F.armFixW || 0) + clamp((fixArm ? 1 : 0) - (F.armFixW || 0), -dt * 4, dt * 4);
+    F.armRunW = (F.armRunW || 0) + clamp((P.cur === 'run' ? 1 : 0) - (F.armRunW || 0), -dt * 7, dt * 7);
+    if (F.armFixW > 0.003 && P.B.LeftArm && P.B.RightArm) { const B = P.B;
+      if (!P._fix) P._fix = { qwL: new THREE.Quaternion(0.17891, -0.67991, 0.71023, -0.036), qrL: new THREE.Quaternion(-0.39316, 0.7989, -0.40559, -0.2066), qwR: new THREE.Quaternion(0.37513, 0.66628, 0.6363, -0.10232), qrR: new THREE.Quaternion(0.45484, 0.68018, 0.57439, -0.02364), qc: new THREE.Quaternion(), qa: new THREE.Quaternion(), qb: new THREE.Quaternion(), du: new THREE.Vector3(), df: new THREE.Vector3(), tu: new THREE.Vector3(), tf: new THREE.Vector3(), vc: new THREE.Vector3() };
+      const A = P._fix, gi2 = P.g.getWorldQuaternion(A.qa).invert().clone(), w2 = F.armFixW;
+      const segDir = (bone, child, out) => { const rel = gi2.clone().multiply(bone.getWorldQuaternion(A.qb)); return out.copy(child.position).normalize().applyQuaternion(rel); };
+      const aimTo = (bone, child, tgt) => { if (!bone || !child) return;
+        const rel = gi2.clone().multiply(bone.getWorldQuaternion(A.qa));
+        const cur = A.vc.copy(child.position).normalize().applyQuaternion(rel);
+        const nrel = A.qb.setFromUnitVectors(cur, tgt).multiply(rel);
+        const prel = gi2.clone().multiply(bone.parent.getWorldQuaternion(A.qa));
+        bone.quaternion.slerp(prel.invert().multiply(nrel), w2); };
+      const fixSide = (arm, fore, hand, qw, qr) => { if (!arm || !fore || !hand) return;
+        A.qc.copy(qw).slerp(qr, F.armRunW);
+        segDir(arm, fore, A.du); segDir(fore, hand, A.df);
+        A.tu.copy(A.du).applyQuaternion(A.qc); A.tf.copy(A.df).applyQuaternion(A.qc);
+        // elbow deviation cap, from gait-lab data (elbow flex/ext ROM ~30deg walking; runners
+        // pump at 70-125deg, so the cap opens with armRunW): pull the forearm target toward the
+        // upper-arm direction only when the clip's flick exceeds the cap — phase/amplitude kept.
+        const capA = 0.56 + 1.71 * F.armRunW, cosA = Math.max(-1, Math.min(1, A.tu.dot(A.tf))), angA = Math.acos(cosA);
+        if (angA > capA) { const sA = Math.sin(angA); A.tf.multiplyScalar(Math.sin(capA) / sA).addScaledVector(A.tu, Math.sin(angA - capA) / sA).normalize(); }
+        aimTo(arm, fore, A.tu); aimTo(fore, hand, A.tf); };
+      fixSide(B.LeftArm, B.LeftForeArm, B.LeftHand, A.qwL, A.qrL);
+      fixSide(B.RightArm, B.RightForeArm, B.RightHand, A.qwR, A.qrR); }
     // swimming: prone on the surface, crawl arms + chin up (bones posed after the mixer, like the bike rider); a ripple ring marks the swimmer
     F.swimP = F.swimP === undefined ? 0 : F.swimP; F.swimP += ((F.swim ? 1 : 0) - F.swimP) * Math.min(1, dt * 5);
     if (!P.ripple) { const rg = new THREE.RingGeometry(0.55, 0.82, 28); rg.rotateX(-Math.PI / 2); P.ripple = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: 0, depthWrite: false })); P.ripple.visible = false; scene.add(P.ripple); }
@@ -4650,10 +4731,13 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false }); b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off); });
   // ---------- engine sounds (WebAudio through master) ----------
   function engine(kind) { const E = { g: null, profile: kind }; E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master); const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 38; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260;
-      // diesel putt-putt: the fundamental is chopped at the firing rate (6-cyl 4-stroke = 3 pulses per rev)
-      const am = AC.createGain(); am.gain.value = 0.72; const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 114; const lg = AC.createGain(); lg.gain.value = 0.28; lfo.connect(lg); lg.connect(am.gain); o.connect(f); f.connect(am); am.connect(g);
-      const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 180; const ng = AC.createGain(); ng.gain.value = 0.9; n.connect(nf); nf.connect(ng); ng.connect(g); o.start(); n.start(); lfo.start(); Object.assign(E, { g, o, f, nf, lfo }); };
-    E.set = (load, on) => { if (!E.g) return; const t = AC.currentTime; E.g.gain.setTargetAtTime(on ? 0.16 + 0.12 * load : 0, t, 0.15); E.o.frequency.setTargetAtTime(38 + 40 * load, t, 0.2); if (E.lfo) E.lfo.frequency.setTargetAtTime((38 + 40 * load) * 3, t, 0.2); E.nf.frequency.setTargetAtTime(140 + 260 * load, t, 0.2); }; return E; }
+      // diesel putt-putt: the fundamental is pulse-chopped at the firing rate (6-cyl 4-stroke = 3 pulses per rev)
+      const am = AC.createGain(); am.gain.value = 1; const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 114; const amD = pulseAM(lfo, 0.34); amD.connect(am.gain); o.connect(f); f.connect(am); am.connect(g);
+      wander(o, 34); wander(lfo, 34); // big diesel idles rough: +-0.4 Hz of slow hunt on the fundamental
+      const n = noiseSrc(); const nf = AC.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 180; const ng = AC.createGain(); ng.gain.value = 0.75; n.connect(nf); nf.connect(ng); ng.connect(g);
+      const cn = noiseSrc(); const cf = AC.createBiquadFilter(); cf.type = 'bandpass'; cf.frequency.value = 1400; cf.Q.value = 0.9; const cgain = AC.createGain(); cgain.gain.value = 0.5; const cd = pulseAM(lfo, 0.5); cd.connect(cgain.gain); const cng = AC.createGain(); cng.gain.value = 0.34; cn.connect(cf); cf.connect(cgain); cgain.connect(cng); cng.connect(g); // combustion knock
+      o.start(); n.start(); cn.start(); lfo.start(); Object.assign(E, { g, o, f, nf, ng, lfo, amD, cng }); };
+    E.set = (load, on) => { if (!E.g) return; const t = AC.currentTime; const fq = 38 + 40 * load; E.g.gain.setTargetAtTime(on ? 0.16 + 0.12 * load : 0, t, 0.15); E.o.frequency.setTargetAtTime(fq, t, 0.2); if (E.lfo) E.lfo.frequency.setTargetAtTime(fq * 3, t, 0.2); E.nf.frequency.setTargetAtTime(140 + 260 * load, t, 0.2); E.ng.gain.setTargetAtTime(0.75 + 0.5 * load, t, 0.2); E.amD.gain.setTargetAtTime(-(0.34 + 0.12 * load), t, 0.2); E.cng.gain.setTargetAtTime(0.34 * (1 - 0.35 * load), t, 0.2); }; return E; }
   const thud = (f = 80, d = 0.3, v = 0.5) => { if (!AC || !master) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(f * 2, t); o.frequency.exponentialRampToValueAtTime(f * 0.5, t + d); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + d); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02); };
   // ---------- explosion FX (pooled sprites) ----------
   const fx = []; for (let i = 0; i < 24; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0xffa040, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); s.userData.t = 0; scene.add(s); fx.push(s); } let fxI = 0;
@@ -4716,11 +4800,22 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
   const LBL = { jet: '✈️ 开战斗机', airliner: '✈️ 开客机', light: '🛩 开小飞机', transport: '✈️ 开运输机' };
   // ---------- engine sound per class: fundamental + broadband roar + turbine whine ----------
   function engine2(kind) { const E = { g: null, kind }; const P = { jet: [72, 175, 1700, 1000, 2700, 0.04], airliner: [34, 62, 340, 300, 3300, 0.06], light: [52, 118, 800, 650, 0, 0], transport: [40, 76, 480, 350, 1450, 0.035] }[kind];
-    E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master); const o = AC.createOscillator(); o.type = (kind === 'light' || kind === 'transport') ? 'square' : 'sawtooth'; o.frequency.value = P[0]; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = P[2]; o.connect(f); f.connect(g);
-      const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = kind === 'airliner' || kind === 'transport' ? 'lowpass' : 'bandpass'; nf.frequency.value = P[3]; const ng = AC.createGain(); ng.gain.value = kind === 'airliner' ? 1.1 : 0.6; n.connect(nf); nf.connect(ng); ng.connect(g);
+    E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master); const o = AC.createOscillator(); o.type = (kind === 'light' || kind === 'transport') ? 'square' : 'sawtooth'; o.frequency.value = P[0]; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = P[2];
+      let lfo = null, amD = null;
+      if (kind === 'light' || kind === 'transport') { // piston / turboprop: the prop blade-pass chops the exhaust note (2x crank for the piston, 3x for the turboprop)
+        const am = AC.createGain(); am.gain.value = 1; lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = P[0] * (kind === 'light' ? 2 : 3); amD = pulseAM(lfo, kind === 'light' ? 0.34 : 0.26); amD.connect(am.gain); o.connect(f); f.connect(am); am.connect(g); lfo.start(); wander(lfo, 22);
+      } else { o.connect(f); f.connect(g); }
+      wander(o, kind === 'light' ? 30 : 14);
+      const n = noiseSrc(); const nf = AC.createBiquadFilter(); nf.type = kind === 'airliner' || kind === 'transport' ? 'lowpass' : 'bandpass'; nf.frequency.value = P[3]; const ng = AC.createGain(); ng.gain.value = (kind === 'airliner' ? 1.1 : 0.6) * 0.6; n.connect(nf); nf.connect(ng); ng.connect(g);
+      let ff = null, fg = null;
+      if (kind === 'airliner') { // fan buzz: a band of noise that climbs with N1, on top of the core rumble
+        const fn = noiseSrc(); ff = AC.createBiquadFilter(); ff.type = 'bandpass'; ff.frequency.value = 900; ff.Q.value = 0.8; fg = AC.createGain(); fg.gain.value = 0; fn.connect(ff); ff.connect(fg); fg.connect(g); fn.start(); }
       let w = null, wg = null; if (P[4]) { w = AC.createOscillator(); w.type = 'sine'; w.frequency.value = P[4] * 0.5; wg = AC.createGain(); wg.gain.value = 0; w.connect(wg); wg.connect(g); w.start(); }
-      o.start(); n.start(); Object.assign(E, { g, o, f, nf, w, wg }); };
+      o.start(); n.start(); Object.assign(E, { g, o, f, nf, ng, w, wg, lfo, amD, ff, fg }); };
     E.set = (load, on) => { if (!E.g) return; const t = AC.currentTime; const big = kind === 'airliner' || kind === 'transport'; E.g.gain.setTargetAtTime(on ? (big ? 0.14 + 0.2 * load : 0.1 + 0.16 * load) : 0, t, big ? 0.6 : 0.15); E.o.frequency.setTargetAtTime(P[0] + (P[1] - P[0]) * load, t, big ? 0.9 : 0.2); E.nf.frequency.setTargetAtTime(P[3] * (0.7 + 1.6 * load), t, big ? 0.9 : 0.2);
+      E.ng.gain.setTargetAtTime((kind === 'airliner' ? 1.1 : 0.6) * (kind === 'jet' ? 0.55 + 1.15 * load : 0.6 + 0.7 * load), t, big ? 0.9 : 0.25); // jet roar / fan noise grows with thrust, not just pitch
+      if (E.lfo) E.lfo.frequency.setTargetAtTime((P[0] + (P[1] - P[0]) * load) * (kind === 'light' ? 2 : 3), t, 0.2);
+      if (E.ff) { E.ff.frequency.setTargetAtTime(900 + 1500 * load, t, 0.9); E.fg.gain.setTargetAtTime(on ? 0.22 * (0.4 + 0.9 * load) : 0, t, 0.6); }
       if (E.w) { E.w.frequency.setTargetAtTime(P[4] * (0.45 + 0.55 * load), t, big ? 1.2 : 0.3); E.wg.gain.setTargetAtTime(on ? P[5] * (0.4 + load) : 0, t, 0.5); } }; return E; }
   // ---------- per-model batches (far version) + one rigged model (near version) ----------
   const TYPES = {};
@@ -4864,29 +4959,38 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
   // ---------- speedboat: twin outboards - pulse fundamental with putt-putt AM, water noise grows with speed ----------
   function boatEng() { const E = { g: null, profile: 'boat' }; E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master);
       const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 800; lp.connect(g);
-      const am = AC.createGain(); am.gain.value = 0.78; am.connect(lp);
+      const am = AC.createGain(); am.gain.value = 1; am.connect(lp);
       const o = AC.createOscillator(); o.type = 'square'; o.frequency.value = 68; const og = AC.createGain(); og.gain.value = 0.8; o.connect(og); og.connect(am);
       const o2 = AC.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = 68; const og2 = AC.createGain(); og2.gain.value = 0.3; o2.connect(og2); og2.connect(am);
-      const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 136; const lg = AC.createGain(); lg.gain.value = 0.22; lfo.connect(lg); lg.connect(am.gain);
-      const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 500; const ng = AC.createGain(); ng.gain.value = 0.12; n.connect(nf); nf.connect(ng); ng.connect(g);
-      o.start(); o2.start(); lfo.start(); n.start(); Object.assign(E, { g, o, o2, lp, nf, ng, lfo }); };
+      const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 136; const amD = pulseAM(lfo, 0.3); amD.connect(am.gain);
+      wander(o, 34); wander(o2, 34); wander(lfo, 34); // outboards idle rough and hunt
+      const n = noiseSrc(); const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 750; nf.Q.value = 0.5; const ng = AC.createGain(); ng.gain.value = 0.1; n.connect(nf); nf.connect(ng); ng.connect(g); // splash / prop wash
+      const gn = noiseSrc(); const gf = AC.createBiquadFilter(); gf.type = 'lowpass'; gf.frequency.value = 150; const gg = AC.createGain(); gg.gain.value = 0.6; const gd = pulseAM(lfo, 0.5); gd.connect(gg.gain); const gng = AC.createGain(); gng.gain.value = 0.5; gn.connect(gf); gf.connect(gg); gg.connect(gng); gng.connect(g); // underwater exhaust gurgle, chopped at the firing rate
+      o.start(); o2.start(); lfo.start(); n.start(); gn.start(); Object.assign(E, { g, o, o2, lp, nf, ng, lfo, amD, gng }); };
     E.set = (load, on) => { if (!E.g) return; const t = AC.currentTime; const fq = 68 + 100 * load;
       E.g.gain.setTargetAtTime(on ? 0.13 + 0.17 * load : 0, t, 0.12);
       E.o.frequency.setTargetAtTime(fq, t, 0.1); E.o2.frequency.setTargetAtTime(fq, t, 0.1); E.lfo.frequency.setTargetAtTime(fq * 2, t, 0.1);
-      E.lp.frequency.setTargetAtTime(800 + 1600 * load, t, 0.12); E.nf.frequency.setTargetAtTime(500 + 1500 * load, t, 0.15); E.ng.gain.setTargetAtTime(0.12 + 0.55 * load, t, 0.15); }; return E; }
+      E.lp.frequency.setTargetAtTime(800 + 1600 * load, t, 0.12); E.nf.frequency.setTargetAtTime(750 + 1250 * load, t, 0.15); E.ng.gain.setTargetAtTime(0.1 + 0.62 * load, t, 0.15);
+      E.amD.gain.setTargetAtTime(-(0.3 + 0.1 * load), t, 0.15); E.gng.gain.setTargetAtTime(0.5 * (1 - 0.45 * load), t, 0.15); }; return E; }
   // ---------- Apache: blade chop (low thump + wash noise AM'd at the blade-pass rate) + turbine whine + drivetrain rumble ----------
   function rotorEng() { const E = { g: null, profile: 'heli' }; E.start = () => { if (!AC || !master || E.g) return; const g = AC.createGain(); g.gain.value = 0; g.connect(master);
       const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 5; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 170; const og = AC.createGain(); og.gain.value = 0.9; o.connect(f); f.connect(og); og.connect(g);
-      const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), a = nb.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; const n = AC.createBufferSource(); n.buffer = nb; n.loop = true; const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 420; nf.Q.value = 0.7; const am = AC.createGain(); am.gain.value = 0.55; const ng = AC.createGain(); ng.gain.value = 0.8; n.connect(nf); nf.connect(am); am.connect(ng); ng.connect(g);
-      const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5; const lg = AC.createGain(); lg.gain.value = 0.45; lfo.connect(lg); lg.connect(am.gain);
+      // blade-pass thump: lowpassed noise pulse-chopped at the blade-pass rate - the felt 'whump' under the wash
+      const tn = noiseSrc(); const tf = AC.createBiquadFilter(); tf.type = 'lowpass'; tf.frequency.value = 240; const tg = AC.createGain(); tg.gain.value = 0.6; const lfoT = AC.createOscillator(); lfoT.type = 'sine'; lfoT.frequency.value = 5; const td = pulseAM(lfoT, 0.55); td.connect(tg.gain); const tng = AC.createGain(); tng.gain.value = 0.85; tn.connect(tf); tf.connect(tg); tg.connect(tng); tng.connect(g);
+      const n = noiseSrc(); const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 420; nf.Q.value = 0.7; const am = AC.createGain(); am.gain.value = 0.55; const ng = AC.createGain(); ng.gain.value = 0.8; n.connect(nf); nf.connect(am); am.connect(ng); ng.connect(g);
+      const lfo = AC.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5; const wd = pulseAM(lfo, 0.45); wd.connect(am.gain); // wash chopped in pulses, not a sine swell
       const w = AC.createOscillator(); w.type = 'sine'; w.frequency.value = 900; const wg = AC.createGain(); wg.gain.value = 0; w.connect(wg); wg.connect(g);
+      const w2 = AC.createOscillator(); w2.type = 'sine'; w2.frequency.value = 1780; const wg2 = AC.createGain(); wg2.gain.value = 0; w2.connect(wg2); wg2.connect(g); // gearbox whine, a detuned octave-ish above the turbine
       const r = AC.createOscillator(); r.type = 'sine'; r.frequency.value = 55; const rg = AC.createGain(); rg.gain.value = 0.5; r.connect(rg); rg.connect(g);
-      o.start(); n.start(); lfo.start(); w.start(); r.start(); Object.assign(E, { g, o, nf, lfo, w, wg }); };
+      o.start(); n.start(); tn.start(); lfo.start(); lfoT.start(); w.start(); w2.start(); r.start(); Object.assign(E, { g, o, nf, lfo, lfoT, w, wg, w2, wg2, r, wd }); };
     E.set = (rpm, on) => { if (!E.g) return; const t = AC.currentTime; const bp = Math.max(2.5, 19.2 * rpm);
       E.g.gain.setTargetAtTime(on ? 0.05 + 0.13 * rpm : 0, t, 0.25);
-      E.o.frequency.setTargetAtTime(bp, t, 0.4); E.lfo.frequency.setTargetAtTime(bp, t, 0.4);
+      E.o.frequency.setTargetAtTime(bp, t, 0.4); E.lfo.frequency.setTargetAtTime(bp, t, 0.4); if (E.lfoT) E.lfoT.frequency.setTargetAtTime(bp, t, 0.4);
       E.nf.frequency.setTargetAtTime(300 + 700 * rpm, t, 0.4);
-      E.w.frequency.setTargetAtTime(700 + 1700 * rpm, t, 0.5); E.wg.gain.setTargetAtTime(on ? 0.012 + 0.03 * rpm : 0, t, 0.4); }; return E; }
+      if (E.wd) E.wd.gain.setTargetAtTime(-(0.3 + 0.25 * rpm), t, 0.4);
+      E.w.frequency.setTargetAtTime(700 + 1700 * rpm, t, 0.5); E.wg.gain.setTargetAtTime(on ? 0.012 + 0.03 * rpm : 0, t, 0.4);
+      if (E.w2) { E.w2.frequency.setTargetAtTime((700 + 1700 * rpm) * 1.98, t, 0.5); E.wg2.gain.setTargetAtTime(on ? 0.006 + 0.012 * rpm : 0, t, 0.4); }
+      if (E.r) E.r.frequency.setTargetAtTime(28 + 30 * rpm, t, 0.4); }; return E; } // drivetrain rumble tracks rotor speed (was a fixed 55 Hz that masked the chop peak)
   const HL = { kind: 'heli', cls: 'heli', label: '🚁 开阿帕奇直升机', r: 5, drag: false, x: 1480, z: 620, y: 0, yaw: Math.PI / 2, vf: 0, vy: 0, rpm: 0, rot: 0, rotT: 0, att: 0, rollV: 0, elevS: 0, holdY: 0, ground: true, dead: 0, why: null, crashT: 0, airT: 0, home: [1480, 620, Math.PI / 2], eng: rotorEng(), col: null, root: null, rotor: null, cones: [], tailR: null, cannon: null };
   HL.y = GXW.gy(HL.x, HL.z, 5);
   const APACHE_B64 = window.__APB.join('');
@@ -5057,39 +5161,22 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     if (B.propL) B.propL.rotation.z -= B.v * dt * 2.4; if (B.propR) B.propR.rotation.z -= B.v * dt * 2.4;
     if (B.wake) B.wake.material.opacity = clamp(spd / 27, 0, 1) * 0.5;
     hud.innerHTML = `🚤 快艇 <b>${Math.round(spd * 3.6)}</b> km/h${dMin < 0.5 ? ' · <span class="w">浅滩！</span>' : ''}<br><small>▲ 油门 · ▼ 刹车/倒船 · ◀▶ 转向 · 靠码头停稳按 🚶 下船</small>`; };
-  parseEmbeddedGLB(window.__BTB.join('')).then(bm => { BT.g = bm.scene; BT.g.rotation.order = 'YXZ'; BT.g.traverse(o => { if (o.name === 'prop_L') BT.propL = o; if (o.name === 'prop_R') BT.propR = o; if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
-    { // v3 fittings: env-lit gelcoat/glass/steel, bow rail, windscreen frame, outboard shaping, seat seams, contact shadow
+  parseEmbeddedGLB(window.__BTB.join('')).then(bm => { BT.g = bm.scene; BT.g.rotation.order = 'YXZ'; BT.g.updateMatrixWorld(true);
+    // rebuilt 7m center-console (Blender loft, own fittings baked in): find prop anchor, swap in a clean spinner (local +Z = boat fwd)
+    let propAnchor = null; BT.g.traverse(o => { if (o.name === 'prop_L') propAnchor = o; if (o.name === 'prop_R') BT.propR = o; if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    if (propAnchor) { const wp = new THREE.Vector3(); propAnchor.getWorldPosition(wp); const par = propAnchor.parent; par.remove(propAnchor);
+      const grp = new THREE.Group(); grp.name = 'prop_L'; grp.position.copy(wp); par.add(grp);
+      const propM = new THREE.MeshStandardMaterial({ color: 0x9aa0a4, metalness: 0.9, roughness: 0.35 });
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.037, 0.037, 0.17, 10), propM); hub.rotation.x = Math.PI / 2; grp.add(hub);
+      for (let k = 0; k < 3; k++) { const a = k * 2.0944; const bl = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.21, 0.014), propM); bl.position.set(Math.cos(a) * 0.115, Math.sin(a) * 0.115, 0); bl.rotation.z = a - Math.PI / 2; grp.add(bl); }
+      BT.propL = grp; }
+    { // material polish: glossy gelcoat, tinted windscreen, bright steel + hull contact shadow
       const mats = {}; BT.g.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mm => { if (mm && mm.name) mats[mm.name] = mm; }); });
-      if (mats.Gelcoat_White) { mats.Gelcoat_White.roughness = 0.10; mats.Gelcoat_White.envMapIntensity = 1.7; }
-      if (mats.Gelcoat_Blue) { mats.Gelcoat_Blue.roughness = 0.12; mats.Gelcoat_Blue.envMapIntensity = 1.7; }
-      if (mats.Gelcoat_Navy) { mats.Gelcoat_Navy.roughness = 0.28; mats.Gelcoat_Navy.envMapIntensity = 1.4; }
-      if (mats.Windscreen) { mats.Windscreen.envMapIntensity = 2.0; mats.Windscreen.opacity = 0.55; }
-      if (mats.Stainless) { mats.Stainless.roughness = 0.18; mats.Stainless.envMapIntensity = 1.8; }
-      if (mats.Motor_Black) { mats.Motor_Black.roughness = 0.18; mats.Motor_Black.envMapIntensity = 1.4; }
-      if (mats.Motor_Grey) { mats.Motor_Grey.color.setRGB(0.09, 0.10, 0.11); mats.Motor_Grey.roughness = 0.45; }
-      if (mats.Black_Plastic) mats.Black_Plastic.roughness = 0.45;
-      const seamCv = document.createElement('canvas'); seamCv.width = seamCv.height = 256;
-      { const g2 = seamCv.getContext('2d'); g2.fillStyle = '#f7f5f1'; g2.fillRect(0, 0, 256, 256); g2.strokeStyle = 'rgba(70,74,84,0.55)'; g2.lineWidth = 3; for (let i = 0; i <= 4; i++) { g2.beginPath(); g2.moveTo(i * 64, 0); g2.lineTo(i * 64, 256); g2.stroke(); g2.beginPath(); g2.moveTo(0, i * 64); g2.lineTo(256, i * 64); g2.stroke(); } g2.strokeStyle = 'rgba(255,255,255,0.5)'; g2.lineWidth = 1; for (let i = 0; i <= 4; i++) { g2.beginPath(); g2.moveTo(i * 64 + 3, 0); g2.lineTo(i * 64 + 3, 256); g2.stroke(); } }
-      const seamTex = new THREE.CanvasTexture(seamCv); seamTex.wrapS = seamTex.wrapT = THREE.RepeatWrapping; seamTex.repeat.set(2, 2); seamTex.colorSpace = THREE.SRGBColorSpace;
-      if (mats.Vinyl_White) { mats.Vinyl_White.map = seamTex; mats.Vinyl_White.needsUpdate = true; }
-      if (mats.Vinyl_Blue) { mats.Vinyl_Blue.map = seamTex; mats.Vinyl_Blue.needsUpdate = true; }
-      const steel = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.2, envMapIntensity: 1.8 });
-      const frameM = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.4, metalness: 0.3 });
-      const fit = new THREE.Group();
-      const V = (x, y, z) => new THREE.Vector3(x, y, z);
-      const tube = (a, b, r, mm) => { const d = new THREE.Vector3().subVectors(b, a), L = d.length(); const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 8), mm); c.position.copy(a).addScaledVector(d, 0.5); c.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); fit.add(c); return c; };
-      const railPts = [V(0.92, 1.26, 1.45), V(0.89, 1.28, 2.15), V(0.74, 1.29, 2.8), V(0.40, 1.29, 3.2), V(0, 1.29, 3.34), V(-0.40, 1.29, 3.2), V(-0.74, 1.29, 2.8), V(-0.89, 1.28, 2.15), V(-0.92, 1.26, 1.45)];
-      fit.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railPts), 40, 0.021, 6), steel));
-      [[0.92, 1.45], [0.89, 2.15], [0.74, 2.8], [-0.92, 1.45], [-0.89, 2.15], [-0.74, 2.8], [0, 3.3]].forEach(([sx, sz]) => { const st3 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.017, 0.4, 6), steel); st3.position.set(sx, 1.08, sz); fit.add(st3); });
-      tube(V(1.08, 0.79, 1.38), V(1.08, 1.15, 0.64), 0.023, frameM); tube(V(-1.08, 0.79, 1.38), V(-1.08, 1.15, 0.64), 0.023, frameM);
-      tube(V(-1.08, 1.15, 0.64), V(1.08, 1.15, 0.64), 0.023, frameM); tube(V(-1.08, 0.79, 1.38), V(1.08, 0.79, 1.38), 0.02, frameM);
-      tube(V(0, 0.97, 1.0), V(0, 1.16, 0.64), 0.016, frameM);
-      const avp = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.52), mats.Motor_Grey || frameM); avp.position.set(0, -0.04, -3.60); fit.add(avp);
-      const skeg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.30, 0.34), mats.Motor_Grey || frameM); skeg.position.set(0, -0.68, -3.74); fit.add(skeg);
-      const stripeM = new THREE.MeshStandardMaterial({ color: 0x1c4d8f, roughness: 0.3, envMapIntensity: 1.3 });
-      for (const sx of [0.285, -0.285]) { const sb = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.09, 0.42), stripeM); sb.position.set(sx, 1.14, -3.52); fit.add(sb); }
-      const grab = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.045, 0.10), frameM); grab.position.set(0, 1.385, -3.50); fit.add(grab);
-      BT.g.add(fit);
+      if (mats.Gelcoat_White) { mats.Gelcoat_White.roughness = 0.12; mats.Gelcoat_White.envMapIntensity = 1.6; }
+      if (mats.Gelcoat_Navy) { mats.Gelcoat_Navy.roughness = 0.16; mats.Gelcoat_Navy.envMapIntensity = 1.6; }
+      if (mats.Windscreen) { mats.Windscreen.transparent = true; mats.Windscreen.opacity = 0.55; mats.Windscreen.envMapIntensity = 2.0; mats.Windscreen.depthWrite = false; }
+      if (mats.Stainless) { mats.Stainless.roughness = 0.22; mats.Stainless.envMapIntensity = 1.8; }
+      if (mats.Motor_Black) { mats.Motor_Black.roughness = 0.30; mats.Motor_Black.envMapIntensity = 1.3; }
       const shCv = document.createElement('canvas'); shCv.width = 128; shCv.height = 256;
       { const g2 = shCv.getContext('2d'); const gr = g2.createRadialGradient(64, 128, 8, 64, 128, 126); gr.addColorStop(0, 'rgba(2,10,12,0.46)'); gr.addColorStop(0.6, 'rgba(2,10,12,0.28)'); gr.addColorStop(1, 'rgba(2,10,12,0)'); g2.fillStyle = gr; g2.save(); g2.translate(64, 128); g2.scale(1, 2); g2.translate(-64, -128); g2.fillRect(0, 0, 128, 256); g2.restore(); }
       const shM = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 8.1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shCv), transparent: true, depthWrite: false })); shM.rotation.x = -Math.PI / 2; shM.position.y = 0.028; shM.renderOrder = 3; BT.g.add(shM); }
@@ -5098,6 +5185,17 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     { const rc = document.createElement('canvas'); rc.width = 128; rc.height = 256; const g2 = rc.getContext('2d'); for (let i = 0; i < 520; i++) { const t2 = Math.random() * Math.PI * 2; g2.fillStyle = 'rgba(244,250,247,' + (0.2 + Math.random() * 0.5).toFixed(2) + ')'; g2.beginPath(); g2.arc(64 + Math.cos(t2) * 52 + (Math.random() - 0.5) * 13, 128 + Math.sin(t2) * 104 + (Math.random() - 0.5) * 20, 0.8 + Math.random() * 2.6, 0, 7); g2.fill(); } const rm = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 9.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(rc), transparent: true, opacity: 0.72, depthWrite: false })); rm.rotation.x = -Math.PI / 2; rm.position.y = 0.045; rm.renderOrder = 4; BT.g.add(rm); }
     if (BT.propL && !BT.propR) { BT.propR = new THREE.Object3D(); BT.propR.name = 'prop_R'; BT.g.add(BT.propR); } // single outboard: propR = inert placeholder for the BT interface
     FOOT.VEH.push(BT); }).catch(e => console.warn('boat load fail', e));
+  // ---------- WS: Type 052D destroyer (172) anchored SE offshore, bow to south-by-west ----------
+  const WS = { x: 2760, z: 1080, yaw: 1.92, g: null };
+  parseEmbeddedGLB(window.__WSB.join('')).then(sm => { const g = sm.scene; WS.g = g; g.rotation.order = 'YXZ'; g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+    g.position.set(WS.x, GXW.waterY, WS.z); g.rotation.y = WS.yaw; scene.add(g);
+    const ax = Math.cos(WS.yaw), az = -Math.sin(WS.yaw); // hull axis (bow dir) in world xz
+    for (let s = -3.5; s <= 3.5; s++) { const cx = WS.x + ax * s * 20, cz = WS.z + az * s * 20; const hx = 10 * Math.abs(ax) + 10.5 * Math.abs(az) + 2, hz = 10 * Math.abs(az) + 10.5 * Math.abs(ax) + 2; GXW.addCol([cx - hx, cx + hx, cz - hz, cz + hz, -8, 7, 'b']); }
+    const mkL = (lx, ly, lz, colr, sc) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: colr, transparent: true, opacity: GXW.night ? 0.95 : 0.30, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(sc); sp.position.set(lx, ly, lz); g.add(sp); };
+    mkL(12, 22.8, 0, 0xfff2cf, 3.4); mkL(20.6, 14.9, 0, 0xfff2cf, 2.2); mkL(-2, 12.4, -8.7, 0xff2a1a, 1.7); mkL(-2, 12.4, 8.7, 0x22ff66, 1.7); mkL(-77.5, 6.8, 0, 0xfff2cf, 2.0);
+  }).catch(e => console.warn('warship load fail', e));
+  worldTick.push((dt) => { if (!WS.g) return; const t = tGlobal; WS.g.position.y = GXW.waterY + Math.sin(t * 0.24) * 0.06 + Math.sin(t * 0.41 + 1.7) * 0.03; WS.g.rotation.z = Math.sin(t * 0.19) * 0.0022; WS.g.rotation.x = Math.sin(t * 0.15 + 0.6) * 0.0012; });
+
 
   Object.values(TYPES).forEach(T2 => T2.build());
   const AIR = { PLANES, AIRL, LIGHT, TRN, JT, frame: airFrame, makePlane, AIRT, alphaTrim };
