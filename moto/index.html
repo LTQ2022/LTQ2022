@@ -1275,7 +1275,7 @@ if (M.gx) {
     const SEA_LVL = -0.35;
     const smC = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
     const shoreOff = (z) => 11 * Math.sin(z * 0.0105 + 0.8) + 6 * Math.sin(z * 0.027 + 2.1); // waterline wanders +-17m along z: no ruler-straight shore (GLSL profY in the shore layer mirrors this exactly)
-    const coastY = (x, z) => { const xx = x - shoreOff(z); let y = 0.35 * smC(1740, 1820, xx); y += (0.72 - y) * smC(1820, 1852, xx); y += (0.25 - y) * smC(1852, 1871, xx); y += (-0.35 - y) * smC(1871, 1880, xx); y += (-1.5 - y) * smC(1880, 1900, xx); y += (-2.6 - y) * smC(1900, 1980, xx); y += (-4.3 - y) * smC(1980, 2150, xx); const dxI = x - 2680, dzI = z - 260; y += (-9.6 - y) * smC(2350, 3050, xx) * smC(170, 430, Math.sqrt(dxI * dxI + dzI * dzI)); const dx = x - 2680, dz = z - 260, d2 = dx * dx + dz * dz; if (d2 < 32400) y += 6.9 * Math.exp(-d2 / 18050); return y; };
+    const coastY = (x, z) => { const xx = x - shoreOff(z); let y = 0.35 * smC(1740, 1820, xx); y += (0.72 - y) * smC(1820, 1852, xx); y += (0.25 - y) * smC(1852, 1871, xx); y += (-0.35 - y) * smC(1871, 1880, xx); y += (-1.5 - y) * smC(1880, 1900, xx); y += (-2.6 - y) * smC(1900, 1980, xx); y += (-4.3 - y) * smC(1980, 2150, xx); const dxI = x - 2680, dzI = z - 260; y += (-9.6 - y) * smC(2350, 3050, xx) * smC(170, 430, Math.sqrt(dxI * dxI + dzI * dzI)); const dxB = x - 2400, dzB = z - 1000; y += (-8.6 - y) * (1 - smC(60, 150, Math.sqrt(dxB * dxB + dzB * dzB))); const dx = x - 2680, dz = z - 260, d2 = dx * dx + dz * dz; if (d2 < 32400) y += 6.9 * Math.exp(-d2 / 18050); return y; };
     groundY = coastY;
     const embTex = (arr, srgb) => { const t = texLoader.load('data:image/jpeg;base64,' + arr.join(''), x => { x.wrapS = x.wrapT = THREE.RepeatWrapping; }); const phC = document.createElement('canvas'); phC.width = phC.height = 4; t.image = phC; if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
     coastTex = { waterN: embTex(window.__WNA, false), sandDry: embTex(window.__SDA, true), sandWet: embTex(window.__SWA, true), sandNor: embTex(window.__SDN, false), wood: embTex(window.__WDA, true) };
@@ -1329,7 +1329,7 @@ if (M.gx) {
 uniform float uTime; varying vec3 vWp;
 float vhash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(vhash(i), vhash(i + vec2(1, 0)), f.x), mix(vhash(i + vec2(0, 1)), vhash(i + vec2(1, 1)), f.x), f.y); }
-float profY(vec2 p){ float x = p.x - (11.0 * sin(p.y * 0.0105 + 0.8) + 6.0 * sin(p.y * 0.027 + 2.1)); float y = 0.35 * smoothstep(1740.0, 1820.0, x); y = mix(y, 0.72, smoothstep(1820.0, 1852.0, x)); y = mix(y, 0.25, smoothstep(1852.0, 1871.0, x)); y = mix(y, -0.35, smoothstep(1871.0, 1880.0, x)); y = mix(y, -1.5, smoothstep(1880.0, 1900.0, x)); y = mix(y, -2.6, smoothstep(1900.0, 1980.0, x)); y = mix(y, -4.3, smoothstep(1980.0, 2150.0, x)); y = mix(y, -9.6, smoothstep(2350.0, 3050.0, x) * smoothstep(170.0, 430.0, distance(p, vec2(2680.0, 260.0)))); vec2 d = p - vec2(2680.0, 260.0); float d2 = dot(d, d); if (d2 < 32400.0) y += 6.9 * exp(-d2 / 18050.0); return y; }
+float profY(vec2 p){ float x = p.x - (11.0 * sin(p.y * 0.0105 + 0.8) + 6.0 * sin(p.y * 0.027 + 2.1)); float y = 0.35 * smoothstep(1740.0, 1820.0, x); y = mix(y, 0.72, smoothstep(1820.0, 1852.0, x)); y = mix(y, 0.25, smoothstep(1852.0, 1871.0, x)); y = mix(y, -0.35, smoothstep(1871.0, 1880.0, x)); y = mix(y, -1.5, smoothstep(1880.0, 1900.0, x)); y = mix(y, -2.6, smoothstep(1900.0, 1980.0, x)); y = mix(y, -4.3, smoothstep(1980.0, 2150.0, x)); y = mix(y, -9.6, smoothstep(2350.0, 3050.0, x) * smoothstep(170.0, 430.0, distance(p, vec2(2680.0, 260.0)))); y = mix(y, -8.6, 1.0 - smoothstep(60.0, 150.0, distance(p, vec2(2400.0, 1000.0)))); vec2 d = p - vec2(2680.0, 260.0); float d2 = dot(d, d); if (d2 < 32400.0) y += 6.9 * exp(-d2 / 18050.0); return y; }
 void main(){ float depth = -0.35 - profY(vWp.xz); if (depth < -0.60) discard; float t = uTime;
   vec2 p = vWp.xz;
   vec3 col = vec3(0.150, 0.330, 0.300);
@@ -5057,7 +5057,7 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
       const cs = GXW.cols(h.x, h.z, 2.0, h.y + 1); if (!h.dead && cs.some(b => b[6] === 'b' && b !== h.col && h.y + 1 < b[5] && h.y > b[4] - 1)) crashH('撞楼了');
     } else { h.x += Math.sin(h.yaw) * h.vf * dt; h.z += Math.cos(h.yaw) * h.vf * dt; h.y = GXW.gy(h.x, h.z, h.y + 3);
       const cs = GXW.cols(h.x, h.z, 2.0, h.y + 1); for (const b of cs) { if (b[6] !== 'b' || b === h.col || h.y + 1 > b[5]) continue; const r = 2.0; const px = Math.min(h.x + r - b[0], b[1] - (h.x - r)), pz = Math.min(h.z + r - b[2], b[3] - (h.z - r)); if (px <= 0 || pz <= 0) continue; if (px < pz) h.x += h.x < (b[0] + b[1]) / 2 ? -px : px; else h.z += h.z < (b[2] + b[3]) / 2 ? -pz : pz; h.vf *= 0.5; } }
-    const e = GXW.ext; h.x = clamp(h.x, e.x0, e.x1); h.z = clamp(h.z, e.z0, e.z1);
+    h.x = clamp(h.x, -5000, 5000); h.z = clamp(h.z, -5000, 5000); // aircraft use the airspace bound (same as fixed-wing), not the ground-world rect: the destroyer's flight deck lies past ext.z1=1000 and must stay reachable
     heliPose(dt);
     st.pos.set(h.x, h.y, h.z); st.yaw = h.yaw; st.v = h.vf; F.x = h.x; F.z = h.z; F.y = h.y; F.spd = Math.abs(h.vf);
     h.eng.set(h.rpm, true);
@@ -5186,11 +5186,13 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     if (BT.propL && !BT.propR) { BT.propR = new THREE.Object3D(); BT.propR.name = 'prop_R'; BT.g.add(BT.propR); } // single outboard: propR = inert placeholder for the BT interface
     FOOT.VEH.push(BT); }).catch(e => console.warn('boat load fail', e));
   // ---------- WS: Type 052D destroyer (172) anchored SE offshore, bow to south-by-west ----------
-  const WS = { x: 2760, z: 1080, yaw: 1.92, g: null };
+  const WS = { x: 2400, z: 1000, yaw: 1.92, g: null }; // ~500 m off the waterline SE of the base: a 156 m ship only reads true-size if it anchors where players actually are
   parseEmbeddedGLB(window.__WSB.join('')).then(sm => { const g = sm.scene; WS.g = g; g.rotation.order = 'YXZ'; g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
     g.position.set(WS.x, GXW.waterY, WS.z); g.rotation.y = WS.yaw; scene.add(g);
     const ax = Math.cos(WS.yaw), az = -Math.sin(WS.yaw); // hull axis (bow dir) in world xz
-    for (let s = -3.5; s <= 3.5; s++) { const cx = WS.x + ax * s * 20, cz = WS.z + az * s * 20; const hx = 10 * Math.abs(ax) + 10.5 * Math.abs(az) + 2, hz = 10 * Math.abs(az) + 10.5 * Math.abs(ax) + 2; GXW.addCol([cx - hx, cx + hx, cz - hz, cz + hz, -8, 7, 'b']); }
+    const segs = [[-78, -50.5, 4.1], [-50.5, -39, 9.25], [-39, -26, 7.5], [-26, -1, 11.6], [-1, 24, 13.3], [24, 40, 9.1], [40, 78, 7.7]]; // [stern s0, s1, topY world] along the hull: flight deck / hangar / aft house / funnel / bridge / CIWS / forecastle
+    for (const [s0, s1, top] of segs) { const sc = (s0 + s1) / 2, hl = (s1 - s0) / 2, hw = 10; const cx = WS.x + ax * sc, cz = WS.z + az * sc; const hx = hl * Math.abs(ax) + hw * Math.abs(az) + 1, hz = hl * Math.abs(az) + hw * Math.abs(ax) + 1; GXW.addCol([cx - hx, cx + hx, cz - hz, cz + hz, -8, top, 'b']); }
+    const _gyWS = GXW.gy; GXW.gy = (x, z, yRef) => { let y = _gyWS(x, z, yRef); const dx = x - WS.x, dz = z - WS.z; const lx = dx * ax + dz * az, lz = dz * ax - dx * az; if (lx > -79 && lx < -50 && Math.abs(lz) < 7.6 && (yRef === undefined || yRef > 1.6)) y = Math.max(y, GXW.waterY + 4.47); return y; }; // flight-deck plate (local x -78.5..-50.5, |z| < 7.6, top = waterY + 4.47) is landable ground for the heli
     const mkL = (lx, ly, lz, colr, sc) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: colr, transparent: true, opacity: GXW.night ? 0.95 : 0.30, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(sc); sp.position.set(lx, ly, lz); g.add(sp); };
     mkL(12, 22.8, 0, 0xfff2cf, 3.4); mkL(20.6, 14.9, 0, 0xfff2cf, 2.2); mkL(-2, 12.4, -8.7, 0xff2a1a, 1.7); mkL(-2, 12.4, 8.7, 0x22ff66, 1.7); mkL(-77.5, 6.8, 0, 0xfff2cf, 2.0);
   }).catch(e => console.warn('warship load fail', e));
