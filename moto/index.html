@@ -73,6 +73,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <script src="gx/emb/sd2.js"></script>
 <script src="gx/emb/sw1.js"></script>
 <script src="gx/emb/wd1.js"></script>
+<script src="gx/emb/rr1.js"></script>
+<script src="gx/emb/rr2.js"></script>
+<script src="gx/emb/rr3.js"></script>
+<script src="gx/emb/rr4.js"></script>
+<script src="gx/emb/f91.js"></script>
+<script src="gx/emb/f92.js"></script>
+<script src="gx/emb/f93.js"></script>
+<script src="gx/emb/f94.js"></script>
+<script src="gx/emb/mc1.js"></script>
+<script src="gx/emb/mc2.js"></script>
+<script src="gx/emb/mc3.js"></script>
+<script src="gx/emb/mc4.js"></script>
 <script type="module">import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
@@ -3357,7 +3369,7 @@ function carEng(profile) {
     if (E.cg) E.cg.gain.setTargetAtTime(P.nG * (0.5 + 0.35 * load), t, 0.15); };
   AU.veh[profile] = E; return E;
 }
-function carSndProfile(c) { const k = (c && (c.cls || c.kind)) || 'car'; return k === 'ifv' ? 'ifv' : (k === 'bus' || k === 'truck') ? 'diesel' : k === 'van' ? 'van' : 'car'; }
+function carSndProfile(c) { if (c && c.pcSnd) return c.pcSnd; const k = (c && (c.cls || c.kind)) || 'car'; return k === 'ifv' ? 'ifv' : (k === 'bus' || k === 'truck') ? 'diesel' : k === 'van' ? 'van' : 'car'; }
 
 // ---------------- bike state ----------------
 const st = { pos: new THREE.Vector3(), yaw: 0, v: 0, lean: 0, steer: 0, pitch: 0, pitchV: 0, hint: 0, batt: 100, wheelA: 0, susp: 0, suspV: 0, lastAcc: 0, off: 0, vis: 0 };
@@ -3860,14 +3872,17 @@ var GX = null;
   // collisions between the player and a vehicle (oriented box), used for cops and traffic
   function hitTest(c, kind) {
     if (FOOT && FOOT.on) { FOOT.carHit(c, kind); return; }
-    if (crashed || !c.g.visible) return; const dx = st.pos.x - c.x, dz = st.pos.z - c.z; const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw); const lz = dx * sy + dz * cy, lx = dx * cy - dz * sy; const hx = c.HW + 0.35, hz = c.L / 2 + 0.55;
+    if (crashed || !c.g.visible) return; const dx = st.pos.x - c.x, dz = st.pos.z - c.z; const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw); const lz = dx * sy + dz * cy, lx = dx * cy - dz * sy; const hx = c.HW + 0.24, hz = c.L / 2 + 0.40;
     if (Math.abs(st.pos.y - c.y) > 2.5) return;
     if (Math.abs(lx) < hx && Math.abs(lz) < hz) {
       const pvx = Math.sin(st.yaw) * st.v, pvz = Math.cos(st.yaw) * st.v, cvx = sy * c.v, cvz = cy * c.v; const rel = Math.hypot(pvx - cvx, pvz - cvz);
       if (rel > 13) { crash('hit', lx > 0 ? 1 : -1); hudMsg.textContent = kind === 'cop' ? '撞上警车了' : '撞车了'; c.v *= 0.3; addHeat(kind === 'cop' ? 140 : 60, kind === 'cop' ? '袭击警车！' : '肇事逃逸！'); if (kind === 'cop' && WANT.stars === 0) setStars(1, '袭击警车！'); MS.onCrash(); return; }
-      // shove out of the box and bleed speed
-      const px = hx - Math.abs(lx), pz = hz - Math.abs(lz); if (px < pz) { const s = Math.sign(lx) || 1; st.pos.x += cy * px * s; st.pos.z += -sy * px * s; } else { const s = Math.sign(lz) || 1; st.pos.x += sy * pz * s; st.pos.z += cy * pz * s; }
-      st.v *= 0.85; if (kind === 'cop' && rel > 5) addHeat(25);
+      // shove out of the box on a graze (rel < 3) and bleed speed gently: x0.94, at most once
+      // per 1/30 s tick no matter how many cars overlap (was x0.85 per car per frame, which
+      // compounded to a near-stop just for brushing past traffic)
+      if (rel < 3) { const px = hx - Math.abs(lx), pz = hz - Math.abs(lz); if (px < pz) { const s = Math.sign(lx) || 1; st.pos.x += cy * px * s; st.pos.z += -sy * px * s; } else { const s = Math.sign(lz) || 1; st.pos.x += sy * pz * s; st.pos.z += cy * pz * s; } }
+      const dfk = Math.floor(tGlobal * 30); if (st._dfk !== dfk) { st._dfk = dfk; st.v *= 0.94; }
+      if (kind === 'cop' && rel > 5) addHeat(25);
     } else if (kind !== 'cop' && st.v > 20 && Math.abs(lz) < hz + 1 && Math.abs(lx) < hx + 1.3) { // near miss
       if (!c.nm || tGlobal - c.nm > 2) { c.nm = tGlobal; popup('险过！+50', '#ffd54a'); addCash(5); MS.onNearMiss(); addHeat(10); }
     }
@@ -4090,7 +4105,7 @@ var GX = null;
   // help text in the menu
   
   function addCopCar() { const c = GXCAR.makeCar('police'); c.g.visible = false; scene.add(c.g); cops.push(Object.assign(c, { on: false, mode: 'off', x: 0, z: 0, y: 0, yaw: 0, v: 0, steer: 0, hint: 0, ph: Math.random() * 6, wp: null, last: null, stuck: 0, seen: false, off: [0, 0], lat: 0, s: 0 })); return c; }
-  GX = { W: GXW, A, post, frame, cam, onReset, WANT, MS, cops, civ, setStars, startMission, endMission, get target() { return target; }, SAVE, spawnCop, addHeat, banner, popup, addCash, sfx, tone, despawn, poseCar, drive, collideWorld, los, busy, groundAt, addCopCar, drawStars, fmtCash, open };
+  GX = { W: GXW, A, post, frame, cam, onReset, WANT, MS, cops, civ, setStars, startMission, endMission, get target() { return target; }, SAVE, spawnCop, addHeat, banner, popup, addCash, sfx, tone, despawn, poseCar, drive, collideWorld, hitTest, los, busy, groundAt, addCopCar, drawStars, fmtCash, open };
   if (window.__g) window.__g.GX = GX;
 })();
 // ================= GFX: 画质 low/mid/high, colour grading, lighting polish (all maps) =================
@@ -4277,9 +4292,12 @@ if (GXW && GX && GX.open) FOOT = (function () {
   // ---------- skinned clone ----------
   function cloneSk(src) { const dst = src.clone(true); const db = {}; dst.traverse(o => { if (o.isBone) db[o.name] = o; }); const sm = [], dm = []; src.traverse(o => { if (o.isSkinnedMesh) sm.push(o); }); dst.traverse(o => { if (o.isSkinnedMesh) dm.push(o); });
     dm.forEach((m, i) => { const s = sm[i]; m.bind(new THREE.Skeleton(s.skeleton.bones.map(b => db[b.name]), s.skeleton.boneInverses), s.bindMatrix); }); return dst; }
-  // in-place clip (root motion removed) for Mixamo rigs (police officers: soldier.glb native clips)
+  // in-place clip (root motion removed) for Mixamo rigs (police officers: soldier.glb native clips).
+  // NOTE the root channel semantics of these clips (measured, walkdiag): local x = lateral sway,
+  // y = forward drift, z = height. Only the drift is pinned; sway + height must play or the
+  // officer floats at a fixed hip height with locked feet (the same bug the player had).
   function inPlace(clip) { const tr = []; clip.tracks.forEach(t => { const i = t.name.lastIndexOf('.'); const node = t.name.slice(0, i), prop = t.name.slice(i + 1); if (prop === 'scale') return; if (prop === 'position' && !/Hips$/.test(node)) return; const c = t.clone();
-      if (prop === 'position') { const v = c.values; const x0 = v[0], z0 = v[2]; for (let k = 0; k < v.length; k += 3) { v[k] = x0; v[k + 2] = z0; } } tr.push(c); }); return new THREE.AnimationClip(clip.name, clip.duration, tr); }
+      if (prop === 'position') { const v = c.values; const y0 = v[1]; for (let k = 0; k < v.length; k += 3) { v[k + 1] = y0; } } tr.push(c); }); return new THREE.AnimationClip(clip.name, clip.duration, tr); }
   // tevy clips: drop root translation drift on hips x/z so the person walks in place (we move the group)
   function tevyInPlace(clip) { const tr = clip.tracks.filter(t => !/\.scale$/.test(t.name)).map(t => { const c = t.clone(); if (/^hips\.position$/.test(c.name)) { const v = c.values; const x0 = v[0], z0 = v[2]; for (let k = 0; k < v.length; k += 3) { v[k] = x0; v[k + 2] = z0; } } return c; }); return new THREE.AnimationClip(clip.name, clip.duration, tr); }
   // run from walk on the same skeleton: per-bone swing amplification of (rest^-1 * q), elbows bent, torso leaning into the run, more bounce
@@ -4296,7 +4314,8 @@ if (GXW && GX && GX.open) FOOT = (function () {
     return new THREE.AnimationClip('run', walk.duration, tr); }
   const boneMap = (root) => { const B = {}; root.traverse(o => { if (o.isBone) B[o.name.replace(/^mixamorig:?/, '')] = o; }); return B; };
   function rig(model, clips) { const mixer = new THREE.AnimationMixer(model); const acts = {}; Object.entries(clips).forEach(([k, c]) => { if (!c) return; const a = mixer.clipAction(c); a.enabled = true; acts[k] = a; });
-    const R = { model, mixer, acts, cur: null, B: boneMap(model), anim(n, fade = 0.2) { if (R.cur === n || !acts[n]) return; const a = acts[n]; a.reset().setEffectiveWeight(1).play(); if (R.cur && acts[R.cur]) acts[R.cur].crossFadeTo(a, fade, false); R.cur = n; } }; return R; }
+    const restQ = {}; model.traverse(o => { if (o.isBone) restQ[o.name.replace(/^mixamorig:?/, '')] = o.quaternion.clone(); });
+    const R = { model, mixer, acts, restQ, cur: null, B: boneMap(model), anim(n, fade = 0.2) { if (R.cur === n || !acts[n]) return; const a = acts[n]; a.reset().setEffectiveWeight(1).play(); if (R.cur && acts[R.cur]) acts[R.cur].crossFadeTo(a, fade, false); R.cur = n; } }; return R; }
   // ---------- assets ----------
   let PL = null; const PEDT = []; let COPM = null;
   const PEDS_SLUGS = ['casual-walker', 'dog-walker', 'hiker', 'cyclist', 'road-worker'];
@@ -4305,15 +4324,42 @@ if (GXW && GX && GX.open) FOOT = (function () {
   // on foot the player is the SAME white mummy as on the bike: the embedded model, locomotion borrowed from
   // soldier.glb's Mixamo clips with the 'mixamorig:' track prefix stripped so they bind to the RPM skeleton.
   // Officers (COPM) are set up from that same soldier load. Any failure -> the old casual-walker player.
-  const retarget = (clip, rest) => { if (!clip) return null; const c = clip.clone(); c.tracks.forEach(t => { const i = t.name.lastIndexOf('.'); const node = t.name.slice(0, i).replace(/^mixamorig:?/, ''); t.name = node + t.name.slice(i); if (rest && node === 'Hips' && t.name.endsWith('.position')) { const v = t.values; for (let k = 0; k < v.length; k += 3) { v[k] = rest.x; v[k + 2] = rest.z; } } }); return c; };
+  const RT_HIP_DY = 0; // hip-height trim in clip units (cm): >0 lowers the hips; tune only from ground-contact sampling
+  const retarget = (clip, rest, srcRest) => { if (!clip) return null; const c = clip.clone(); c.tracks.forEach(t => { const i = t.name.lastIndexOf('.'); const node = t.name.slice(0, i).replace(/^mixamorig:?/, ''); t.name = node + t.name.slice(i); if (rest && node === 'Hips' && t.name.endsWith('.position')) { const v = t.values; const n = v.length / 3;
+        // Root-channel remap (walkdiag root cause): the soldier clips are z-up in root space --
+        // local x = lateral sway, y = forward drift, z = height -- while this skeleton's Hips
+        // parent maps +x -> world +x, +y -> character forward, +z -> world DOWN (all measured).
+        // So: pin the drift to rest.y (kills the body surge), keep the sway re-centred on its own
+        // clip mean, and re-base the height channel on the source rest height with the sign
+        // flipped and the amplitude scaled by the rest-height ratio, so the hips bob/sway/sink
+        // as authored and the feet actually reach the ground. (The old code pinned x/z to rest
+        // and passed y raw: bob + sway killed, drift played as surge, feet hovered 12-15 cm.)
+        let mx = 0; for (let k = 0; k < v.length; k += 3) mx += v[k]; mx /= n;
+        const zb = srcRest ? srcRest.z : v[2], ratio = srcRest && srcRest.z ? Math.abs(rest.z / srcRest.z) : 1;
+        for (let k = 0; k < v.length; k += 3) { v[k] = rest.x + (v[k] - mx) * ratio; v[k + 1] = rest.y; v[k + 2] = rest.z - (v[k + 2] - zb) * ratio + RT_HIP_DY; } } }); return c; };
   function loadPL() {
     const solP = load(CFG.riderBase ? CFG.riderBase + 'Soldier.glb' : 'soldier.glb').then(sol => { const s = {}; sol.animations.forEach(c => { s[c.name.toLowerCase()] = inPlace(c); }); COPM = { scene: sol.scene, clips: { idle: s.idle, walk: s.walk, run: s.run } }; return COPM.clips; }).catch(() => null);
     const mumP = parseEmbeddedGLB(MUMMY_B64).catch(() => null);
     return Promise.all([solP, mumP]).then(([clips, mg]) => {
       if (clips && clips.idle && clips.walk && mg) { mg.scene.traverse(o => { if (o.isBone) o.name = o.name.replace(/^mixamorig:?/, ''); }); let rest = null; mg.scene.traverse(o => { if (o.isBone && o.name === 'Hips') rest = o.position; });
+        let srcRest = null; if (COPM && COPM.scene) COPM.scene.traverse(o => { if (o.isBone && o.name.replace(/^mixamorig:?/, '') === 'Hips') srcRest = o.position; });
         const corr = {}; if (COPM && COPM.scene) { const S = {}; COPM.scene.traverse(o => { if (o.isBone) S[o.name.replace(/^mixamorig:?/, '')] = o.quaternion.clone(); }); mg.scene.traverse(o => { if (o.isBone && S[o.name]) corr[o.name] = [o.quaternion.clone(), S[o.name].invert()]; }); }
-        const rt = c => { const cc = retarget(c, rest); if (!cc) return null; cc.tracks.forEach(t => { if (!t.name.endsWith('.quaternion')) return; const pair = corr[t.name.slice(0, t.name.lastIndexOf('.'))]; if (!pair) return; const v = t.values; const q = new THREE.Quaternion(), tmp = new THREE.Quaternion(); for (let k = 0; k < v.length; k += 4) { q.set(v[k], v[k + 1], v[k + 2], v[k + 3]); tmp.copy(pair[0]).multiply(pair[1]).multiply(q); v[k] = tmp.x; v[k + 1] = tmp.y; v[k + 2] = tmp.z; v[k + 3] = tmp.w; } }); return cc; };
-        mg.__clips = { idle: rt(clips.idle), walk: rt(clips.walk), run: rt(clips.run) || rt(clips.walk) }; return mg; }
+        // Leg-chain un-mirror (found in walkdiag verification, fitted offline by FK against
+        // the source clips -- fit_legfix*.py): michelle's leg bones use a local frame rolled
+        // 180 deg from soldier's, so the plain rest-pose correction plays every leg delta
+        // mirrored in the sagittal plane -- the knees bent BACKWARD (knee sat ~10 cm behind
+        // the hip-ankle line), stance feet swept forward at body speed instead of planting,
+        // and no cadence/axis fix could ever remove the skating. Conjugating each leg bone's
+        // delta by 180 deg about local Y (delta (x,y,z,w) -> (-x,y,-z,w)) restores the
+        // authored motion: knees forward, stance foot velocity ~ -body speed, feet flat.
+        const LEGK = new THREE.Quaternion(0, 1, 0, 0);
+        const LEGB = new Set(['LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']);
+        const rt = (c, sh) => { const cc = retarget(c, rest, srcRest); if (!cc) return null; cc.tracks.forEach(t => { if (!t.name.endsWith('.quaternion')) return; const node2 = t.name.slice(0, t.name.lastIndexOf('.')); const pair = corr[node2]; if (!pair) return; const v = t.values; const q = new THREE.Quaternion(), tmp = new THREE.Quaternion(); for (let k = 0; k < v.length; k += 4) { q.set(v[k], v[k + 1], v[k + 2], v[k + 3]); if (LEGB.has(node2)) tmp.copy(pair[0]).multiply(LEGK).multiply(pair[1]).multiply(q).multiply(LEGK); else tmp.copy(pair[0]).multiply(pair[1]).multiply(q); v[k] = tmp.x; v[k + 1] = tmp.y; v[k + 2] = tmp.z; v[k + 3] = tmp.w; } }); if (sh) { const ARMB = new Set(['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand']); let dur = 0; cc.tracks.forEach(t => { if (t.times && t.times.length) dur = Math.max(dur, t.times[t.times.length - 1]); });
+        if (dur > 0.1) { const half = dur / 2; cc.tracks.forEach(t => { if (!t.name.endsWith('.quaternion')) return; const node2 = t.name.slice(0, t.name.lastIndexOf('.')); if (!ARMB.has(node2)) return; const ts = t.times, vs = t.values, n = ts.length, out = new Float32Array(vs.length); const q0 = new THREE.Quaternion(), q1 = new THREE.Quaternion();
+          const sample = tt => { tt = ((tt % dur) + dur) % dur; if (tt <= ts[n - 1]) { let i = 0; while (i < n - 2 && ts[i + 1] < tt) i++; const span = (ts[i + 1] - ts[i]) || 1; let f = Math.max(0, Math.min(1, (tt - ts[i]) / span)); q0.set(vs[i * 4], vs[i * 4 + 1], vs[i * 4 + 2], vs[i * 4 + 3]); q1.set(vs[i * 4 + 4], vs[i * 4 + 5], vs[i * 4 + 6], vs[i * 4 + 7]); q0.slerp(q1, f); } else { const span = (dur - ts[n - 1]) || 1; let f = Math.max(0, Math.min(1, (tt - ts[n - 1]) / span)); q0.set(vs[(n - 1) * 4], vs[(n - 1) * 4 + 1], vs[(n - 1) * 4 + 2], vs[(n - 1) * 4 + 3]); q1.set(vs[0], vs[1], vs[2], vs[3]); q0.slerp(q1, f); } return q0; };
+          for (let i = 0; i < n; i++) { const q = sample(ts[i] + half); out[i * 4] = q.x; out[i * 4 + 1] = q.y; out[i * 4 + 2] = q.z; out[i * 4 + 3] = q.w; } t.values = out; }); } }
+      return cc; };
+        mg.__clips = { idle: rt(clips.idle), walk: rt(clips.walk, 1), run: rt(clips.run, 1) || rt(clips.walk, 1) }; return mg; }
       return GXA.get('casual-walker', 0);
     });
   }
@@ -4471,10 +4517,12 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
     c.yawRate = c.tracked ? steer * (0.62 - 0.3 * Math.min(1, Math.abs(c.v) / vmax)) * (c.v < -0.3 ? -1 : 1) : c.v * Math.tan(c.steer) / wb; c.yaw += c.yawRate * dt; c.slip = (c.slip || 0) + ((Math.abs(c.v) > 18 && !heavy && !c.tracked ? clamp(c.yawRate * 0.35, -0.25, 0.25) : 0) - (c.slip || 0)) * Math.min(1, dt * 3);
     const hd = c.yaw - c.slip; c.x += Math.sin(hd) * c.v * dt; c.z += Math.cos(hd) * c.v * dt;
     const v0 = c.v; if (G.collideWorld(c, heavy ? Math.min(2.2, c.HW + 0.4) : 1.3)) { if (Math.abs(v0) > 9 && tGlobal - (c.bonk || 0) > 0.5) { c.bonk = tGlobal; thump(); damage(Math.abs(v0) * 0.25); G.addHeat(6); } c.v *= 0.55; }
-    [...G.civ, ...G.cops, ...PARKED].forEach(o => { if (o === c || !o.g.visible) return; const ex = c.x - o.x, ez = c.z - o.z, e = Math.hypot(ex, ez), rr = Math.max(3.6, ((c.L || 4.6) + (o.L || 4.6)) * 0.36); if (e < rr && e > 0.01) { const mc = c.mass || 1, mo = o.mass || 1, p = (rr - e) * 0.5; c.x += ex / e * p * 1.6 * mo / (mc + mo); c.z += ez / e * p * 1.6 * mo / (mc + mo); o.x -= ex / e * p * 1.6 * mc / (mc + mo); o.z -= ez / e * p * 1.6 * mc / (mc + mo); if (o.parked) G.poseCar(o, 0.016); if (Math.abs(c.v) > 8 && tGlobal - (c.bonk || 0) > 0.6) { c.bonk = tGlobal; thump(); G.addHeat(G.cops.indexOf(o) >= 0 ? 90 : 40, G.cops.indexOf(o) >= 0 ? '撞警车！' : '肇事逃逸！'); if (G.cops.indexOf(o) >= 0 && W0.stars === 0) G.setStars(1, '撞警车！'); } c.v *= 0.8; } });
+    // car-vs-car: two-car OBB in the driven car's frame (was a centre-distance circle: radius
+    // max(3.6, (L1+L2)*0.36) - over 1.6 m of air beside a sedan, yet ~1 m too small fore/aft)
+    [...G.civ, ...G.cops, ...PARKED].forEach(o => { if (o === c || !o.g.visible) return; const dx = c.x - o.x, dz = c.z - o.z; const cy2 = Math.cos(c.yaw), sy2 = Math.sin(c.yaw); const lz = dx * sy2 + dz * cy2, lx = dx * cy2 - dz * sy2; const hx = c.HW + (o.HW || 0.9) + 0.12, hz = ((c.L || 4.6) + (o.L || 4.6)) / 2 + 0.15; if (Math.abs(lx) >= hx || Math.abs(lz) >= hz) return; const mc = c.mass || 1, mo = o.mass || 1; const px = hx - Math.abs(lx), pz = hz - Math.abs(lz); let mx = 0, mz = 0, pen = 0; if (px < pz) { const s = Math.sign(lx) || 1; mx = cy2 * s; mz = -sy2 * s; pen = px; } else { const s = Math.sign(lz) || 1; mx = sy2 * s; mz = cy2 * s; pen = pz; } const p = pen * 0.8; c.x += mx * p * mo / (mc + mo); c.z += mz * p * mo / (mc + mo); o.x -= mx * p * mc / (mc + mo); o.z -= mz * p * mc / (mc + mo); if (o.parked) G.poseCar(o, 0.016); if (Math.abs(c.v) > 8 && tGlobal - (c.bonk || 0) > 0.6) { c.bonk = tGlobal; thump(); G.addHeat(G.cops.indexOf(o) >= 0 ? 90 : 40, G.cops.indexOf(o) >= 0 ? '撞警车！' : '肇事逃逸！'); if (G.cops.indexOf(o) >= 0 && W0.stars === 0) G.setStars(1, '撞警车！'); } c.v *= 0.8; });
     [...PEDS, ...OFF].forEach(p => { if (!p.on || p.st === 'dead') return; const dx = p.x - c.x, dz = p.z - c.z; const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw); const lz = dx * sy + dz * cy, lx = dx * cy - dz * sy; if (Math.abs(lx) < c.HW + 0.35 && Math.abs(lz) < c.L / 2 + 0.3) { if (Math.abs(c.v) > 4) { hitNpc(p, Math.abs(c.v) * 12); thump(); } else { p.x += cy * (lx > 0 ? 0.4 : -0.4); p.z -= sy * (lx > 0 ? 0.4 : -0.4); } } });
     if (GXW.waterDepth) { const wd = GXW.waterDepth(c.x, c.z); if (wd > 1.05) { c.v *= Math.max(0, 1 - dt * 2.4); if (Math.abs(c.v) < 1.15) { G.popup('车冲进海里熄火了！游上岸吧', '#ffb34a'); exitCar(true); return; } } }
-    const e = GXW.ext; c.x = clamp(c.x, e.x0, e.x1); c.z = clamp(c.z, e.z0, e.z1); G.poseCar(c, dt); st.pos.set(c.x, c.y, c.z); st.yaw = c.yaw; st.v = c.v; F.x = c.x; F.y = c.y; F.z = c.z; F.spd = Math.abs(c.v); if (F.carE) F.carE.set(clamp(Math.abs(c.v) / vmax * 0.72 + (thr ? 0.3 : 0) + (brk && c.v < -0.5 ? 0.18 : 0), 0, 1), true); carDash(c); }
+    const e = GXW.ext; c.x = clamp(c.x, e.x0, e.x1); c.z = clamp(c.z, e.z0, e.z1); G.poseCar(c, dt); st.pos.set(c.x, c.y, c.z); st.yaw = c.yaw; st.v = c.v; F.x = c.x; F.y = c.y; F.z = c.z; F.spd = Math.abs(c.v); if (F.carE) F.carE.set(clamp((c.loadMap ? c.loadMap(Math.abs(c.v)) : Math.abs(c.v) / vmax) * 0.72 + (thr ? 0.3 : 0) + (brk && c.v < -0.5 ? 0.18 : 0), 0, 1), true); carDash(c); if (c.lampTick) c.lampTick(brk); }
   // ================= on-foot movement =================
   function footTick(dt) { const P = PL; if (!P) return;
     let mx = 0, mz = 0; // desired move in camera space (x right, z forward)
@@ -4491,11 +4539,22 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
     else if ((T.jump || K.Space) && !F.air && F.down <= 0 && !(F.dead > 0) && !F.busy) { F.vy = 4.4; F.air = true; T.jump = 0; }
     if (!F.swim) { if (F.air || F.y > gy + 0.05) { F.vy -= 9.81 * dt; F.y += F.vy * dt; if (F.y <= gy) { F.y = gy; F.air = false; F.vy = 0; } } else { F.y += (gy - F.y) * Math.min(1, dt * 20); F.air = false; } }
     const o = { x: F.x, z: F.z, y: F.y }; pushOut(o, 0.3); F.x = o.x; F.z = o.z;
-    // animation: idle / walk / run, cadence matched to ground speed (walk clip is authored for 1.3 m/s)
+    // animation: idle / walk / run. Cadence calibration (measured, walkdiag): the divisors set the
+    // step rate -- walk /1.5 -> ~130 steps/min at 1.65 m/s, run /4.2 -> ~190/min at 4.7 m/s; the old
+    // /1.3 and /2.5 gave 147/min and a physically impossible 322/min. The small stride deficit the
+    // slower walk cadence opens is absorbed by the foot-lock further down.
     const an = F.swim ? (F.spd > 0.3 ? 'walk' : 'idle') : F.dead > 0 || F.down > 0 ? 'idle' : F.air ? 'run' : F.spd > 2.6 ? 'run' : F.spd > 0.25 ? 'walk' : 'idle'; P.anim(an, an === 'run' ? 0.15 : 0.25);
-    P.mixer.timeScale = F.swim ? (F.spd > 0.3 ? 1.35 : 0.7) : an === 'walk' ? clamp(F.spd / 1.3, 0.55, 1.5) : an === 'run' ? clamp(F.spd / 2.5, 0.9, 1.9) : 1;
+    P.mixer.timeScale = F.swim ? (F.spd > 0.3 ? 1.35 : 0.7) : an === 'walk' ? clamp(F.spd / 1.5, 0.55, 1.5) : an === 'run' ? clamp(F.spd / 4.2, 0.9, 1.15) : 1;
     P.mixer.update(F.air ? dt * 0.25 : dt);
     P.g.position.set(F.x, F.y, F.z); P.g.rotation.set(0, F.head, 0);
+    // torso damping (walkdiag P1-3): the soldier clips twist the spine chain far past human
+    // range (shoulder-vs-pelvis counter-rotation 34 deg peak-to-peak walking / 72 running vs
+    // 10-16 / 20-30 in real gait) and lean the trunk ~10 deg forward. While walking / running,
+    // ease Spine/Spine1/Spine2 part-way back toward their bind pose; legs, arms, phase and the
+    // hip motion are untouched. Blended by F.torsoW like the arm fixes below.
+    const torsoOn = (P.cur === 'walk' || P.cur === 'run') && !F.swim && (F.swimP || 0) < 0.05 && F.dead <= 0 && F.down <= 0 && !F.air;
+    F.torsoW = (F.torsoW || 0) + clamp((torsoOn ? 1 : 0) - (F.torsoW || 0), -dt * 4, dt * 4);
+    if (F.torsoW > 0.003 && P.restQ) { const k = (0.55 + 0.10 * (F.armRunW || 0)) * F.torsoW; for (const bn of ['Spine', 'Spine1', 'Spine2']) { const b = P.B[bn], r = P.restQ[bn]; if (b && r) b.quaternion.slerp(r, k); } }
     // idle stance: the borrowed soldier clips land on this skeleton with the arm chain swung up
     // (left hand up in front of the face, right hand behind the back — a scarecrow, not a stance).
     // While idling on dry land, ease both arm chains onto a relaxed hang by aiming each segment in
@@ -4546,6 +4605,29 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
         aimTo(arm, fore, A.tu); aimTo(fore, hand, A.tf); };
       fixSide(B.LeftArm, B.LeftForeArm, B.LeftHand, A.qwL, A.qrL);
       fixSide(B.RightArm, B.RightForeArm, B.RightHand, A.qwR, A.qrR); }
+    // foot lock (walkdiag P1-4): even with the axes fixed, the clips' stance feet slide a
+    // little (short authored stride; the walk cadence recalibration trades a ~0.2 m/s stride
+    // deficit for a human step rate). While a foot is in its low (stance) phase, pin it to the
+    // world spot where it came down by counter-shifting the whole body a few cm; the anchor
+    // releases on lift-off or once the heading has turned away from it. Horizontal only, and
+    // the game position F is never touched -- only the visual group offset.
+    const lockOn = (P.cur === 'walk' || P.cur === 'run') && !F.swim && (F.swimP || 0) < 0.05 && F.dead <= 0 && F.down <= 0 && !F.air;
+    F.lockW = (F.lockW || 0) + clamp((lockOn ? 1 : 0) - (F.lockW || 0), -dt * 5, dt * 5);
+    if (!P._lock) P._lock = { L: null, R: null, x: 0, z: 0, va: new THREE.Vector3(), vt: new THREE.Vector3() };
+    { const LK = P._lock; let tx = 0, tz = 0, tn = 0;
+      if (F.lockW > 0.003 && P.B.LeftFoot && P.B.RightFoot) { P.g.updateMatrixWorld(true);
+        for (const [key, foot, toe] of [['L', P.B.LeftFoot, P.B.LeftToeBase], ['R', P.B.RightFoot, P.B.RightToeBase]]) {
+          const a = foot.getWorldPosition(LK.va); const ah = a.y - F.y;
+          const th = toe ? toe.getWorldPosition(LK.vt).y - F.y : 1;
+          let st = LK[key];
+          if (!st && ah < 0.16 && th < 0.13) st = LK[key] = { x: a.x + LK.x, z: a.z + LK.z, h: F.head };
+          if (st && (ah > 0.20 || th > 0.17 || Math.abs(angDiff(F.head, st.h)) > 0.4)) { LK[key] = null; st = null; }
+          if (st) { tx += st.x - a.x; tz += st.z - a.z; tn++; } }
+        if (tn) { tx /= tn; tz /= tn; } else { tx = LK.x; tz = LK.z; } }
+      else { LK.L = LK.R = null; }
+      const kk = Math.min(1, dt * (tn ? 16 : 9)); LK.x += (tx - LK.x) * kk; LK.z += (tz - LK.z) * kk;
+      const ll = Math.hypot(LK.x, LK.z); if (ll > 0.30) { LK.x *= 0.30 / ll; LK.z *= 0.30 / ll; }
+      if (F.lockW > 0.003) { P.g.position.x += LK.x * F.lockW; P.g.position.z += LK.z * F.lockW; } }
     // swimming: prone on the surface, crawl arms + chin up (bones posed after the mixer, like the bike rider); a ripple ring marks the swimmer
     F.swimP = F.swimP === undefined ? 0 : F.swimP; F.swimP += ((F.swim ? 1 : 0) - F.swimP) * Math.min(1, dt * 5);
     if (!P.ripple) { const rg = new THREE.RingGeometry(0.55, 0.82, 28); rg.rotateX(-Math.PI / 2); P.ripple = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: 0, depthWrite: false })); P.ripple.visible = false; scene.add(P.ripple); }
@@ -4941,12 +5023,15 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
   JT.T.load().then(R => { if (!R) return; const ab = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0xff8a30, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); ab.position.set(0, 1.93, -6.4); ab.scale.set(2.2, 2.2, 1); R.root.add(ab); JT.ab = ab;
     const ab2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0x7ab0ff, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); ab2.position.set(0, 1.93, -7.6); ab2.scale.set(1.2, 1.2, 1); R.root.add(ab2); JT.ab2 = ab2; JT.okJ = true; R.root.visible = true; posePlane(JT, 0); });
   // ---------- the airport: 3 airliners nose-in at the jet bridges + 1 on the departure stand facing the taxiway + 1 lined up on the runway head; 2 light aircraft; base transport ----------
-  const ALP = ['aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'fan_L', 'fan_R', 'flap_inner_L', 'flap_inner_R', 'flap_outer_L', 'flap_outer_R', 'gear_door_main_L', 'gear_door_main_R', 'gear_door_nose_L', 'gear_door_nose_R', 'gear_main_L', 'gear_main_R', 'gear_nose', 'rudder'];
-  // runway-head airliner: on the centreline (x = rwyX 1700) at the south threshold (z -745, just past the '18' numbers), psi 0 = nose to +Z,
-  // the full 1600 m of runway ahead – walk up, board, full throttle and go. Wingtips (±17.6 m) stay inside the edge lights (±24.8 m).
-  const AIRL = [[1110, -566, -Math.PI / 2], [1110, -466, -Math.PI / 2], [1110, -366, -Math.PI / 2], [1190, -275, Math.PI / 2], [1700, -745, 0]].map(([x, z, y]) => makePlane('airliner', 'narrowbody-airliner', x, z, y, { parts: ALP }));
+  const TRP = ['propeller_L_outer', 'propeller_L_inner', 'propeller_R_inner', 'propeller_R_outer', 'flap_L', 'flap_R', 'aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'rudder', 'gear_nose', 'gear_main_L_front', 'gear_main_L_rear', 'gear_main_R_front', 'gear_main_R_rear', 'gear_door_nose_L', 'gear_door_nose_R', 'gear_door_main_L', 'gear_door_main_R'];
+  // the airport fleet is now the base's military transport (user call, 2026-11-24): same five
+  // spots as the old airliners - 3 nose-in at the jet bridges, 1 on the departure stand, and the
+  // runway-head one on the centreline (x = rwyX 1700) at the south threshold (z -745), psi 0 =
+  // nose to +Z, the full 1600 m of runway ahead. Transport span ±19 m stays inside the edge
+  // lights (±24.8 m); collision uses the transport box (29 m) via cls.
+  const AIRL = [[1110, -566, -Math.PI / 2], [1110, -466, -Math.PI / 2], [1110, -366, -Math.PI / 2], [1190, -275, Math.PI / 2], [1700, -745, 0]].map(([x, z, y]) => makePlane('transport', 'military-transport', x, z, y, { parts: TRP }));
   const LIGHT = [[1250, -600, Math.PI], [1290, -600, Math.PI]].map(([x, z, y]) => makePlane('light', 'light-aircraft', x, z, y, { parts: ['aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'flap_L', 'flap_R', 'propeller', 'rudder'] }));
-  const TRN = [makePlane('transport', 'military-transport', 1400, 250, Math.PI / 2, { parts: ['propeller_L_outer', 'propeller_L_inner', 'propeller_R_inner', 'propeller_R_outer', 'flap_L', 'flap_R', 'aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'rudder', 'gear_nose', 'gear_main_L_front', 'gear_main_L_rear', 'gear_main_R_front', 'gear_main_R_rear', 'gear_door_nose_L', 'gear_door_nose_R', 'gear_door_main_L', 'gear_door_main_R'], onEnter: () => { if (G.WANT.stars < 2) G.setStars(2, '偷开军用运输机！'); } })];
+  const TRN = [makePlane('transport', 'military-transport', 1400, 250, Math.PI / 2, { parts: TRP, onEnter: () => { if (G.WANT.stars < 2) G.setStars(2, '偷开军用运输机！'); } })];
   // ================= APACHE: real AH-64D model (GLB, embedded base64) + full rotor flight model =================
   // Model: "Boeing AH-64D Apache Combat Helicopter" by Muhamad Mirza Arrafi (Sketchfab),
   // licensed CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/). Pre-processed in Blender:
@@ -5268,6 +5353,152 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
   return { frame, TK, JT, JV, AIR, GV, HL, BT, T, crush, boom, gates, gy: (x, z, y) => GXW.gy(x, z, y) };
 })();
 if (GXM) window.GXMX = GXM;
+// ================= PCX: player cars batch 1 + settings (rain / day-night / vehicle) =================
+// Data-driven: batch-2 cars (M4 / Lambo / Porsche / Chiron) join by appending one DEFS entry each
+// (chunks + CARP profile + SPEC physics) - no other code changes needed.
+var PCX = null;
+if (GXW && GX && FOOT) PCX = (function () {
+  const G = GX, F = FOOT.F, clamp = THREE.MathUtils.clamp;
+  // ---- engine-sound profiles (carEng / CARP architecture) ----
+  Object.assign(CARP, {
+    rolls: { f0: 30, f1: 215, lp0: 420, lp1: 1500, fire: 3, am: 0.12, sub: 0.62, nType: 'bandpass', n0: 700, n1: 1800, nG: 0.08, vol: 0.075, vLoad: 0.09 }, // quiet V12: low gain, compressed load slope (SPEC s.4)
+    sf90: { f0: 58, f1: 480, lp0: 700, lp1: 3400, fire: 4, am: 0.26, sub: 0.45, nType: 'bandpass', n0: 1600, n1: 4200, nG: 0.30, vol: 0.17, vLoad: 0.24 },
+    mc765: { f0: 58, f1: 236, lp0: 850, lp1: 5600, fire: 2.4, am: 0.16, sub: 0.38, nType: 'bandpass', n0: 1000, n1: 3800, nG: 0.45, vol: 0.16, vLoad: 0.25 },
+  });
+  // gears: per-gear top speeds (m/s) shaping the engine load curve - SF90 gears 1/2 are the
+  // e-bike's own gear tops (41.7 / 61.1) with gear 3 capping at its 94.4 top speed, per the
+  // brief; 765LT uses its SPEC gear ladder (74..330 km/h); Rolls gets a smooth compressed map.
+  const ladder = tops => v => { let p = 0; for (let i = 0; i < tops.length; i++) { if (v <= tops[i]) return (i + (v - p) / (tops[i] - p)) / tops.length; p = tops[i]; } return 1; };
+  const DEFS = [
+    { id: 'rolls', name: '劳斯莱斯幻影', sub: '6.75 V12 · 静音 · 250 限速', b64: () => window.__RRB.join(''), snd: 'rolls', L: 5.762, W: 2.018, H: 1.646, wb: 3.552, wrF: 0.3815, wrR: 0.395, acc: 7.5, vmax: 69.4, brk: 13, maxSteer: 0.60, mass: 2.56, loadMap: v => v / 69.4 * 0.85 },
+    { id: 'sf90', name: '法拉利 SF90', sub: '1000 PS 混动 V8 · 340', b64: () => window.__F9B.join(''), snd: 'sf90', L: 4.710, W: 1.972, H: 1.186, wb: 2.650, wrF: 0.343, wrR: 0.3485, acc: 13.5, vmax: 94.4, brk: 15, maxSteer: 0.58, mass: 1.6, loadMap: ladder([41.7, 61.1, 94.4]) },
+    { id: 'mc765', name: '迈凯伦 765LT', sub: '765 PS V8 · 330', b64: () => window.__MCB.join(''), snd: 'mc765', L: 4.599, W: 2.045, H: 1.16, wb: 2.670, wrF: 0.327, wrR: 0.3455, acc: 12.5, vmax: 91.7, brk: 13, maxSteer: 0.58, mass: 1.34, loadMap: ladder([20.6, 30.6, 40.8, 52.2, 64.4, 77.8, 91.7]) },
+  ];
+  // ---- normals guard (SF90 lesson): a self-built GLB can ship inverted winding + inward
+  // NORMALs that Cycles hides. All three batch-1 GLBs are DoubleSide so three.js would still
+  // shade them, but we canonicalise any large shell whose normals point at the car core:
+  // reverse its triangle order and negate its normals. Small fittings (< 200 tris) and
+  // intentionally inward parts (tyre inner walls) are left alone.
+  function flipGuard(root) {
+    const flipped = [];
+    const REF = new THREE.Vector3(0, 0.45, 0), c = new THREE.Vector3(), n = new THREE.Vector3();
+    root.updateMatrixWorld(true);
+    root.traverse(o => { if (!o.isMesh) return; const g = o.geometry, pos = g.attributes.position, nor = g.attributes.normal; if (!pos || !nor) return;
+      const idx = g.index ? g.index.array : null; const tris = Math.floor((idx ? idx.length : pos.count) / 3); if (tris < 200) return;
+      let out = 0, tot = 0; const step = Math.max(1, Math.floor(tris / 240));
+      for (let t = 0; t < tris; t += step) { const i0 = idx ? idx[t * 3] : t * 3;
+        c.fromBufferAttribute(pos, i0).applyMatrix4(o.matrixWorld); n.fromBufferAttribute(nor, i0).transformDirection(o.matrixWorld);
+        tot++; if (n.dot(c.sub(REF)) > 0) out++; c.set(0, 0, 0); }
+      const ratio = tot ? out / tot : 1;
+      o.userData.outward = +ratio.toFixed(3);
+      if (ratio < 0.25) { if (idx) { for (let t = 0; t + 2 < idx.length; t += 3) { const k = idx[t + 1]; idx[t + 1] = idx[t + 2]; idx[t + 2] = k; } g.index.needsUpdate = true; }
+        else { const p = pos.array, nn = nor.array; for (let t = 0; t + 2 < pos.count; t += 3) for (let k = 0; k < 3; k++) { const a = (t + 1) * 3 + k, b = (t + 2) * 3 + k; const tp = p[a]; p[a] = p[b]; p[b] = tp; } pos.needsUpdate = true; }
+        for (let i = 0; i < nor.array.length; i++) nor.array[i] *= -1; nor.needsUpdate = true; flipped.push(o.name || '?'); }
+    });
+    return flipped;
+  }
+  const diag = {};
+  function setupModel(car, def, inner) {
+    const wrap = new THREE.Group(); wrap.name = 'pcwrap'; inner.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // nose direction from the axles: front-axle centroid must end up at +Z (game heading)
+    const wp = nm => { const o = inner.getObjectByName(nm); if (!o) return null; inner.updateMatrixWorld(true); return o.getWorldPosition(new THREE.Vector3()); };
+    const fL = wp('Wheel_FL'), fR = wp('Wheel_FR'), rL = wp('Wheel_RL'), rR = wp('Wheel_RR');
+    let flip = false;
+    if (fL && rL) { const fz = (fL.z + (fR ? fR.z : fL.z)) / 2, rz = (rL.z + (rR ? rR.z : rL.z)) / 2; flip = fz < rz; }
+    if (flip) wrap.rotation.y = Math.PI;
+    wrap.add(inner); car.body.add(wrap); car.g.updateMatrixWorld(true);
+    // scale / ground sanity against the SPEC dims
+    const bb = new THREE.Box3().setFromObject(wrap); const size = bb.getSize(new THREE.Vector3());
+    const lenNow = Math.max(size.x, size.z), widNow = Math.min(size.x, size.z);
+    if (Math.abs(lenNow - def.L) / def.L > 0.05) wrap.scale.setScalar(def.L / lenNow);
+    car.g.updateMatrixWorld(true);
+    const bb2 = new THREE.Box3().setFromObject(wrap); if (Math.abs(bb2.min.y) > 0.02) wrap.position.y -= bb2.min.y;
+    car.g.updateMatrixWorld(true);
+    diag[def.id] = { flip, len: +lenNow.toFixed(3), wid: +widNow.toFixed(3), flipped: flipGuard(wrap) };
+    // hub caps must NOT spin (Rolls RR monogram stays upright): lift them out of the wheels
+    const inv = new THREE.Matrix4(); const M4 = new THREE.Matrix4();
+    ['Cap_FL', 'Cap_FR', 'Cap_RL', 'Cap_RR'].forEach(nm => { const o = inner.getObjectByName(nm); if (!o) return; inv.copy(wrap.matrixWorld).invert(); M4.copy(inv).multiply(o.matrixWorld); o.parent.remove(o); M4.decompose(o.position, o.quaternion, o.scale); wrap.add(o); });
+    // wheels -> poseCar pivots (order FL FR RL RR; pivot origin = axle centre)
+    car.g.updateMatrixWorld(true);
+    ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR'].forEach(nm => { const w = inner.getObjectByName(nm); if (!w) return;
+      inv.copy(wrap.matrixWorld).invert(); const Mw = new THREE.Matrix4().copy(inv).multiply(w.matrixWorld); const pivPos = new THREE.Vector3().setFromMatrixPosition(Mw);
+      const piv = new THREE.Group(); piv.position.copy(pivPos); wrap.add(piv);
+      const Mc = new THREE.Matrix4().makeTranslation(-pivPos.x, -pivPos.y, -pivPos.z).multiply(Mw);
+      w.parent.remove(w); Mc.decompose(w.position, w.quaternion, w.scale); piv.add(w); car.wheels.push(piv); });
+    // SF90 lamp nodes: brake / tail / DRL emissives follow the drive state
+    const lampMats = names => { const s = new Set(); names.forEach(nm => { const o = inner.getObjectByName(nm); if (o) o.traverse(m => { if (m.isMesh && m.material && !Array.isArray(m.material) && m.material.isMeshStandardMaterial) { let mm = m.material; if (!mm.userData._pcClone) { mm = mm.clone(); mm.userData._pcClone = 1; m.material = mm; } s.add(mm); } }); }); return [...s]; };
+    const tail = lampMats(['taillight_L', 'taillight_R']), brake = lampMats(['brake_L', 'brake_R']), drl = lampMats(['drl_L', 'drl_R']);
+    if (tail.length || brake.length) { tail.forEach(m => { if (m.emissive && m.emissive.getHex() === 0) m.emissive.setHex(0xff1a08); }); brake.forEach(m => { if (m.emissive && m.emissive.getHex() === 0) m.emissive.setHex(0xff2008); });
+      drl.forEach(m => { if (m.emissive && m.emissive.getHex() === 0) m.emissive.setHex(0xdfe8ff); m.emissiveIntensity = M.night ? 1.5 : 1.0; });
+      car.lampTick = brk => { const t = M.night ? 1.9 : 0.85; tail.forEach(m => m.emissiveIntensity = t); brake.forEach(m => m.emissiveIntensity = brk ? 3.6 : t * 0.8); }; car.lampTick(0); }
+    car.ready = true; G.poseCar(car, 1);
+  }
+  function buildCar(def) {
+    const car = { g: new THREE.Group(), body: new THREE.Group(), wheels: [], wslot: [], kind: 'pcar', pcId: def.id, pcSnd: def.snd, ready: false, L: def.L + 0.12, HW: def.W / 2 + 0.06, H: def.H, WR: (def.wrF + def.wrR) / 2, wb: def.wb, x: 0, y: 0, z: 0, yaw: 0, v: 0, steer: 0, hint: 0, parked: true, acc: def.acc, vmax: def.vmax, brk: def.brk, maxSteer: def.maxSteer, mass: def.mass, loadMap: def.loadMap };
+    car.g.add(car.body);
+    const blob = new THREE.Mesh(GXCAR.blobGeo, GXCAR.blobMat); blob.renderOrder = 1; blob.scale.set(def.W / 2.3, 1, def.L / 5.2); car.g.add(blob);
+    scene.add(car.g); FOOT.PARKED.push(car);
+    parseEmbeddedGLB(def.b64()).then(gl => setupModel(car, def, gl.scene)).catch(e => console.warn('pcar load fail', def.id, e));
+    return car;
+  }
+  const cars = {}; DEFS.forEach(d => cars[d.id] = buildCar(d));
+  // park the fleet in a row behind the spawn point
+  { const s = GXW.spawn, sy = Math.sin(s[2]), cy = Math.cos(s[2]);
+    DEFS.forEach((d, i) => { const c = cars[d.id]; let bx = s[0] - sy * (11 + i * 9.5), bz = s[1] - cy * (11 + i * 9.5);
+      if (GXW.cols(bx, bz, 2.2, 2).length || !GXW.paved(bx, bz)) { bx = s[0] + cy * 7 - sy * (11 + i * 9.5); bz = s[1] - sy * 7 - cy * (11 + i * 9.5); }
+      c.x = bx; c.z = bz; c.yaw = s[2]; c.y = GXW.gy(bx, bz, 5); }); }
+  // ---------- vehicle switching (from the settings panel) ----------
+  let curPC = 'bike';
+  function switchTo(id) {
+    if (id === curPC && id !== 'bike') return;
+    if (id === 'bike') { if (FOOT.on) FOOT.forceRide(); curPC = 'bike'; refreshVeh(); return; }
+    const car = cars[id]; if (!car) return;
+    if (FOOT.F.veh) FOOT.F.veh.v = 0; st.v = 0; // panel switch always works: brake the current ride to a stop first
+    if (!FOOT.on || FOOT.mode !== 'foot') FOOT.enterExit(); // step off the bike / out of the current vehicle first
+    if (FOOT.mode !== 'foot') { refreshVeh(); return; } // still moving too fast to get out - selection unchanged
+    car.x = F.x + Math.sin(F.head) * 3.4; car.z = F.z + Math.cos(F.head) * 3.4; car.yaw = F.head; car.v = 0; car.steer = 0; car.y = GXW.gy(car.x, car.z, F.y + 5); car.g.visible = true; G.poseCar(car, 1);
+    FOOT.enterCar(car); curPC = id; refreshVeh();
+  }
+  // ---------- settings panel: rain / day-night / vehicle ----------
+  let vehBtns = [];
+  function refreshVeh() { vehBtns.forEach(b => b.classList.toggle('sel', b.dataset.pc === curPC)); }
+  const RAIN = { on: lsGet('moto_rain') === '1', pts: null, spd: null, tNext: 8, snd: null, flash: null };
+  function applyWet(on) { if (!GXW.cities) return; GXW.cities.forEach(C => { const m = C.gm; if (!m) return; if (on) { if (m.userData._wr === undefined) m.userData._wr = m.roughness; m.roughness = 0.16; } else if (m.userData._wr !== undefined) m.roughness = m.userData._wr; }); }
+  function rainSound(on) { if (!AC || !master) return; if (!RAIN.snd) { const src = noiseSrc(); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 750; const g = AC.createGain(); g.gain.value = 0; src.connect(f); f.connect(g); g.connect(master); src.start(); RAIN.snd = g; } RAIN.snd.gain.setTargetAtTime(on ? 0.035 : 0, AC.currentTime, 0.4); }
+  function thunder() { if (RAIN.flash) { RAIN.flash.style.transition = 'none'; RAIN.flash.style.opacity = 0.5; requestAnimationFrame(() => requestAnimationFrame(() => { RAIN.flash.style.transition = 'opacity .6s'; RAIN.flash.style.opacity = 0; })); }
+    if (!AC || !master) return; const delay = 300 + Math.random() * 900; setTimeout(() => { if (!RAIN.on || !AC) return; const src = noiseSrc(); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 110; const g = AC.createGain(); const t = AC.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.09); g.gain.exponentialRampToValueAtTime(0.001, t + 2.3); src.connect(f); f.connect(g); g.connect(master); src.start(); src.stop(t + 2.5); }, delay); }
+  function buildRain() {
+    const cv = document.createElement('canvas'); cv.width = 8; cv.height = 32; const g2 = cv.getContext('2d'); const gr = g2.createLinearGradient(0, 0, 0, 32); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g2.fillStyle = gr; g2.fillRect(3, 0, 2, 32);
+    const N = isMobile ? 450 : 900; const pos = new Float32Array(N * 3); RAIN.spd = new Float32Array(N);
+    for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 76; pos[i * 3 + 1] = (Math.random() - 0.5) * 48; pos[i * 3 + 2] = (Math.random() - 0.5) * 76; RAIN.spd[i] = 19 + Math.random() * 11; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ size: 0.85, map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0.42, color: 0x9fb6cc, depthWrite: false, sizeAttenuation: true });
+    RAIN.pts = new THREE.Points(geo, mat); RAIN.pts.frustumCulled = false; RAIN.pts.visible = RAIN.on; scene.add(RAIN.pts);
+    RAIN.flash = document.createElement('div'); RAIN.flash.style.cssText = 'position:fixed;inset:0;background:#cfe0ff;opacity:0;pointer-events:none;z-index:30'; document.body.appendChild(RAIN.flash);
+    worldTick.push(dt => { if (!RAIN.on) return; const p = RAIN.pts.geometry.attributes.position.array;
+      for (let i = 0; i < RAIN.spd.length; i++) { p[i * 3 + 1] -= RAIN.spd[i] * dt; p[i * 3] += 3.2 * dt; if (p[i * 3 + 1] < -24) p[i * 3 + 1] += 48; if (p[i * 3] > 38) p[i * 3] -= 76; }
+      RAIN.pts.geometry.attributes.position.needsUpdate = true; RAIN.pts.position.set(camera.position.x, camera.position.y - 2, camera.position.z);
+      if (RAIN.snd === null) rainSound(true);
+      RAIN.tNext -= dt; if (RAIN.tNext <= 0) { RAIN.tNext = 7 + Math.random() * 16; thunder(); } });
+    if (RAIN.on) applyWet(true);
+  }
+  buildRain();
+  function setRain(on) { RAIN.on = on; lsSet('moto_rain', on ? '1' : '0'); if (RAIN.pts) RAIN.pts.visible = on; applyWet(on); rainSound(on); refreshRain(); }
+  let rainBtn = null;
+  function refreshRain() { if (rainBtn) { rainBtn.classList.toggle('sel', RAIN.on); rainBtn.innerHTML = (RAIN.on ? '🌧 下雨 开' : '🌧 下雨 关') + '<small>雨幕 + 湿路面反光 + 偶发远雷</small>'; } }
+  { const cardEl = document.querySelector('#menu .card'); const anchor = document.getElementById('mClose');
+    if (cardEl && anchor) {
+      const h3 = document.createElement('h3'); h3.textContent = '天气 · 昼夜 · 车辆';
+      const row1 = document.createElement('div'); row1.className = 'row';
+      rainBtn = document.createElement('button'); rainBtn.className = 'opt'; rainBtn.id = 'bRain'; rainBtn.addEventListener('click', () => setRain(!RAIN.on)); row1.appendChild(rainBtn);
+      const dnBtn = document.createElement('button'); dnBtn.className = 'opt'; dnBtn.innerHTML = (M.night ? '🌙 现在是夜晚' : '☀️ 现在是白天') + '<small>点按切换昼 / 夜（重载续位）</small>'; dnBtn.addEventListener('click', () => { const b = document.getElementById('bDN'); if (b) b.click(); }); row1.appendChild(dnBtn);
+      const row2 = document.createElement('div'); row2.className = 'row';
+      [{ id: 'bike', name: '🏍 电摩 X5', sub: '默认座驾' }].concat(DEFS.map(d => ({ id: d.id, name: d.name, sub: d.sub }))).forEach(v => { const b = document.createElement('button'); b.className = 'opt'; b.dataset.pc = v.id; b.innerHTML = v.name + '<small>' + v.sub + '</small>'; b.addEventListener('click', () => { document.getElementById('menu').classList.remove('show'); switchTo(v.id); }); row2.appendChild(b); vehBtns.push(b); });
+      [h3, row1, row2].forEach(n => cardEl.insertBefore(n, anchor)); refreshRain(); refreshVeh();
+    } }
+  return { DEFS, cars, switchTo, diag, RAIN, setRain, get cur() { return curPC; } };
+})();
+if (window.__g) window.__g.PCX = PCX;
 if (window.__g) window.__g.dbgY = () => { let a = 1e9, b = -1e9; P.forEach(p => { a = Math.min(a, p.y); b = Math.max(b, p.y); }); return [a, b, water && water.position.y, water && water.material.transparent, camera.near, camera.far]; };
 </script>
 </body></html>
