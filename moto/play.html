@@ -85,6 +85,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <script src="gx/emb/mc2.js"></script>
 <script src="gx/emb/mc3.js"></script>
 <script src="gx/emb/mc4.js"></script>
+<script src="gx/emb/cm1.js"></script>
+<script src="gx/emb/cm2.js"></script>
+<script src="gx/emb/cm3.js"></script>
+<script src="gx/emb/cm4.js"></script>
+<script src="gx/emb/cm5.js"></script>
 <script type="module">import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
@@ -5364,6 +5369,7 @@ if (GXW && GX && FOOT) PCX = (function () {
     rolls: { f0: 30, f1: 215, lp0: 420, lp1: 1500, fire: 3, am: 0.12, sub: 0.62, nType: 'bandpass', n0: 700, n1: 1800, nG: 0.08, vol: 0.075, vLoad: 0.09 }, // quiet V12: low gain, compressed load slope (SPEC s.4)
     sf90: { f0: 58, f1: 480, lp0: 700, lp1: 3400, fire: 4, am: 0.26, sub: 0.45, nType: 'bandpass', n0: 1600, n1: 4200, nG: 0.30, vol: 0.17, vLoad: 0.24 },
     mc765: { f0: 58, f1: 236, lp0: 850, lp1: 5600, fire: 2.4, am: 0.16, sub: 0.38, nType: 'bandpass', n0: 1000, n1: 3800, nG: 0.45, vol: 0.16, vLoad: 0.25 },
+    m4: { f0: 38, f1: 360, lp0: 700, lp1: 3400, fire: 1, am: 0.30, sub: 0.65, nType: 'bandpass', n0: 600, n1: 2600, nG: 0.50, vol: 0.17, vLoad: 0.24 }, // S58 I6: firing freq = rpm/60 x 3 (bmw_m4 SPEC)
   });
   // gears: per-gear top speeds (m/s) shaping the engine load curve - SF90 gears 1/2 are the
   // e-bike's own gear tops (41.7 / 61.1) with gear 3 capping at its 94.4 top speed, per the
@@ -5373,6 +5379,7 @@ if (GXW && GX && FOOT) PCX = (function () {
     { id: 'rolls', name: '劳斯莱斯幻影', sub: '6.75 V12 · 静音 · 250 限速', b64: () => window.__RRB.join(''), snd: 'rolls', L: 5.762, W: 2.018, H: 1.646, wb: 3.552, wrF: 0.3815, wrR: 0.395, acc: 7.5, vmax: 69.4, brk: 13, maxSteer: 0.60, mass: 2.56, loadMap: v => v / 69.4 * 0.85 },
     { id: 'sf90', name: '法拉利 SF90', sub: '1000 PS 混动 V8 · 340', b64: () => window.__F9B.join(''), snd: 'sf90', L: 4.710, W: 1.972, H: 1.186, wb: 2.650, wrF: 0.343, wrR: 0.3485, acc: 13.5, vmax: 94.4, brk: 15, maxSteer: 0.58, mass: 1.6, loadMap: ladder([41.7, 61.1, 94.4]) },
     { id: 'mc765', name: '迈凯伦 765LT', sub: '765 PS V8 · 330', b64: () => window.__MCB.join(''), snd: 'mc765', L: 4.599, W: 2.045, H: 1.16, wb: 2.670, wrF: 0.327, wrR: 0.3455, acc: 12.5, vmax: 91.7, brk: 13, maxSteer: 0.58, mass: 1.34, loadMap: ladder([20.6, 30.6, 40.8, 52.2, 64.4, 77.8, 91.7]) },
+    { id: 'm4cs', name: '宝马 M4 CS', sub: '550 PS 直六 · 302', b64: () => window.__CM4B.join(''), snd: 'm4', L: 4.794, W: 1.885, H: 1.428, wb: 2.858, wrF: 0.359, wrR: 0.360, acc: 11.5, vmax: 83.9, brk: 14, maxSteer: 0.56, mass: 1.76, loadMap: ladder([16.4, 25.3, 38.1, 47.2, 61.9, 81.4, 83.9]) }, // real CAD model (eldaaar, CC BY); gear tops = M8HP76 ladder capped at 302
   ];
   // ---- normals guard (SF90 lesson): a self-built GLB can ship inverted winding + inward
   // NORMALs that Cycles hides. All three batch-1 GLBs are DoubleSide so three.js would still
@@ -5430,7 +5437,7 @@ if (GXW && GX && FOOT) PCX = (function () {
     const tail = lampMats(['taillight_L', 'taillight_R']), brake = lampMats(['brake_L', 'brake_R']), drl = lampMats(['drl_L', 'drl_R']);
     if (tail.length || brake.length) { tail.forEach(m => { if (m.emissive && m.emissive.getHex() === 0) m.emissive.setHex(0xff1a08); }); brake.forEach(m => { if (m.emissive && m.emissive.getHex() === 0) m.emissive.setHex(0xff2008); });
       drl.forEach(m => { if (m.emissive && m.emissive.getHex() === 0) m.emissive.setHex(0xdfe8ff); m.emissiveIntensity = M.night ? 1.5 : 1.0; });
-      car.lampTick = brk => { const t = M.night ? 1.9 : 0.85; tail.forEach(m => m.emissiveIntensity = t); brake.forEach(m => m.emissiveIntensity = brk ? 3.6 : t * 0.8); }; car.lampTick(0); }
+      car.lampTick = brk => { const t = M.night ? 1.9 : 0.85; tail.forEach(m => m.emissiveIntensity = brake.length ? t : (brk ? 3.4 : t)); brake.forEach(m => m.emissiveIntensity = brk ? 3.6 : t * 0.8); }; car.lampTick(0); }
     car.ready = true; G.poseCar(car, 1);
   }
   function buildCar(def) {
