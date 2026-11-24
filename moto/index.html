@@ -5029,12 +5029,16 @@ body.veh[data-veh=heli] #dash{display:none!important}body.veh[data-veh=heli] .mb
     const ab2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: GXW.GLOW, color: 0x7ab0ff, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending })); ab2.position.set(0, 1.93, -7.6); ab2.scale.set(1.2, 1.2, 1); R.root.add(ab2); JT.ab2 = ab2; JT.okJ = true; R.root.visible = true; posePlane(JT, 0); });
   // ---------- the airport: 3 airliners nose-in at the jet bridges + 1 on the departure stand facing the taxiway + 1 lined up on the runway head; 2 light aircraft; base transport ----------
   const TRP = ['propeller_L_outer', 'propeller_L_inner', 'propeller_R_inner', 'propeller_R_outer', 'flap_L', 'flap_R', 'aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'rudder', 'gear_nose', 'gear_main_L_front', 'gear_main_L_rear', 'gear_main_R_front', 'gear_main_R_rear', 'gear_door_nose_L', 'gear_door_nose_R', 'gear_door_main_L', 'gear_door_main_R'];
-  // the airport fleet is now the base's military transport (user call, 2026-11-24): same five
-  // spots as the old airliners - 3 nose-in at the jet bridges, 1 on the departure stand, and the
-  // runway-head one on the centreline (x = rwyX 1700) at the south threshold (z -745), psi 0 =
-  // nose to +Z, the full 1600 m of runway ahead. Transport span ±19 m stays inside the edge
-  // lights (±24.8 m); collision uses the transport box (29 m) via cls.
-  const AIRL = [[1110, -566, -Math.PI / 2], [1110, -466, -Math.PI / 2], [1110, -366, -Math.PI / 2], [1190, -275, Math.PI / 2], [1700, -745, 0]].map(([x, z, y]) => makePlane('transport', 'military-transport', x, z, y, { parts: TRP }));
+  // airport fleet (corrected 2026-11-24): the 4 airport spots are airliners again, restored
+  // verbatim from the pre-batch-1 construction - batch 1 wrongly swapped all five spots to
+  // transports. Only the fifth spot (the old runway-head airliner) stays a transport, and it
+  // no longer sits on the runway: it is parked on the grass EAST of the runway at the south
+  // end, (1810, -745) nose west (psi -PI/2), so the user can taxi it onto the runway himself.
+  // Clearances: fuselage box 29 m -> x 1795.5..1824.5 (runway edge lights end at x 1724.8);
+  // span +/-19 m along z -> -764..-726; water starts ~x 1895. No overlap either way.
+  const ALP = ['aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'fan_L', 'fan_R', 'flap_inner_L', 'flap_inner_R', 'flap_outer_L', 'flap_outer_R', 'gear_door_main_L', 'gear_door_main_R', 'gear_door_nose_L', 'gear_door_nose_R', 'gear_main_L', 'gear_main_R', 'gear_nose', 'rudder'];
+  const AIRL = [[1110, -566, -Math.PI / 2], [1110, -466, -Math.PI / 2], [1110, -366, -Math.PI / 2], [1190, -275, Math.PI / 2]].map(([x, z, y]) => makePlane('airliner', 'narrowbody-airliner', x, z, y, { parts: ALP }));
+  AIRL.push(makePlane('transport', 'military-transport', 1810, -745, -Math.PI / 2, { parts: TRP }));
   const LIGHT = [[1250, -600, Math.PI], [1290, -600, Math.PI]].map(([x, z, y]) => makePlane('light', 'light-aircraft', x, z, y, { parts: ['aileron_L', 'aileron_R', 'elevator_L', 'elevator_R', 'flap_L', 'flap_R', 'propeller', 'rudder'] }));
   const TRN = [makePlane('transport', 'military-transport', 1400, 250, Math.PI / 2, { parts: TRP, onEnter: () => { if (G.WANT.stars < 2) G.setStars(2, '偷开军用运输机！'); } })];
   // ================= APACHE: real AH-64D model (GLB, embedded base64) + full rotor flight model =================
