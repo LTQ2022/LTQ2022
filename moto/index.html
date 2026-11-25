@@ -1,10 +1,10 @@
-<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>精神小伙 · 改装车夜骑</title>
+<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>GTA7</title>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif}
 #app canvas{display:block}
 #loading{position:fixed;inset:0;background:#0b0d10;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cfd6e0;z-index:30;transition:opacity .8s}
-#loading b{font-size:22px;letter-spacing:4px;margin-bottom:6px}#loading span{font-size:12px;opacity:.6;margin-bottom:18px}
-#lb{width:200px;height:3px;background:#222;border-radius:3px;overflow:hidden}#lbar{height:100%;width:0;background:linear-gradient(90deg,#ff2bd6,#29e8ff);transition:width .3s}
+#loading b{font-size:46px;letter-spacing:8px;font-weight:800;margin-bottom:2px}#loading span{font-size:12px;opacity:.6;margin-bottom:18px}
+#lb{width:200px;height:3px;background:#222;border-radius:3px;overflow:hidden}#lbar{height:100%;width:0;background:linear-gradient(90deg,#ff2bd6,#29e8ff);transition:width .3s}#lpct{font-size:56px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:1px}#lerr{display:none;margin-top:18px;text-align:center}#lerrm{color:#ff7070;font-size:14px;margin-bottom:12px}#lretry{padding:10px 36px;border-radius:22px;border:1.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:700}
 #dash{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);width:190px;height:118px;border-radius:18px;background:rgba(8,10,14,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);color:#fff;text-align:center;pointer-events:none}
 #dash svg{position:absolute;left:15px;top:6px}
 #spd{position:absolute;left:0;right:0;top:30px;font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-1px}
@@ -46,7 +46,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 #bTraffic{display:none!important}
 </style></head><body>
 <div id="app"></div><canvas id="fx" style="position:fixed;inset:0;pointer-events:none;z-index:0"></canvas>
-<div id="loading"><b>精神小伙 · 改装车</b><span>加载真实材质与光照…</span><div id="lb"><div id="lbar"></div></div></div>
+<div id="loading"><b>GTA7</b><div id="lpct">0%</div><span id="lcnt">第 0 / 共 300 个文件</span><div id="lb"><div id="lbar"></div></div><div id="lerr"><div id="lerrm"></div><button id="lretry">重试</button></div></div>
 <div id="dash"><svg width="160" height="100"><path d="M10 90 A70 70 0 0 1 150 90" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round"/><path id="arc" d="M10 90 A70 70 0 0 1 150 90" fill="none" stroke="#1f6fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/></svg>
 <div id="mode">1D</div><div id="bat">100%</div><div id="spd">0</div><div id="unit">km/h</div><div id="lean">倾角 0°</div></div>
 <div class="btn" id="bL" data-k="left">◀</div><div class="btn" id="bR" data-k="right">▶</div>
@@ -60,307 +60,99 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 <div id="credit">音效（除注明外均为 CC0 公共领域录音）：X5 电机声用电动滑板车轮毂电机录音（Freesound IENBA #697379）+ 电动车电机加速啸叫（Freesound justVova #761685）；刹车用真实轮胎刹车吱声（Freesound RutgerMuller #104026、audible-edge #71737）+ 刹车片尖啸（Freesound WavJunction.com #456764）+ 踏板车刹车摩擦（Freesound 16HPanskaResatko_Matej #497971）；漂移 / 烧胎摩擦声用摩托车后轮抱死录音（Freesound A.Warner #764522，CC BY-NC 4.0，非商业署名使用）。车辆、飞机、建筑模型为 CC0（tevy.dev）。</div></div></div>
 <script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/", "cannon": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
 <script>window.__bake=new URLSearchParams(location.search).has('bake');window.__CFG={"ph": "https://dl.polyhaven.org/file/ph-assets/", "hdr": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr", "riderBase": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r170/examples/models/gltf/", "waterN": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/waternormals.jpg"};</script>
-<script src="gx/emb/ap1.js"></script>
-<script src="gx/emb/ap2.js"></script>
-<script src="gx/emb/ap3.js"></script>
-<script src="gx/emb/sg1.js"></script>
-<script src="gx/emb/sg2.js"></script>
-<script src="gx/emb/sg3.js"></script>
-<script src="gx/emb/sg4.js"></script>
-<script src="gx/emb/sg5.js"></script>
-<script src="gx/emb/sg6.js"></script>
-<script src="gx/emb/sg7.js"></script>
-<script src="gx/emb/sg8.js"></script>
-<script src="gx/emb/sg9.js"></script>
-<script src="gx/emb/sg10.js"></script>
-<script src="gx/emb/sg11.js"></script>
-<script src="gx/emb/sg12.js"></script>
-<script src="gx/emb/sg13.js"></script>
-<script src="gx/emb/sg14.js"></script>
-<script src="gx/emb/sg15.js"></script>
-<script src="gx/emb/sg16.js"></script>
-<script src="gx/emb/sg17.js"></script>
-<script src="gx/emb/sg18.js"></script>
-<script src="gx/emb/sg19.js"></script>
-<script src="gx/emb/bt1.js"></script>
-<script src="gx/emb/ws1.js"></script>
-<script src="gx/emb/ws2.js"></script>
-<script src="gx/emb/wn1.js"></script>
-<script src="gx/emb/sd1.js"></script>
-<script src="gx/emb/sd2.js"></script>
-<script src="gx/emb/sw1.js"></script>
-<script src="gx/emb/wd1.js"></script>
-<script src="gx/emb/rr1.js"></script>
-<script src="gx/emb/rr2.js"></script>
-<script src="gx/emb/rr3.js"></script>
-<script src="gx/emb/f91.js"></script>
-<script src="gx/emb/f92.js"></script>
-<script src="gx/emb/f93.js"></script>
-<script src="gx/emb/f94.js"></script>
-<script src="gx/emb/mc1.js"></script>
-<script src="gx/emb/mc2.js"></script>
-<script src="gx/emb/mc3.js"></script>
-<script src="gx/emb/mc4.js"></script>
-<script src="gx/emb/cm1.js"></script>
-<script src="gx/emb/cm2.js"></script>
-<script src="gx/emb/cm3.js"></script>
-<script src="gx/emb/cm4.js"></script>
-<script src="gx/emb/cm5.js"></script>
-<script src="gx/emb/cm6.js"></script>
-<script src="gx/emb/cm7.js"></script>
-<script src="gx/emb/cm8.js"></script>
-<script src="gx/emb/cm9.js"></script>
-<script src="gx/emb/cm10.js"></script>
-<script src="gx/emb/cm11.js"></script>
-<script src="gx/emb/cm12.js"></script>
-<script src="gx/emb/cm13.js"></script>
-<script src="gx/emb/cm14.js"></script>
-<script src="gx/emb/cm15.js"></script>
-<script src="gx/emb/al1.js"></script>
-<script src="gx/emb/al2.js"></script>
-<script src="gx/emb/al3.js"></script>
-<script src="gx/emb/al4.js"></script>
-<script src="gx/emb/al5.js"></script>
-<script src="gx/emb/al6.js"></script>
-<script src="gx/emb/al7.js"></script>
-<script src="gx/emb/al8.js"></script>
-<script src="gx/emb/al9.js"></script>
-<script src="gx/emb/al10.js"></script>
-<script src="gx/emb/al11.js"></script>
-<script src="gx/emb/al12.js"></script>
-<script src="gx/emb/al13.js"></script>
-<script src="gx/emb/al14.js"></script>
-<script src="gx/emb/al15.js"></script>
-<script src="gx/emb/al16.js"></script>
-<script src="gx/emb/al17.js"></script>
-<script src="gx/emb/ar1.js"></script>
-<script src="gx/emb/ar2.js"></script>
-<script src="gx/emb/ar3.js"></script>
-<script src="gx/emb/ar4.js"></script>
-<script src="gx/emb/ar5.js"></script>
-<script src="gx/emb/ar6.js"></script>
-<script src="gx/emb/ar7.js"></script>
-<script src="gx/emb/ar8.js"></script>
-<script src="gx/emb/ar9.js"></script>
-<script src="gx/emb/ar10.js"></script>
-<script src="gx/emb/ar11.js"></script>
-<script src="gx/emb/ar12.js"></script>
-<script src="gx/emb/ar13.js"></script>
-<script src="gx/emb/ar14.js"></script>
-<script src="gx/emb/ar15.js"></script>
-<script src="gx/emb/ar16.js"></script>
-<script src="gx/emb/ar17.js"></script>
-<script src="gx/emb/ar18.js"></script>
-<script src="gx/emb/ar19.js"></script>
-<script src="gx/emb/ar20.js"></script>
-<script src="gx/emb/ar21.js"></script>
-<script src="gx/emb/ar22.js"></script>
-<script src="gx/emb/ar23.js"></script>
-<script src="gx/emb/ar24.js"></script>
-<script src="gx/emb/ar25.js"></script>
-<script src="gx/emb/ar26.js"></script>
-<script src="gx/emb/ar27.js"></script>
-<script src="gx/emb/ar28.js"></script>
-<script src="gx/emb/ar29.js"></script>
-<script src="gx/emb/ad1.js"></script>
-<script src="gx/emb/ad2.js"></script>
-<script src="gx/emb/ad3.js"></script>
-<script src="gx/emb/ad4.js"></script>
-<script src="gx/emb/ad5.js"></script>
-<script src="gx/emb/ad6.js"></script>
-<script src="gx/emb/ad7.js"></script>
-<script src="gx/emb/ad8.js"></script>
-<script src="gx/emb/ad9.js"></script>
-<script src="gx/emb/ad10.js"></script>
-<script src="gx/emb/ad11.js"></script>
-<script src="gx/emb/ad12.js"></script>
-<script src="gx/emb/ad13.js"></script>
-<script src="gx/emb/ad14.js"></script>
-<script src="gx/emb/bb1.js"></script>
-<script src="gx/emb/bb2.js"></script>
-<script src="gx/emb/bb3.js"></script>
-<script src="gx/emb/bb4.js"></script>
-<script src="gx/emb/bb5.js"></script>
-<script src="gx/emb/bb6.js"></script>
-<script src="gx/emb/bb7.js"></script>
-<script src="gx/emb/an1.js"></script>
-<script src="gx/emb/an2.js"></script>
-<script src="gx/emb/an3.js"></script>
-<script src="gx/emb/an4.js"></script>
-<script src="gx/emb/an5.js"></script>
-<script src="gx/emb/an6.js"></script>
-<script src="gx/emb/an7.js"></script>
-<script src="gx/emb/an8.js"></script>
-<script src="gx/emb/an9.js"></script>
-<script src="gx/emb/an10.js"></script>
-<script src="gx/emb/an11.js"></script>
-<script src="gx/emb/an12.js"></script>
-<script src="gx/emb/an13.js"></script>
-<script src="gx/emb/an14.js"></script>
-<script src="gx/emb/an15.js"></script>
-<script src="gx/emb/an16.js"></script>
-<script src="gx/emb/an17.js"></script>
-<script src="gx/emb/an18.js"></script>
-<script src="gx/emb/an19.js"></script>
-<script src="gx/emb/an20.js"></script>
-<script src="gx/emb/an21.js"></script>
-<script src="gx/emb/an22.js"></script>
-<script src="gx/emb/an23.js"></script>
-<script src="gx/emb/an24.js"></script>
-<script src="gx/emb/an25.js"></script>
-<script src="gx/emb/c41.js"></script>
-<script src="gx/emb/c42.js"></script>
-<script src="gx/emb/c43.js"></script>
-<script src="gx/emb/c44.js"></script>
-<script src="gx/emb/c45.js"></script>
-<script src="gx/emb/c46.js"></script>
-<script src="gx/emb/c47.js"></script>
-<script src="gx/emb/c48.js"></script>
-<script src="gx/emb/c49.js"></script>
-<script src="gx/emb/c410.js"></script>
-<script src="gx/emb/c411.js"></script>
-<script src="gx/emb/c412.js"></script>
-<script src="gx/emb/c413.js"></script>
-<script src="gx/emb/c414.js"></script>
-<script src="gx/emb/c415.js"></script>
-<script src="gx/emb/bn1.js"></script>
-<script src="gx/emb/bn2.js"></script>
-<script src="gx/emb/dw1.js"></script>
-<script src="gx/emb/dw2.js"></script>
-<script src="gx/emb/dw3.js"></script>
-<script src="gx/emb/dw4.js"></script>
-<script src="gx/emb/dw5.js"></script>
-<script src="gx/emb/dw6.js"></script>
-<script src="gx/emb/dw7.js"></script>
-<script src="gx/emb/dw8.js"></script>
-<script src="gx/emb/dw9.js"></script>
-<script src="gx/emb/dw10.js"></script>
-<script src="gx/emb/dw11.js"></script>
-<script src="gx/emb/sp1.js"></script>
-<script src="gx/emb/sp2.js"></script>
-<script src="gx/emb/sp3.js"></script>
-<script src="gx/emb/sp4.js"></script>
-<script src="gx/emb/sp5.js"></script>
-<script src="gx/emb/sp6.js"></script>
-<script src="gx/emb/sp7.js"></script>
-<script src="gx/emb/s31.js"></script>
-<script src="gx/emb/s32.js"></script>
-<script src="gx/emb/s33.js"></script>
-<script src="gx/emb/s34.js"></script>
-<script src="gx/emb/s35.js"></script>
-<script src="gx/emb/s36.js"></script>
-<script src="gx/emb/s37.js"></script>
-<script src="gx/emb/s21.js"></script>
-<script src="gx/emb/s22.js"></script>
-<script src="gx/emb/s23.js"></script>
-<script src="gx/emb/s24.js"></script>
-<script src="gx/emb/s25.js"></script>
-<script src="gx/emb/s26.js"></script>
-<script src="gx/emb/s27.js"></script>
-<script src="gx/emb/el1.js"></script>
-<script src="gx/emb/el2.js"></script>
-<script src="gx/emb/el3.js"></script>
-<script src="gx/emb/el4.js"></script>
-<script src="gx/emb/el5.js"></script>
-<script src="gx/emb/el6.js"></script>
-<script src="gx/emb/el7.js"></script>
-<script src="gx/emb/el8.js"></script>
-<script src="gx/emb/el9.js"></script>
-<script src="gx/emb/el10.js"></script>
-<script src="gx/emb/el11.js"></script>
-<script src="gx/emb/el12.js"></script>
-<script src="gx/emb/el13.js"></script>
-<script src="gx/emb/el14.js"></script>
-<script src="gx/emb/el15.js"></script>
-<script src="gx/emb/el16.js"></script>
-<script src="gx/emb/el17.js"></script>
-<script src="gx/emb/el18.js"></script>
-<script src="gx/emb/el19.js"></script>
-<script src="gx/emb/ky1.js"></script>
-<script src="gx/emb/ky2.js"></script>
-<script src="gx/emb/ky3.js"></script>
-<script src="gx/emb/ky4.js"></script>
-<script src="gx/emb/ky5.js"></script>
-<script src="gx/emb/ky6.js"></script>
-<script src="gx/emb/ky7.js"></script>
-<script src="gx/emb/ky8.js"></script>
-<script src="gx/emb/ky9.js"></script>
-<script src="gx/emb/ky10.js"></script>
-<script src="gx/emb/ky11.js"></script>
-<script src="gx/emb/bk1.js"></script>
-<script src="gx/emb/bk2.js"></script>
-<script src="gx/emb/bk3.js"></script>
-<script src="gx/emb/bk4.js"></script>
-<script src="gx/emb/bk5.js"></script>
-<script src="gx/emb/bk6.js"></script>
-<script src="gx/emb/bk7.js"></script>
-<script src="gx/emb/bk8.js"></script>
-<script src="gx/emb/bk9.js"></script>
-<script src="gx/emb/bk10.js"></script>
-<script src="gx/emb/bk11.js"></script>
-<script src="gx/emb/bk12.js"></script>
-<script src="gx/emb/bk13.js"></script>
-<script src="gx/emb/bk14.js"></script>
-<script src="gx/emb/bk15.js"></script>
-<script src="gx/emb/bk16.js"></script>
-<script src="gx/emb/bk17.js"></script>
-<script src="gx/emb/bk18.js"></script>
-<script src="gx/emb/bk19.js"></script>
-<script src="gx/emb/bk20.js"></script>
-<script src="gx/emb/bk21.js"></script>
-<script src="gx/emb/bk22.js"></script>
-<script src="gx/emb/bk23.js"></script>
-<script src="gx/emb/bk24.js"></script>
-<script src="gx/emb/bk25.js"></script>
-<script src="gx/emb/kbc1.js"></script>
-<script src="gx/emb/kbc2.js"></script>
-<script src="gx/emb/kbs1.js"></script>
-<script src="gx/emb/kbs2.js"></script>
-<script src="gx/emb/kbs3.js"></script>
-<script src="gx/emb/kbs4.js"></script>
-<script src="gx/emb/kbh1.js"></script>
-<script src="gx/emb/kbo1.js"></script>
-<script src="gx/emb/kbo2.js"></script>
-<script src="gx/emb/ksp1.js"></script>
-<script src="gx/emb/ksq1.js"></script>
-<script src="gx/emb/kdj1.js"></script>
-<script src="gx/emb/kdj2.js"></script>
-<script src="gx/emb/kdj3.js"></script>
-<script src="gx/emb/kdj4.js"></script>
-<script src="gx/emb/ktr1.js"></script>
-<script src="gx/emb/kl11.js"></script>
-<script src="gx/emb/kl21.js"></script>
-<script src="gx/emb/kl31.js"></script>
-<script src="gx/emb/kl32.js"></script>
-<script src="gx/emb/kvd1.js"></script>
-<script src="gx/emb/kvs1.js"></script>
-<script src="gx/emb/kvt1.js"></script>
-<script src="gx/emb/kvt2.js"></script>
-<script src="gx/emb/kvc1.js"></script>
-<script src="gx/emb/kvh1.js"></script>
-<script src="gx/emb/kvb1.js"></script>
-<script src="gx/emb/kdf1.js"></script>
-<script src="gx/emb/kpo1.js"></script>
-<script src="gx/emb/kdb1.js"></script>
-<script src="gx/emb/kne1.js"></script>
-<script src="gx/emb/kne2.js"></script>
-<script src="gx/emb/kne3.js"></script>
-<script src="gx/emb/kcn1.js"></script>
-<script src="gx/emb/kcn2.js"></script>
-<script src="gx/emb/kch1.js"></script>
-<script src="gx/emb/kch2.js"></script>
-<script src="gx/emb/kch3.js"></script>
-<script src="gx/emb/kpl1.js"></script>
-<script src="gx/emb/kpl2.js"></script>
-<script src="gx/emb/kef1.js"></script>
-<script src="gx/emb/kef2.js"></script>
-<script src="gx/emb/kef3.js"></script>
-<script src="gx/emb/kef4.js"></script>
-<script src="gx/emb/kef5.js"></script>
-<script src="gx/emb/kac1.js"></script>
-<script src="gx/emb/klc1.js"></script>
-<script src="gx/emb/klc2.js"></script>
-<script type="module">import * as THREE from 'three';
+<script>
+(function () {
+  var LIST = ["gx/emb/ap1.js", "gx/emb/ap2.js", "gx/emb/ap3.js", "gx/emb/sg1.js", "gx/emb/sg2.js", "gx/emb/sg3.js", "gx/emb/sg4.js", "gx/emb/sg5.js", "gx/emb/sg6.js", "gx/emb/sg7.js", "gx/emb/sg8.js", "gx/emb/sg9.js", "gx/emb/sg10.js", "gx/emb/sg11.js", "gx/emb/sg12.js", "gx/emb/sg13.js", "gx/emb/sg14.js", "gx/emb/sg15.js", "gx/emb/sg16.js", "gx/emb/sg17.js", "gx/emb/sg18.js", "gx/emb/sg19.js", "gx/emb/bt1.js", "gx/emb/ws1.js", "gx/emb/ws2.js", "gx/emb/wn1.js", "gx/emb/sd1.js", "gx/emb/sd2.js", "gx/emb/sw1.js", "gx/emb/wd1.js", "gx/emb/rr1.js", "gx/emb/rr2.js", "gx/emb/rr3.js", "gx/emb/f91.js", "gx/emb/f92.js", "gx/emb/f93.js", "gx/emb/f94.js", "gx/emb/mc1.js", "gx/emb/mc2.js", "gx/emb/mc3.js", "gx/emb/mc4.js", "gx/emb/cm1.js", "gx/emb/cm2.js", "gx/emb/cm3.js", "gx/emb/cm4.js", "gx/emb/cm5.js", "gx/emb/cm6.js", "gx/emb/cm7.js", "gx/emb/cm8.js", "gx/emb/cm9.js", "gx/emb/cm10.js", "gx/emb/cm11.js", "gx/emb/cm12.js", "gx/emb/cm13.js", "gx/emb/cm14.js", "gx/emb/cm15.js", "gx/emb/al1.js", "gx/emb/al2.js", "gx/emb/al3.js", "gx/emb/al4.js", "gx/emb/al5.js", "gx/emb/al6.js", "gx/emb/al7.js", "gx/emb/al8.js", "gx/emb/al9.js", "gx/emb/al10.js", "gx/emb/al11.js", "gx/emb/al12.js", "gx/emb/al13.js", "gx/emb/al14.js", "gx/emb/al15.js", "gx/emb/al16.js", "gx/emb/al17.js", "gx/emb/ar1.js", "gx/emb/ar2.js", "gx/emb/ar3.js", "gx/emb/ar4.js", "gx/emb/ar5.js", "gx/emb/ar6.js", "gx/emb/ar7.js", "gx/emb/ar8.js", "gx/emb/ar9.js", "gx/emb/ar10.js", "gx/emb/ar11.js", "gx/emb/ar12.js", "gx/emb/ar13.js", "gx/emb/ar14.js", "gx/emb/ar15.js", "gx/emb/ar16.js", "gx/emb/ar17.js", "gx/emb/ar18.js", "gx/emb/ar19.js", "gx/emb/ar20.js", "gx/emb/ar21.js", "gx/emb/ar22.js", "gx/emb/ar23.js", "gx/emb/ar24.js", "gx/emb/ar25.js", "gx/emb/ar26.js", "gx/emb/ar27.js", "gx/emb/ar28.js", "gx/emb/ar29.js", "gx/emb/ad1.js", "gx/emb/ad2.js", "gx/emb/ad3.js", "gx/emb/ad4.js", "gx/emb/ad5.js", "gx/emb/ad6.js", "gx/emb/ad7.js", "gx/emb/ad8.js", "gx/emb/ad9.js", "gx/emb/ad10.js", "gx/emb/ad11.js", "gx/emb/ad12.js", "gx/emb/ad13.js", "gx/emb/ad14.js", "gx/emb/bb1.js", "gx/emb/bb2.js", "gx/emb/bb3.js", "gx/emb/bb4.js", "gx/emb/bb5.js", "gx/emb/bb6.js", "gx/emb/bb7.js", "gx/emb/an1.js", "gx/emb/an2.js", "gx/emb/an3.js", "gx/emb/an4.js", "gx/emb/an5.js", "gx/emb/an6.js", "gx/emb/an7.js", "gx/emb/an8.js", "gx/emb/an9.js", "gx/emb/an10.js", "gx/emb/an11.js", "gx/emb/an12.js", "gx/emb/an13.js", "gx/emb/an14.js", "gx/emb/an15.js", "gx/emb/an16.js", "gx/emb/an17.js", "gx/emb/an18.js", "gx/emb/an19.js", "gx/emb/an20.js", "gx/emb/an21.js", "gx/emb/an22.js", "gx/emb/an23.js", "gx/emb/an24.js", "gx/emb/an25.js", "gx/emb/c41.js", "gx/emb/c42.js", "gx/emb/c43.js", "gx/emb/c44.js", "gx/emb/c45.js", "gx/emb/c46.js", "gx/emb/c47.js", "gx/emb/c48.js", "gx/emb/c49.js", "gx/emb/c410.js", "gx/emb/c411.js", "gx/emb/c412.js", "gx/emb/c413.js", "gx/emb/c414.js", "gx/emb/c415.js", "gx/emb/bn1.js", "gx/emb/bn2.js", "gx/emb/dw1.js", "gx/emb/dw2.js", "gx/emb/dw3.js", "gx/emb/dw4.js", "gx/emb/dw5.js", "gx/emb/dw6.js", "gx/emb/dw7.js", "gx/emb/dw8.js", "gx/emb/dw9.js", "gx/emb/dw10.js", "gx/emb/dw11.js", "gx/emb/sp1.js", "gx/emb/sp2.js", "gx/emb/sp3.js", "gx/emb/sp4.js", "gx/emb/sp5.js", "gx/emb/sp6.js", "gx/emb/sp7.js", "gx/emb/s31.js", "gx/emb/s32.js", "gx/emb/s33.js", "gx/emb/s34.js", "gx/emb/s35.js", "gx/emb/s36.js", "gx/emb/s37.js", "gx/emb/s21.js", "gx/emb/s22.js", "gx/emb/s23.js", "gx/emb/s24.js", "gx/emb/s25.js", "gx/emb/s26.js", "gx/emb/s27.js", "gx/emb/el1.js", "gx/emb/el2.js", "gx/emb/el3.js", "gx/emb/el4.js", "gx/emb/el5.js", "gx/emb/el6.js", "gx/emb/el7.js", "gx/emb/el8.js", "gx/emb/el9.js", "gx/emb/el10.js", "gx/emb/el11.js", "gx/emb/el12.js", "gx/emb/el13.js", "gx/emb/el14.js", "gx/emb/el15.js", "gx/emb/el16.js", "gx/emb/el17.js", "gx/emb/el18.js", "gx/emb/el19.js", "gx/emb/ky1.js", "gx/emb/ky2.js", "gx/emb/ky3.js", "gx/emb/ky4.js", "gx/emb/ky5.js", "gx/emb/ky6.js", "gx/emb/ky7.js", "gx/emb/ky8.js", "gx/emb/ky9.js", "gx/emb/ky10.js", "gx/emb/ky11.js", "gx/emb/bk1.js", "gx/emb/bk2.js", "gx/emb/bk3.js", "gx/emb/bk4.js", "gx/emb/bk5.js", "gx/emb/bk6.js", "gx/emb/bk7.js", "gx/emb/bk8.js", "gx/emb/bk9.js", "gx/emb/bk10.js", "gx/emb/bk11.js", "gx/emb/bk12.js", "gx/emb/bk13.js", "gx/emb/bk14.js", "gx/emb/bk15.js", "gx/emb/bk16.js", "gx/emb/bk17.js", "gx/emb/bk18.js", "gx/emb/bk19.js", "gx/emb/bk20.js", "gx/emb/bk21.js", "gx/emb/bk22.js", "gx/emb/bk23.js", "gx/emb/bk24.js", "gx/emb/bk25.js", "gx/emb/kbc1.js", "gx/emb/kbc2.js", "gx/emb/kbs1.js", "gx/emb/kbs2.js", "gx/emb/kbs3.js", "gx/emb/kbs4.js", "gx/emb/kbh1.js", "gx/emb/kbo1.js", "gx/emb/kbo2.js", "gx/emb/ksp1.js", "gx/emb/ksq1.js", "gx/emb/kdj1.js", "gx/emb/kdj2.js", "gx/emb/kdj3.js", "gx/emb/kdj4.js", "gx/emb/ktr1.js", "gx/emb/kl11.js", "gx/emb/kl21.js", "gx/emb/kl31.js", "gx/emb/kl32.js", "gx/emb/kvd1.js", "gx/emb/kvs1.js", "gx/emb/kvt1.js", "gx/emb/kvt2.js", "gx/emb/kvc1.js", "gx/emb/kvh1.js", "gx/emb/kvb1.js", "gx/emb/kdf1.js", "gx/emb/kpo1.js", "gx/emb/kdb1.js", "gx/emb/kne1.js", "gx/emb/kne2.js", "gx/emb/kne3.js", "gx/emb/kcn1.js", "gx/emb/kcn2.js", "gx/emb/kch1.js", "gx/emb/kch2.js", "gx/emb/kch3.js", "gx/emb/kpl1.js", "gx/emb/kpl2.js", "gx/emb/kef1.js", "gx/emb/kef2.js", "gx/emb/kef3.js", "gx/emb/kef4.js", "gx/emb/kef5.js", "gx/emb/kac1.js", "gx/emb/klc1.js", "gx/emb/klc2.js"];
+  var TOTAL = LIST.length, TIMEOUT = 20000, PRE = 6;
+  var state = [], preloaded = {}, done = 0, nextIdx = 0, running = false, failTimeout = false;
+  for (var i = 0; i < TOTAL; i++) state.push(0);
+  var pctEl = document.getElementById('lpct'), cntEl = document.getElementById('lcnt'), barEl = document.getElementById('lbar');
+  var errBox = document.getElementById('lerr'), errMsg = document.getElementById('lerrm'), retryBtn = document.getElementById('lretry');
+  function upd() {
+    var p = Math.floor(done / TOTAL * 90);
+    if (pctEl) pctEl.textContent = p + '%';
+    if (cntEl) cntEl.textContent = '第 ' + done + ' / 共 ' + TOTAL + ' 个文件';
+    if (barEl) barEl.style.width = p + '%';
+  }
+  function yieldFrame() {
+    return new Promise(function (r) {
+      var hit = false; function f() { if (!hit) { hit = true; r(); } }
+      if (window.requestAnimationFrame) requestAnimationFrame(function () { setTimeout(f, 0); });
+      setTimeout(f, 90);
+    });
+  }
+  function showErr(name, timedOut) {
+    if (errMsg) errMsg.textContent = '加载失败：' + name + (timedOut ? '（超时）' : '');
+    if (errBox) errBox.style.display = 'block';
+    if (cntEl) cntEl.textContent = '已加载 ' + done + ' / 共 ' + TOTAL + ' 个文件';
+  }
+  function hideErr() { if (errBox) errBox.style.display = 'none'; }
+  // Warm the download cache for upcoming files (downloads only, nothing executes).
+  function warm(from) {
+    for (var j = from; j < Math.min(TOTAL, from + PRE); j++) {
+      if (preloaded[j]) continue; preloaded[j] = 1;
+      var l = document.createElement('link');
+      l.rel = 'preload'; l.as = 'script'; l.href = LIST[j];
+      document.head.appendChild(l);
+    }
+  }
+  // Strictly one file in flight: a successor is only inserted after its
+  // predecessor has executed, so push-order and exactly-once both hold.
+  function loadOne(i) {
+    return new Promise(function (resolve) {
+      var s = document.createElement('script');
+      var settled = false;
+      var to = setTimeout(function () { finish('timeout'); }, TIMEOUT);
+      function finish(r) {
+        if (settled) return; settled = true; clearTimeout(to);
+        s.onload = s.onerror = null;
+        if (r !== 'ok') { try { s.remove(); } catch (e) {} }
+        resolve(r);
+      }
+      s.onload = function () { finish('ok'); };
+      s.onerror = function () { finish('error'); };
+      s.src = LIST[i];
+      document.head.appendChild(s);
+    });
+  }
+  async function run() {
+    if (running) return; running = true; hideErr();
+    while (nextIdx < TOTAL) {
+      if (state[nextIdx]) { nextIdx++; continue; }
+      warm(nextIdx);
+      var r = await loadOne(nextIdx);
+      if (r === 'ok') {
+        state[nextIdx] = 1; done++; nextIdx++; upd();
+        if (done % 4 === 0) await yieldFrame();
+      } else {
+        running = false;
+        failTimeout = (r === 'timeout');
+        showErr(LIST[nextIdx], failTimeout);
+        return;
+      }
+    }
+    running = false;
+    window.__embDone = true;
+    if (cntEl) cntEl.textContent = '第 ' + TOTAL + ' / 共 ' + TOTAL + ' 个文件 · 正在进入游戏…';
+    var src = document.getElementById('mainmod');
+    if (src) {
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.textContent = src.textContent;
+      document.body.appendChild(s);
+    }
+  }
+  if (retryBtn) retryBtn.addEventListener('click', function () {
+    // A file that errored never executed: resume in place from it.
+    // A timed-out file may be in an unknown state: restart cleanly.
+    if (failTimeout) { location.reload(); return; }
+    run();
+  });
+  upd();
+  run();
+})();
+</script>
+<script type="text/plain" id="mainmod">import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
@@ -443,7 +235,7 @@ const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.2, 90
 const clock = new THREE.Clock();
 const loadMgr = new THREE.LoadingManager();
 loadMgr.onProgress = (u, l, t) => { setLoad(l / t); };
-function setLoad(p) { const el = document.getElementById('lbar'); if (el) el.style.width = (p * 100).toFixed(0) + '%'; }
+function setLoad(p) { const q = window.__embDone ? (0.9 + 0.1 * p) : p; const el = document.getElementById('lbar'); if (el) el.style.width = (q * 100).toFixed(0) + '%'; const pc = document.getElementById('lpct'); if (pc && window.__embDone) pc.textContent = Math.floor(q * 100) + '%'; }
 const texLoader = new THREE.TextureLoader(loadMgr); texLoader.setCrossOrigin('anonymous');
 function ptex(name, rx, ry, srgb) { const t = texLoader.load(texUrl(name)); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry || rx); t.anisotropy = 8; if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t; }
 function pbr(name, ns = 1, color) { return new THREE.MeshStandardMaterial({ map: ptex(name + '_diff', 1, 1, true), normalMap: ptex(name + '_nor_gl', 1, 1), normalScale: new THREE.Vector2(ns, ns), roughnessMap: ptex(name + '_rough', 1, 1), roughness: 1, color: color || 0xffffff }); }
