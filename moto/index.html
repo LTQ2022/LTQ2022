@@ -5302,7 +5302,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB) GXCLUB =
     S.visible = false;
     scene.add(S); scene.add(S.target); lights.push(S); return S;
   }
-  const keySpot = mkSpot(roomC, 0, -5.0, 5.6, 0, -11.4, 0.7, 0xffe9c4, 340, 0.95);
+  const keySpot = mkSpot(roomC, 0, -5.0, 5.6, 0, -11.4, 0.7, 0xffe9c4, 280, 0.95);
   const keySpotV = mkSpot(roomV, 0, -3.5, 4.6, 0, -7.6, 0.6, 0xffe9c4, 130, 0.7);
   const fillL = mkPoint(roomC, -5.5, -8.5, 3.0, 0xffe2b8, 26, 13);
   const fillR = mkPoint(roomC, 5.5, -8.5, 3.0, 0xffe2b8, 26, 13);
@@ -5377,7 +5377,9 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB) GXCLUB =
   job('__KVHB', g => prop(g, roomV, 10.62, -0.5, 0, Math.PI / 2));
   job('__KVBB', g => prop(g, roomV, 10.5, -0.5, 0.55, Math.PI / 2));
   job('__KPOB', g => prop(g, roomC, 0, -11.4, 0.5, 0));
-  job('__KNEB', g => prop(g, roomC, 0, -13.9, 1.3, 0));
+  // stage neon sign: its letter materials ship with full-strength emissive maps and blow out
+  // to a white slab under the key spot -- run them at 0.45 so the lettering stays readable
+  job('__KNEB', g => { g.scene.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.emissiveMap) m.emissiveIntensity = (m.emissiveIntensity == null ? 1 : m.emissiveIntensity) * 0.45; }); }); prop(g, roomC, 0, -13.9, 1.3, 0); });
   job('__KCNB', g => prop(g, roomC, -17.55, -0.5, 2.75, Math.PI / 2));
   job('__KCHB', g => prop(g, roomV, 0, 0.5, 3.55, 0));
   job('__KACB', g => prop(g, roomV, 3.8, 5.8, 0, Math.PI + 0.5));
@@ -5432,7 +5434,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB) GXCLUB =
       lA.intensity = 13 * eCur; lB.intensity = 13 * eCur;
       hallKey.intensity = 34 * (0.75 + 0.45 * eCur);
       rimL.intensity = 46 * eCur; rimR.intensity = 46 * eCur;
-      keySpot.intensity = 340 * (0.8 + 0.35 * eCur) * ((ei === 2 && (t % 0.9) < 0.07) ? 1.9 : 1);
+      keySpot.intensity = 280 * (0.8 + 0.35 * eCur) * ((ei === 2 && (t % 0.9) < 0.07) ? 1.9 : 1);
       fillL.intensity = 26 * (0.7 + 0.5 * eCur); fillR.intensity = 26 * (0.7 + 0.5 * eCur);
       keySpotV.intensity = 130 * (0.8 + 0.3 * eCur);
       barAmb.intensity = 15 + 3 * Math.sin(t * 0.8);
