@@ -1192,7 +1192,7 @@ function gxClubBuilding(W) {
 
   // ---- minimap POI + GXROOMS descriptor (field-aligned to room()) ----
   poi.club = { id: 'club', x: CX, z: CZ - 16, icon: '🎵', name: '夜店' };
-  const counter = L(-14.4, -0.5), staff = L(-16.66, -0.5);   // ADJ: Quick had counter in the corridor and staff at -18.4 (inside the west wall); old-club local geometry restored
+  const counter = L(-14.4, -8.5), staff = L(-16.66, -8.5);   // ADJ: Quick had counter in the corridor and staff at -18.4 (inside the west wall); old-club local geometry restored. R13: whole bar group shifted Δlz=-8.0 to the stage-side corner of the same wall (user phone verdict: bar belongs in the empty upper-left spot of his photo = bar-side wall, stage end); shelf back end now at lz -14.0, 0.05 clear of the back-wall inner face
   GXROOMS.push({
     id: 'club', x0: CX - W2, x1: CX + W2, z0: CZ - D2, z1: CZ + D2,
     h: H_HALL, yaw: YAW, cx: CX, cz: CZ, W: W_HALL, D: D_HALL, M4,
@@ -3725,6 +3725,7 @@ function crash(kind, latDir) {
 
 // ---------------- free camera + speed lines ----------------
 let camMode = 'chase'; var orb = { theta: 0.9, phi: 0.25, dist: 3.2 };
+let revK = 0;   // R13 reverse-camera blend for the bike chase path (FOOT-driven cars keep their own F.revK in FOOT)
 function setCamMode(m) { if (m === 'free' && camMode !== 'free') { orb.theta = 0; orb.phi = 0.25; } camMode = m; const b = document.getElementById('bCam'); if (b) b.innerHTML = m === 'free' ? '🎥<span class=lbl> 追尾</span>' : '👁<span class=lbl> 自由视角</span>'; }
 document.getElementById('bCam')?.addEventListener('click', () => setCamMode(camMode === 'free' ? 'chase' : 'free'));
 const orbT = new Map(); let pinch0 = 0, pinchD0 = 0;
@@ -3777,7 +3778,8 @@ function update(dt, last = true, fdt = dt) {
     const cap = CP ? CP.cap[gear - 1][bi] : gear === 1 ? (boost ? 12.5 : 6.0) : gear === 2 ? (boost ? 12.0 : 5.0) : (boost ? 14.0 : 5.0);
     const MASS = CP ? CP.mass : MASS0;
     let acc = 0;
-    if (superG) { // 超级挡: 0-1000 km/h in ~13 s on 加速, ▲ alone tops out at ~820 km/h
+    if (thr && v < -0.2) { acc = CTL.brk * Math.max(thrA, 0.35); } // R13 fix: throttle pressed while rolling backwards brakes to a stop first, then normal drive takes over at v >= -0.2. Previously this state applied NO force at all (throttle gated on v >= -0.2, brake branch needs input.back): the bike sat at reverse speed forever with the reverse camera stuck in front -- found by the R13 regression probe (v pinned at -2.16 with fwd held). Cars never had the trap (carTick brakes on throttle).
+    else if (superG) { // 超级挡: 0-1000 km/h in ~13 s on 加速, ▲ alone tops out at ~820 km/h
       if (thr && v >= -0.2) { const vt = boost ? SUPER_V * 1.06 : SUPER_V * 0.82; acc = v < vt ? ((boost ? 36 : 26) * (1 - Math.pow(Math.max(0, v) / vt, 5)) + (v < 25 ? 3 : 0)) * thrA : (vt - v) * 0.6; }
     } else if (thr && v >= -0.2) { acc = thrA * Math.min(cap, Pw / (MASS * Math.max(v, 1))); if (v > topV) acc = Math.min(acc, (topV - v) * 2); }
     if (input.back) {
@@ -3863,7 +3865,13 @@ function update(dt, last = true, fdt = dt) {
   // ctl: bike chase camera trails the heading slightly (you see into the corner); snapped on foot / FP / free / crash so those paths are unchanged
   if (ctlCamYaw === null || crashed || camMode === 'free' || (FOOT && FOOT.on)) ctlCamYaw = yaw0; else ctlCamYaw += angDiff(yaw0, ctlCamYaw) * Math.min(1, dt * (8 + spd * 0.25));
   const yaw = ctlCamYaw;
-  const dist = (3.9 - Math.min(0.8, spd / 100) + THREE.MathUtils.clamp(st.lastAcc * 0.025, -0.15, 0.3)) * (camera.aspect < 1 ? 1.45 : 1); const back = new THREE.Vector3(-Math.sin(yaw) * dist, 1.05 - Math.min(0.3, spd / 280), -Math.cos(yaw) * dist);
+  // R13 reverse camera (bike chase path): while reversing in chase, revK eases to 1 and
+  // the camera swings to the front of the vehicle looking back at it (you see where the
+  // tail is backing into); rolling forward again eases it back behind. Hysteresis on
+  // st.v (engage < -0.8, release > -0.25); free mode and FOOT-driven cars never read revK.
+  if (camMode === 'chase' && !crashed && !(FOOT && FOOT.on)) { if (st.v < -0.8) revK = Math.min(1, revK + dt * 1.9); else if (st.v > -0.25) revK = Math.max(0, revK - dt * 1.9); } else revK = Math.max(0, revK - dt * 1.9);
+  const yawC = yaw + Math.PI * revK;
+  const dist = (3.9 - Math.min(0.8, spd / 100) + THREE.MathUtils.clamp(st.lastAcc * 0.025, -0.15, 0.3)) * (camera.aspect < 1 ? 1.45 : 1); const back = new THREE.Vector3(-Math.sin(yawC) * dist, 1.05 - Math.min(0.3, spd / 280), -Math.cos(yawC) * dist);
   let want = tgt.clone().add(back); if (crashed) want.y = Math.max(want.y, tgt.y + 1.5);
   // first person (on-foot FP / M4 cockpit) must own the camera outright: any canvas drag flips
   // camMode to 'free' (orbDrag) and on foot it never recentres back, so without this override the
@@ -3871,18 +3879,15 @@ function update(dt, last = true, fdt = dt) {
   // (measured: right -2.43 m, dist 2.66 m -- the user's 'first person is not on the person at all').
   const fpOvr = !!(FOOT && FOOT.on && FOOT.F && (FOOT.F.fp || FOOT.F.cockpit));
   if (FOOT && FOOT.on && (camMode !== 'free' || fpOvr)) FOOT.camWant(tgt, want);
-  // free-orbit auto-recentre (user request, mainstream racing-game behaviour): while DRIVING, once
-  // the player has let go of the look-drag for ~0.8 s, ease theta/phi back behind the vehicle and
-  // hand control back to the chase camera, so steering always lines up with the tail and never
-  // feels reversed. Never runs on foot (FOOT.on guard) -- walking keeps a free observation camera.
-  if (camMode === 'free' && !crashed && !(FOOT && FOOT.on) && orbT.size === 0 && ((orb.lastDrag !== undefined && tGlobal - orb.lastDrag > 0.8) || Math.abs(st.v) > 2)) {
-    orb.theta += angDiff(0, orb.theta) * Math.min(1, dt * 3.2);
-    orb.phi += (0.25 - orb.phi) * Math.min(1, dt * 3.2);
-    if (Math.abs(orb.theta) < 0.02 && Math.abs(orb.phi - 0.25) < 0.02) { orb.theta = 0; orb.phi = 0.25; setCamMode('chase'); }
-  }
+  // R13 (user ruling, supersedes the 2026-11-25 auto-recentre): the free view is FULLY
+  // manual -- once the player drags the orbit, nothing eases it back and the mode never
+  // flips itself back to chase. The old free-orbit auto-recentre block that lived here
+  // (ease theta/phi to 0/0.25 after 0.8 s, then setCamMode('chase')) is DELETED by request.
+  // Chase behaviour is untouched; the setCamMode() entry reset stays (it defines where a
+  // fresh free view starts and is part of the verified swipe fix, not a restore).
   if (camMode === 'free' && !fpOvr) { const ctr = tgt.clone().add(new THREE.Vector3(0, -0.4, 0)); const a = (crashed ? 0 : st.yaw) + orb.theta; want = ctr.clone().add(new THREE.Vector3(-Math.sin(a) * Math.cos(orb.phi) * orb.dist, Math.sin(orb.phi) * orb.dist, -Math.cos(a) * Math.cos(orb.phi) * orb.dist)); }
   if (!camInit) { camPos.copy(want); camLook.copy(tgt); camInit = true; }
-  camPos.lerp(want, Math.min(1, dt * (camMode === 'free' ? 40 : crashed ? 1.5 : 11 + spd * 0.45))); camLook.lerp(camMode === 'free' && !fpOvr ? tgt.clone().add(new THREE.Vector3(0, -0.45, 0)) : fpOvr ? tgt : tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5)), Math.min(1, dt * (camMode === 'free' ? 40 : 7 + spd * 0.5)));
+  camPos.lerp(want, Math.min(1, dt * (camMode === 'free' ? 40 : crashed ? 1.5 : 11 + spd * 0.45))); camLook.lerp(camMode === 'free' && !fpOvr ? tgt.clone().add(new THREE.Vector3(0, -0.45, 0)) : fpOvr ? tgt : tgt.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(crashed ? 0 : 2.5 - 3.5 * Math.max(revK, (FOOT && FOOT.on && FOOT.F.revK) || 0))), Math.min(1, dt * (camMode === 'free' ? 40 : 7 + spd * 0.5)));   // R13: the 2.5 look-ahead shrinks through 0 to -1.0 as either reverse blend (bike revK / car F.revK) engages, so the swung-around camera looks back through the vehicle
   const cf = roadFrame(camPos, st.hint); const cy = surfaceY(cf, camPos.x, camPos.z); if (camPos.y < cy + 0.6) camPos.y = cy + 0.6; if (GX) GX.cam(camPos, tgt);
   camera.position.copy(camPos); const kmh0 = spd * 3.6; const sp01 = THREE.MathUtils.clamp((kmh0 - 80) / 220, 0, 1); const hyper = THREE.MathUtils.clamp((kmh0 - 300) / 150, 0, 1);
   const v01 = Math.min(1, spd / SUPER_V); const shake = (!crashed && camMode !== 'free') ? (0.006 + 0.03 * sp01 * sp01 + 0.05 * hyper + superK * (0.012 + 0.04 * v01 * v01)) * (st.off ? 2.5 : 1) : 0; camera.position.x += (Math.random() - 0.5) * shake + Math.sin(tGlobal * 23) * shake * 0.5; camera.position.y += (Math.random() - 0.5) * shake + Math.sin(tGlobal * 31) * shake * 0.4;
@@ -4927,7 +4932,9 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
     [...G.civ, ...G.cops, ...PARKED].forEach(o => { if (o === c || !o.g.visible) return; const dx = c.x - o.x, dz = c.z - o.z; const cy2 = Math.cos(c.yaw), sy2 = Math.sin(c.yaw); const lz = dx * sy2 + dz * cy2, lx = dx * cy2 - dz * sy2; const hx = c.HW + (o.HW || 0.9) + 0.12, hz = ((c.L || 4.6) + (o.L || 4.6)) / 2 + 0.15; if (Math.abs(lx) >= hx || Math.abs(lz) >= hz) return; const mc = c.mass || 1, mo = o.mass || 1; const px = hx - Math.abs(lx), pz = hz - Math.abs(lz); let mx = 0, mz = 0, pen = 0; if (px < pz) { const s = Math.sign(lx) || 1; mx = cy2 * s; mz = -sy2 * s; pen = px; } else { const s = Math.sign(lz) || 1; mx = sy2 * s; mz = cy2 * s; pen = pz; } const p = pen * 0.8; c.x += mx * p * mo / (mc + mo); c.z += mz * p * mo / (mc + mo); o.x -= mx * p * mc / (mc + mo); o.z -= mz * p * mc / (mc + mo); if (o.parked) G.poseCar(o, 0.016); if (Math.abs(c.v) > 8 && tGlobal - (c.bonk || 0) > 0.6) { c.bonk = tGlobal; thump(); G.addHeat(G.cops.indexOf(o) >= 0 ? 90 : 40, G.cops.indexOf(o) >= 0 ? '撞警车！' : '肇事逃逸！'); if (G.cops.indexOf(o) >= 0 && W0.stars === 0) G.setStars(1, '撞警车！'); } c.v *= 0.8; });
     [...PEDS, ...OFF].forEach(p => { if (!p.on || p.st === 'dead') return; const dx = p.x - c.x, dz = p.z - c.z; const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw); const lz = dx * sy + dz * cy, lx = dx * cy - dz * sy; if (Math.abs(lx) < c.HW + 0.35 && Math.abs(lz) < c.L / 2 + 0.3) { if (Math.abs(c.v) > 4) { hitNpc(p, Math.abs(c.v) * 12); thump(); } else { p.x += cy * (lx > 0 ? 0.4 : -0.4); p.z -= sy * (lx > 0 ? 0.4 : -0.4); } } });
     if (GXW.waterDepth) { const wd = GXW.waterDepth(c.x, c.z); if (wd > 1.05) { c.v *= Math.max(0, 1 - dt * 2.4); if (Math.abs(c.v) < 1.15) { G.popup('车冲进海里熄火了！游上岸吧', '#ffb34a'); exitCar(true); return; } } }
-    const e = GXW.ext; c.x = clamp(c.x, e.x0, e.x1); c.z = clamp(c.z, e.z0, e.z1); G.poseCar(c, dt); st.pos.set(c.x, c.y, c.z); st.yaw = c.yaw; st.v = c.v; F.x = c.x; F.y = c.y; F.z = c.z; F.spd = Math.abs(c.v); if (F.carE) F.carE.set(clamp((c.loadMap ? c.loadMap(Math.abs(c.v)) : Math.abs(c.v) / vmax) * 0.72 + 0.3 * thr + (brk && c.v < -0.5 ? 0.18 : 0), 0, 1), true); carDash(c); if (c.lampTick) c.lampTick(brk > 0 ? 1 : 0); }
+    const e = GXW.ext; c.x = clamp(c.x, e.x0, e.x1); c.z = clamp(c.z, e.z0, e.z1); G.poseCar(c, dt); st.pos.set(c.x, c.y, c.z); st.yaw = c.yaw; st.v = c.v; // R13 reverse-camera blend (chase only, never cockpit; free view never reads it): ease toward 1 while reversing, back to 0 rolling forward
+    if (camMode === 'chase' && !F.cockpit) { if (c.v < -0.8) F.revK = Math.min(1, (F.revK || 0) + dt * 1.9); else if (c.v > -0.25) F.revK = Math.max(0, (F.revK || 0) - dt * 1.9); } else if (F.revK) F.revK = Math.max(0, F.revK - dt * 1.9);
+    F.x = c.x; F.y = c.y; F.z = c.z; F.spd = Math.abs(c.v); if (F.carE) F.carE.set(clamp((c.loadMap ? c.loadMap(Math.abs(c.v)) : Math.abs(c.v) / vmax) * 0.72 + 0.3 * thr + (brk && c.v < -0.5 ? 0.18 : 0), 0, 1), true); carDash(c); if (c.lampTick) c.lampTick(brk > 0 ? 1 : 0); }
   // ================= on-foot movement =================
   function footTick(dt) { const P = PL; if (!P) return;
     let mx = 0, mz = 0; // desired move in camera space (x right, z forward)
@@ -5219,7 +5226,7 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
     const fallK = F.dead > 0 ? Math.min(1, (F.deadFall = (F.deadFall || 0) + dt * 3)) : F.down > 0 ? Math.min(1, F.down * 2) * 0.95 : 0; if (fallK > 0) { P.g.rotation.x = -Math.PI / 2 * fallK; P.g.position.y += 0.1 * fallK; }
     st.pos.set(F.x, F.y, F.z); st.v = 0; st.yaw = F.camYaw;
     F.camHold = (F.camHold || 0) - dt;
-    if (F.camHold <= 0 && F.spd > 0.8) { // camHold semantics unchanged: 1.5 s after a drag, then ease toward the walking direction
+    if (F.camHold <= 0 && F.spd > 0.8 && camMode !== 'free') { // camHold semantics unchanged: 1.5 s after a drag, then ease toward the walking direction. R13: gated off in free view -- the 👁 free camera is fully manual and never eases back (chase keeps the ease, per user ruling)
       const dA = Math.abs(angDiff(F.head, F.camYaw)); const w = (dA < 1.6 ? 1 : 1 - 0.75 * Math.min(1, (dA - 1.6) / (Math.PI - 1.6))) * (F.fp ? 0.5 : 1);
       F.camYaw += angDiff(F.head, F.camYaw) * Math.min(1, dt * (CTL.footCam0 + CTL.footCamK * Math.min(1, F.spd / 4.7)) * w); }
     const nv = nearVehicle(); bEnter.style.display = nv && !F.busy ? 'flex' : 'none'; bEnter.textContent = !nv ? '' : nv.bike ? '🏍 上车' : nv.special ? nv.special.label : G.cops.indexOf(nv) >= 0 ? '🚓 抢警车' : STOLEN.indexOf(nv) < 0 ? '🚗 抢车' : '🚗 上车';
@@ -5253,7 +5260,7 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
     const eh = (PL && PL.eyeH ? PL.eyeH : 1.45) + (F.eyeOff || 0) - (F.dead > 0 ? 1.0 : 0);
     if (F.fp) { const cp = Math.cos(F.camPitch); return camT.set(F.x + Math.sin(F.camYaw) * cp * 3, F.y + eh - Math.sin(F.camPitch) * 3, F.z + Math.cos(F.camYaw) * cp * 3); }
     return camT.set(F.x, F.y + eh, F.z); }
-  function camWant(tg, w) { if (F.camOv) return F.camOv.want(tg, w); if (F.mode === 'veh' && F.vo) return F.vo.camWant(tg, w); if (F.mode === 'car') { const c = F.veh; if (F.cockpit && c && c.pcId === 'm4cs') return cockpitEye(c, w); const big = Math.max(0, (c.L || 4.6) - 4.6), d = 6.6 + big * 0.95 + Math.min(2, Math.abs(c.v) * 0.04); return w.set(tg.x - Math.sin(c.yaw) * d, tg.y + 1.35 + big * 0.25, tg.z - Math.cos(c.yaw) * d); } // longer / taller vehicles (bus, truck, IFV): camera further back and higher
+  function camWant(tg, w) { if (F.camOv) return F.camOv.want(tg, w); if (F.mode === 'veh' && F.vo) return F.vo.camWant(tg, w); if (F.mode === 'car') { const c = F.veh; if (F.cockpit && c && c.pcId === 'm4cs') return cockpitEye(c, w); const big = Math.max(0, (c.L || 4.6) - 4.6), d = 6.6 + big * 0.95 + Math.min(2, Math.abs(c.v) * 0.04), ya = c.yaw + Math.PI * (F.revK || 0); return w.set(tg.x - Math.sin(ya) * d, tg.y + 1.35 + big * 0.25, tg.z - Math.cos(ya) * d); } // longer / taller vehicles (bus, truck, IFV): camera further back and higher. R13: ya carries the reverse blend -- at F.revK=1 the camera sits off the car's nose looking back at it
     if (F.fp) { const eh = (PL && PL.eyeH ? PL.eyeH : 1.45) + (F.eyeOff || 0); return w.set(F.x, F.y + eh, F.z); }
     if (F.hurt > 0.6) { tg.x += (Math.random() - 0.5) * 0.08; tg.y += (Math.random() - 0.5) * 0.08; }
     const d = F.camDist || 3.6, ph = F.camPitch, a = F.camYaw;
@@ -5407,6 +5414,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   if (!roomC) return null;                               // >>坑2: roomV dependency GONE
   const SLAB = roomC.slabY, STAGE = roomC.stageY, DANCE = roomC.danceY, SOFA = SLAB + 0.42;
   const dancers = [], statues = [], dynProps = [], lights = [];
+  const beamRefs = { grp: null, lights: [] };   // R13 disco beams (filled by the __KDBB job; exposed for QA probes)
   const innerExtra = [];   // extra interior groups built procedurally (ceiling hex field); the perf gate toggles these with the cast
   const innerGrps = [];    // EVERY interior group (cast via stage(), props/statues/tiles via placeStatic(), mic stands): the perf visibility gate toggles these
   let innerShown = true;   // perf gate state (round 2 item 1): interior hidden beyond 40 m, restored inside 25 m
@@ -5491,7 +5499,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   const hallKey = mkPoint(roomC, 0, -2, 4.4, 0xfff1dc, 34, 30);                            // hall key 34
   const lA      = mkPoint(roomC, -5, -2, 4.7, 0xff2ea6, 13, 20);                           // atmo 13
   const lB      = mkPoint(roomC, 5, -2, 4.7, 0x28c8ff, 13, 20);                            // atmo 13
-  const barAmb  = mkPoint(roomC, -15.0, -0.5, 3.1, 0xffb83d, 15, 13);                      // bar amber 15
+  const barAmb  = mkPoint(roomC, -15.0, -8.5, 3.1, 0xffb83d, 15, 13);                      // bar amber 15 (R13: follows the bar group to lz -8.5)
   // arc-booth amber (re-homed from the old VIP lV, same colour family, lights the former-VIP ring)
   const arcAmb  = mkPoint(roomC, 0, -8.5, 3.6, 0xffa26b, 20, 20);
 
@@ -5593,26 +5601,26 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
 
   // statues (7) -- y from Section 0: hall-floor statues at SLAB, arc-sofa seated30 at SOFA
   job('__DWB', g => statue(g, roomC, 11.8, -13.0, SLAB, 0, 0.84));              // dresswoman, faces hall
-  job('__ELB', g => statue(g, roomC, -14.7, 4.35, SLAB, Math.PI / 2, 0.85));    // elara at bar w/ own stool
-  job('__SPB', g => statue(g, roomC, 9.0, 6.8, SLAB, Math.PI + 0.34, 1.0));     // Fadly sexypose (booth area)
+  job('__ELB', g => statue(g, roomC, -14.7, -3.65, SLAB, Math.PI / 2, 0.85));    // elara at bar w/ own stool (R13: follows the bar group Δlz=-8.0, stays at the bar's door-side end)
+  job('__SPB', g => { const st = statue(g, roomC, 9.0, 6.8, SLAB, Math.PI + 0.34, 1.0); st.noTilt = true; });     // Fadly sexypose (booth area). R13: noTilt -- she is a floor-contact all-fours pose (contact measured exact: minY 0.194-0.196 vs slab 0.20); the statue sway tilt would rock her on her hands/knees and read as floating. Breathing scale stays.
   job('__S3B', g => statue(g, roomC, 0.7, -8.7, SOFA, 0, 1.0));   // R12: yawOff pi -> 0 - the nurse (Fadly seated30) turned 180 in place on the arc sofa (0,-8.9) so her face fronts the hall/players (was facing the stage wall); y stays SOFA (0.62), contact re-verified in probe_r12_regress. (ADJ history: z -7.3 -> -8.7 onto the sofa.)
-  job('__S2B', g => statue(g, roomC, 14.2, 11.8, SOFA - 0.35, -Math.PI / 2, 1.0));     // Fadly seated22 -- R10: butt underside measured 0.35 above her origin (measure_seat*.py); lifted so it lands on the sofa seat (SOFA 0.62)
-  job('__KVSB', g => placeStatic(g, roomC, 13.69, 11.48, SLAB, 0.83, 1, {}));          // R10: sofa under seated22 -- yaw/pos corrected after in-game photo: she faces NE (world), backrest must be SW of her in room frame (yawOff 0.83); seat centre 0.085 in front of her butt point (13.87,11.64)
+  job('__S2B', g => statue(g, roomC, 16.1, 12.7, SOFA - 0.35, -Math.PI / 2, 1.0));     // Fadly seated22 -- R10: butt underside measured 0.35 above her origin (measure_seat*.py); lifted so it lands on the sofa seat (SOFA 0.62). R13: moved with her sofa (rigid Δ(+1.9,+0.9), relative geometry untouched) into the door-side +x corner against the wall, per user 图3 ruling
+  job('__KVSB', g => placeStatic(g, roomC, 15.59, 12.38, SLAB, 0.83, 1, {}));          // R10: sofa under seated22 -- yaw/pos corrected after in-game photo: she faces NE (world), backrest must be SW of her in room frame (yawOff 0.83); seat centre 0.085 in front of her butt point (13.87,11.64). R13: rigid Δ(+1.9,+0.9) with her into the corner (bbox now lx 14.07..17.11 / lz 10.77..13.99, flush to the facade wall inner face 14.05)
   job('__KYB', g => statue(g, roomC, -13.2, -9.6, SLAB, 0.35, 0.84));           // kayla
   job('__BKB', g => statue(g, roomC, 8.6, 12.3, SLAB, -2.90, 1.0, { fwdX: true })); // bikinisit
 
 
   // bar + stage props (unchanged homes)
-  job('__KBCB', g => prop(g, roomC, -15.95, -0.45, SLAB, Math.PI / 2));
-  job('__KBSB', g => prop(g, roomC, -14.7, -0.5, SLAB, Math.PI / 2));
-  job('__KBHB', g => prop(g, roomC, -17.25, -0.5, SLAB, Math.PI / 2));
-  job('__KBOB', g => prop(g, roomC, -17.2, -0.28, SLAB + 0.68, Math.PI / 2));
+  job('__KBCB', g => prop(g, roomC, -15.95, -8.45, SLAB, Math.PI / 2));
+  job('__KBSB', g => prop(g, roomC, -14.7, -8.5, SLAB, Math.PI / 2));
+  job('__KBHB', g => prop(g, roomC, -17.25, -8.5, SLAB, Math.PI / 2));
+  job('__KBOB', g => prop(g, roomC, -17.2, -8.28, SLAB + 0.68, Math.PI / 2));
   job('__KSPB', g => prop(g, roomC, -7.9, -12.8, SLAB + 0.5, 0));
   job('__KSQB', g => prop(g, roomC, 7.9, -12.8, SLAB + 0.5, 0));
   job('__KDJB', g => prop(g, roomC, 13.6, -2, SLAB, Math.PI / 2));
   job('__KTRB', g => prop(g, roomC, 0, -2, SLAB + 4.29, 0));
   job('__KL1B', g => prop(g, roomC, 11, 6.5, SLAB, 0));
-  job('__KL2B', g => prop(g, roomC, 11, 11, SLAB, Math.PI));
+  job('__KL2B', g => prop(g, roomC, 16.45, 9.45, SLAB, Math.PI));   // R13: lounge set 2 moved from (11,11) against the +x wall as part of the 图3 corner group (spans lx 15.68..17.33, wall face 17.65; clear of beach patrol rect z<=6 and of the moved sofa lz>=10.77)
   job('__KL3B', g => prop(g, roomC, 15.5, 8.5, SLAB, -Math.PI / 2));
   // former-VIP set -> ARC booth ring behind the DJ/stage (lz ~ -7..-9, a half circle facing the hall)
   job('__KVDB', g => prop(g, roomC, 3.5, -8.6, SLAB, -0.5));                    // vip-desk: decor only (no venue)
@@ -5624,7 +5632,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   job('__KPOB', g => prop(g, roomC, 0, -11.4, STAGE - 0.2, 0));                 // stage-front prop (on stage)
   // stage neon sign: emissive x0.45 anti-blowout (S6 __KNEB handling, verbatim)
   job('__KNEB', g => { g.scene.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.emissiveMap) m.emissiveIntensity = (m.emissiveIntensity == null ? 1 : m.emissiveIntensity) * 0.45; }); }); prop(g, roomC, 0, -13.5, SLAB + 1.3, 0); });
-  job('__KCNB', g => prop(g, roomC, -17.55, -0.5, SLAB + 2.75, Math.PI / 2));   // cocktails neon over bar
+  job('__KCNB', g => prop(g, roomC, -17.55, -8.5, SLAB + 2.75, Math.PI / 2));   // cocktails neon over bar (R13: follows the bar group)
   // chandelier + wall lights re-homed from VIP room into the arc booth (BRIEF: move to hall)
   job('__KCHB', g => prop(g, roomC, 0, -8.3, SLAB + 3.2, 0));                   // chandelier over arc booth
   job('__KACB', g => prop(g, roomC, 4.5, -9.3, SLAB, Math.PI + 0.5));           // arc wall light R
@@ -5633,9 +5641,23 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   // GLBs; sofas face the floor, tables on the floor side) -- fills the empty mid-hall
   job('__KVSB', g => { const P = [[-6.0, -4.2, Math.PI / 2], [-6.0, 0.6, Math.PI / 2], [6.0, -4.2, -Math.PI / 2], [6.0, 0.6, -Math.PI / 2]]; P.forEach(([lx, lz, yo], i) => placeStatic(g, roomC, lx, lz, SLAB, yo, 1, { clone: i > 0 })); });
   job('__KVTB', g => { const P = [[-4.9, -4.2], [-4.9, 0.6], [4.9, -4.2], [4.9, 0.6]]; P.forEach(([lx, lz], i) => placeStatic(g, roomC, lx, lz, SLAB, 0, 1, { clone: i > 0 })); });
-  job('__KPLB', g => { prop(g, roomC, 17.1, 13.1, SLAB, 0); placeStatic(g, roomC, -16.5, 12.5, SLAB, 0, 1, { clone: true }); }); // 2 plants
+  job('__KPLB', g => { prop(g, roomC, 13.6, 13.5, SLAB, 0); placeStatic(g, roomC, -16.5, 12.5, SLAB, 0, 1, { clone: true }); }); // 2 plants (R13: the corner plant moves from (17.1,13.1) to the moved sofa's west end against the facade wall, part of the 图3 corner group; the -16.5 clone stays)
   job('__KDFB', g => { g.scene.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.color && (m.color.r + m.color.g + m.color.b) > 0.5) m.color.multiplyScalar(0.6); }); }); for (let ix = -1; ix <= 1; ix++) for (let iz = -1; iz <= 1; iz++) placeStatic(g, roomC, ix * 2.03, -2 + iz * 2.03, SLAB, 0, 1, { clone: !(ix === 0 && iz === 0) }); }); // tiles sit ON slab; top = 0.227 (measured). Coloured panels dimmed x0.6 at the material level: full-saturation base colours + 0.08 roughness outshone the hall; now they sit between hall and stage in the GPT-5 brightness ladder
-  job('__KDBB', g => { const st = placeStatic(g, roomC, 0, -2, SLAB + 3.66, 0, 1, {}); st.inner.position.y = -0.25; const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.4, 5), new THREE.MeshBasicMaterial({ color: 0x0a0a0e })); cord.position.y = 0.45; st.grp.add(cord); dynProps.push({ grp: st.grp, spin: 0.9 }); });
+  job('__KDBB', g => { const st = placeStatic(g, roomC, 0, -2, SLAB + 3.66, 0, 1, {}); st.inner.position.y = -0.25; const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.4, 5), new THREE.MeshBasicMaterial({ color: 0x0a0a0e })); cord.position.y = 0.45; st.grp.add(cord); dynProps.push({ grp: st.grp, spin: 0.9 });
+    // R13: coloured beams from the disco ball (user request: 彩灯四射). 3 no-shadow
+    // SpotLights in the locked GPT-5 palette + additive fake-volume cones, in one
+    // slowly rotating group hung at the ball centre (ball bbox centre = SLAB+4.06).
+    // Spots join lights[] -> the existing nearClub && innerShown gate drives their
+    // visibility; the group joins innerGrps -> hidden wholesale beyond 40 m.
+    const bwp = roomC.L(0, -2); const beamGrp = new THREE.Group(); beamGrp.position.set(bwp.x, SLAB + 4.06, bwp.z); scene.add(beamGrp); innerGrps.push(beamGrp); beamGrp.visible = innerShown;
+    [0xff28b8, 0x00dfff, 0xffb83d].forEach((col, i) => { const az = i * Math.PI * 2 / 3, tilt = 0.91;   // ~52 deg off vertical, 120 deg apart
+      const dir = new THREE.Vector3(Math.sin(tilt) * Math.cos(az), -Math.cos(tilt), Math.sin(tilt) * Math.sin(az)).normalize();
+      const S = new THREE.SpotLight(col, 65, 19, 0.46, 0.9, 1.2); beamGrp.add(S);
+      S.target.position.copy(dir).multiplyScalar(6.2); beamGrp.add(S.target); lights.push(S); beamRefs.lights.push(S);
+      const cg = new THREE.ConeGeometry(1.55, 6.2, 20, 1, true); cg.translate(0, -3.1, 0);
+      const cone = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+      cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); beamGrp.add(cone); });
+    beamRefs.grp = beamGrp; dynProps.push({ grp: beamGrp, spin: 0.45 }); });
   // >> __KEFB (old-site world facade at 56,0,-117) DELETED -- new exterior is gxClubBuilding (Section 1).
   // >> VIP desk light-box block DELETED -- it was tied to the removed VIP venue.
 
@@ -5710,12 +5732,12 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
         else if (d.patrol) { const P = d.patrol, tg = P.pts[P.i]; const dx = tg.x - d.grp.position.x, dz = tg.z - d.grp.position.z, dist = Math.hypot(dx, dz);
           if (dist < 0.2) P.i = (P.i + 1) % P.pts.length; else { const stp = Math.min(dist, d.speed * dt); d.grp.position.x += dx / dist * stp; d.grp.position.z += dz / dist * stp; d.grp.rotation.y = Math.atan2(dx, dz); } }
       }
-      for (const s2 of statues) { s2.grp.rotation.x = Math.sin(t * 0.5 + s2.phase) * 0.016; s2.grp.rotation.z = Math.sin(t * 0.37 + s2.phase * 1.7) * 0.009; s2.inner.scale.y = s2.base * (1 + 0.006 * Math.sin(t * 1.45 + s2.phase)); }
+      for (const s2 of statues) { if (!s2.noTilt) { s2.grp.rotation.x = Math.sin(t * 0.5 + s2.phase) * 0.016; s2.grp.rotation.z = Math.sin(t * 0.37 + s2.phase * 1.7) * 0.009; } s2.inner.scale.y = s2.base * (1 + 0.006 * Math.sin(t * 1.45 + s2.phase)); }
       for (const dp of dynProps) dp.grp.rotation.y += dt * dp.spin;
     }
     hearts.forEach(s => { if (s.userData.t > 0) { s.userData.t -= dt; s.position.y += dt * 0.75; s.material.opacity = Math.min(0.95, s.userData.t); if (s.userData.t <= 0) s.visible = false; } });
   }
-  return { frame, tip, dance, dancers, statues, SPOTS, get ready() { return readyFlag; }, get innerShown() { return innerShown; } };
+  return { frame, tip, dance, dancers, statues, SPOTS, beams: beamRefs, get ready() { return readyFlag; }, get innerShown() { return innerShown; } };
 })();
 if (GXCLUB) window.GXCLUBX = GXCLUB;
 
