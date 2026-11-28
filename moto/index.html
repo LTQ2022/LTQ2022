@@ -1192,7 +1192,7 @@ function gxClubBuilding(W) {
 
   // ---- minimap POI + GXROOMS descriptor (field-aligned to room()) ----
   poi.club = { id: 'club', x: CX, z: CZ - 16, icon: '🎵', name: '夜店' };
-  const counter = L(-14.4, -8.5), staff = L(-16.66, -8.5);   // ADJ: Quick had counter in the corridor and staff at -18.4 (inside the west wall); old-club local geometry restored. R13: whole bar group shifted Δlz=-8.0 to the stage-side corner of the same wall (user phone verdict: bar belongs in the empty upper-left spot of his photo = bar-side wall, stage end); shelf back end now at lz -14.0, 0.05 clear of the back-wall inner face
+  const counter = L(-13.0, -8.5), staff = L(-15.8, -8.5);   // R20 (Quick layout plan, Muse adjudication 1): the bar set moves per-piece, not rigidly -- buy point on the stool row's outer side (-13.0), staffer in the widened 1.08 m working band between counter back (-15.46) and shelf front (-16.58). History: R13 put the group at lz -8.5; pre-R20 the staffer stood in a 0.115 m slot (audit C14).
   GXROOMS.push({
     id: 'club', x0: CX - W2, x1: CX + W2, z0: CZ - D2, z1: CZ + D2,
     h: H_HALL, yaw: YAW, cx: CX, cz: CZ, W: W_HALL, D: D_HALL, M4,
@@ -5463,8 +5463,8 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     { room: roomC, lx: -2.6, lz: -2.0,  y: DANCE, kind: 'floor' },   // 4 Leia floor
     { room: roomC, lx: 2.6,  lz: -2.0,  y: DANCE, kind: 'floor' },   // 5 CC4 floor
     { room: roomC, lx: 2.6,  lz: -7.9,  y: SLAB,  kind: 'arc' },     // 6 alina -> ARC booth (was VIP); ADJ: was (0,-8.0), inside the coffee table
-    { room: roomC, lx: -9.5, lz: -6.5,  y: SLAB,  kind: 'patrol', patrol: [[-9.5,-6.5],[9.5,-6.5],[9.5,6.5],[-9.5,6.5]] },   // 7 Anna
-    { room: roomC, lx: 8,    lz: -8.5,  y: SLAB,  kind: 'patrol', patrol: [[8,-8.5],[16,-8.5],[16,6],[8,6]] },               // 8 beach babe
+    { room: roomC, lx: -7,   lz: -6.5,  y: SLAB,  kind: 'patrol', patrol: [[-7,-6.5],[7,-6.5],[7,5.0],[-7,5.0]] },   // 7 Anna -- R20: rect shrunk per Quick layout plan (was -9.5..9.5 / -6.5..6.5, which ran her through the mid-hall booth rows)
+    { room: roomC, lx: 9,    lz: -8,    y: SLAB,  kind: 'patrol', patrol: [[9,-8],[15.5,-8],[15.5,3.5],[9,3.5]] },               // 8 beach babe -- R20: rect shrunk per plan (was 8..16 / -8.5..6, which contained the DJ booth)
     { room: roomC, lx: 0,    lz: -11.4, y: STAGE, kind: 'stage' },   // 9 Leia centre (Samba)
     { room: roomC, lx: -1.7, lz: -4.4,  y: DANCE, kind: 'floor', yawOff: Math.PI },  // 10 alina twerk A (back to hall)
     { room: roomC, lx: -0.4, lz: -3.0,  y: DANCE, kind: 'floor', yawOff: Math.PI },  // 11 alina twerk B (offset both axes) -- RETIRED in R12 (see __ALB job)
@@ -5640,21 +5640,21 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
 
 
   // statues (7) -- y from Section 0: hall-floor statues at SLAB, arc-sofa seated30 at SOFA
-  job('__DWB', g => statue(g, roomC, 11.8, -13.0, SLAB, 0, 0.84));              // dresswoman, faces hall
-  job('__ELB', g => statue(g, roomC, -14.7, -3.65, SLAB, Math.PI / 2, 0.85));    // elara at bar w/ own stool (R13: follows the bar group Δlz=-8.0, stays at the bar's door-side end)
+  job('__DWB', g => statue(g, roomC, 13.5, -12.0, SLAB, 0, 0.84));              // dresswoman -- R20: off the back wall (was (11.8,-13.0), wall clipped her R1.2 viewing circle by 0.15); now 2.05 clear of the wall, 3.16 from the DJ booth
+  job('__ELB', g => statue(g, roomC, -14.0, -2.0, SLAB, Math.PI / 2, 0.85));    // elara w/ own stool -- R20: bar north end per plan (was (-14.7,-3.65), bar counter intruded her viewing circle 0.44; now 2.13 clear of it)
   job('__SPB', g => { const st = statue(g, roomC, 9.0, 6.8, SLAB, Math.PI + 0.34, 1.0); st.noTilt = true; });     // Fadly sexypose (booth area). R13: noTilt -- she is a floor-contact all-fours pose (contact measured exact: minY 0.194-0.196 vs slab 0.20); the statue sway tilt would rock her on her hands/knees and read as floating. Breathing scale stays.
-  job('__S3B', g => statue(g, roomC, 0.7, -8.7, SOFA, 0, 1.0));   // R12: yawOff pi -> 0 - the nurse (Fadly seated30) turned 180 in place on the arc sofa (0,-8.9) so her face fronts the hall/players (was facing the stage wall); y stays SOFA (0.62), contact re-verified in probe_r12_regress. (ADJ history: z -7.3 -> -8.7 onto the sofa.)
-  job('__S2B', g => statue(g, roomC, 16.01, 8.82, SOFA - 0.35, -Math.PI / 2, 1.0));     // Fadly seated22 -- R10: butt underside measured 0.35 above her origin; lifted so it lands on the sofa seat (SOFA 0.62). R15: rigid Δ(-0.09,-3.88) with her sofa onto the deleted KL3B spot, per user 20:00 ruling (orange group takes the red set's place); contact geometry untouched
-  job('__KVSB', g => placeStatic(g, roomC, 15.50, 8.50, SLAB, 0.83, 1, {}));          // R10: sofa under seated22 -- yawOff 0.83 (she faces NE world; backrest SW of her in room frame). R15: rigid Δ(-0.09,-3.88) with seated22+plant onto the deleted KL3B spot, centre exactly on KL3B's old (15.5,8.5); AABB lx 13.98..17.02 / lz 6.89..10.11
-  job('__KYB', g => statue(g, roomC, -13.2, -9.6, SLAB, 0.35, 0.84));           // kayla
+  job('__S3B', g => statue(g, roomC, -4.7, 6.6, SOFA, 0, 1.0));   // the nurse (Fadly seated30) -- R20: rides KVSB-A to its new NW-booth home (-5.4,6.4), sitting its east section; y stays SOFA (0.62) -- her seat-contact plane is model y=0 (vertex-measured, R20) and the same sofa GLB keeps its 0.62 seat top on the same slab; contact re-verified in probe_r20_accept. (History: R12 turned her to face the hall on the old arc sofa.)
+  job('__S2B', g => { const st = statue(g, roomC, 16.0, 8.8, SLAB, -Math.PI / 2, 1.0); st.noTilt = true; });     // Fadly seated22 -- R20: her sofas are GONE from this corner (user 21:52 ruling: furniture all moved aside, she stays alone); she now lands on the FLOOR in her crawl pose: vertex-measured contact plane = model y=0.000 (35 verts within 5 mm spread over hands/knees), so yFloor = SLAB exactly. noTilt like sexypose -- a multi-point floor-contact pose must not rock. (History: R10/R15 had her on the KVSB-C sofa at SOFA-0.35.)
+  job('__KVSB', g => placeStatic(g, roomC, -11.5, 9.4, SLAB, Math.PI, 1, {}));          // KVSB-C sofa pair -- R20: evacuated from seated22's corner to the NW booth group, facing KL1B across a 0.90 gap (was (15.50,8.50) yaw 0.83 under seated22)
+  job('__KYB', g => statue(g, roomC, -10.8, -10.4, SLAB, 0.35, 0.84));           // kayla -- R20: between the mini bar and the stage west end (was (-13.2,-9.6)); 2.08 clear of the mini-bar counter, 2.3 off the stage edge. If she is rigged later, her dancer spot reuses this point (adjudication 5).
   job('__BKB', g => statue(g, roomC, 8.6, 12.3, SLAB, -2.90, 1.0, { fwdX: true })); // bikinisit
 
 
   // bar + stage props (unchanged homes)
-  job('__KBCB', g => prop(g, roomC, -15.95, -8.45, SLAB, Math.PI / 2));
-  job('__KBSB', g => prop(g, roomC, -14.7, -8.5, SLAB, Math.PI / 2));
-  job('__KBHB', g => prop(g, roomC, -17.25, -8.5, SLAB, Math.PI / 2));
-  job('__KBOB', g => prop(g, roomC, -17.2, -8.28, SLAB + 0.68, Math.PI / 2));
+  job('__KBCB', g => prop(g, roomC, -14.8, -8.5, SLAB, Math.PI / 2));   // R20: bar set moves per-piece per plan (adjudication 1) -- counter east +1.15
+  job('__KBSB', g => prop(g, roomC, -13.6, -8.5, SLAB, Math.PI / 2));   // R20: stools east +1.1 with the counter
+  job('__KBHB', g => prop(g, roomC, -17.1, -8.5, SLAB, Math.PI / 2));   // R20: shelf east +0.15 only -- its back edge (-17.62) now clears the west wall inner face (-17.65); pre-R20 it pierced the wall by 0.12
+  job('__KBOB', g => prop(g, roomC, -17.1, -8.3, SLAB + 0.68, Math.PI / 2));   // R20: bottles follow the shelf
   // R14 dedup: __KSQB's GLB differs from __KSPB's ONLY in the root node name
   // (speaker_r vs speaker_l) -- the BIN chunk (geometry + all 9 images) is
   // byte-identical (verified offline). Parse once; the right speaker is a
@@ -5671,31 +5671,33 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
       inn.position.set(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2); w.add(inn); return { scene: w }; });
   jobs.push(kspPair.then(g => { if (g) prop(g, roomC, -7.9, -12.8, SLAB + 0.5, 0); }));
   jobs.push(kspPair.then(g => { if (g) placeStatic(g, roomC, 7.9, -12.8, SLAB + 0.5, 0, 1, { clone: true }); }));
-  job('__KDJB', g => { const b = new THREE.Box3().setFromObject(g.scene); const w = new THREE.Group(); const inn = g.scene; inn.position.set(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2); w.add(inn); prop({ scene: w }, roomC, 13.6, -2, SLAB, Math.PI / 2); });   // R16 FIX: DJ-booth geometry is baked at GLB centre (0,-78.49), y 99.80..101.0 (measured size 2.3 x 1.2 x 0.7) -- same baked-offset disease as KL2B (R15); placeStatic does not recenter, so the booth never appeared at its (13.6,-2) post. Bbox-centered like stage()/KL2B. See INTEG_R16.md
-  job('__KTRB', g => prop(g, roomC, 0, -2, SLAB + 4.29, 0));
-  job('__KL1B', g => prop(g, roomC, 11, 6.5, SLAB, 0));
-  job('__KL2B', g => { const b = new THREE.Box3().setFromObject(g.scene); const w = new THREE.Group(); const inn = g.scene; inn.position.set(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2); w.add(inn); prop({ scene: w }, roomC, 16.45, 9.45, SLAB, Math.PI); });   // R15 FIX: lounge_set_2's geometry is baked at GLB (26.73,35.39) and placeStatic does NOT recenter (stage() does) -- its mesh sat OUTSIDE the building (local ~(-10.3,-25.9)) in every build, invisible; R13's origin-only regression could not see it. Now bbox-centered like stage(). Position stays (16.45,9.45): rigid-moving it with the orange group to (16.36,5.57) puts its geometry 0.004-0.013 m from beach's patrol corner (16,6) in every yaw (vertex-measured) -- it restores the vacated corner instead. See INTEG_R15.md
+  job('__KDJB', g => { const b = new THREE.Box3().setFromObject(g.scene); const w = new THREE.Group(); const inn = g.scene; inn.position.set(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2); w.add(inn); prop({ scene: w }, roomC, 10.0, -10.6, SLAB, Math.PI / 2); });   // R16 FIX: DJ-booth geometry is baked at GLB centre (0,-78.49), y 99.80..101.0 (measured size 2.3 x 1.2 x 0.7) -- same baked-offset disease as KL2B (R15); placeStatic does not recenter, so the booth never appeared at its post. Bbox-centered like stage()/KL2B. R20: post moves to the stage east end (10.0,-10.6), facing the hall -- out of beach's patrol rect, clear of the mic stands. See INTEG_R16.md / INTEG_R20.md
+  job('__KTRB', g => { const b = new THREE.Box3().setFromObject(g.scene); const w = new THREE.Group(); const inn = g.scene; inn.position.set(-(b.min.x + b.max.x) / 2, 0, -(b.min.z + b.max.z) / 2); w.add(inn); prop({ scene: w }, roomC, 0, -2, SLAB + 4.29, 0); });   // R20 fix: truss GLB geometry is baked +0.262 off its origin in x (same baked-offset disease as KL2B/KDJB) -- bbox-centre x/z before placing; y untouched (hang height unchanged, measured minY 5.352)
+  job('__KL1B', g => prop(g, roomC, -11.5, 7.5, SLAB, 0));   // R20: booth set 1 leaves the sexypose/beach corner (was (11,6.5), intruded her circle 0.20) for the NW booth group, facing KVSB-C
+  job('__KL2B', g => { const b = new THREE.Box3().setFromObject(g.scene); const w = new THREE.Group(); const inn = g.scene; inn.position.set(-(b.min.x + b.max.x) / 2, -b.min.y, -(b.min.z + b.max.z) / 2); w.add(inn); prop({ scene: w }, roomC, -16.4, 13.3, SLAB, Math.PI / 2); });   // R15 FIX: lounge_set_2's geometry is baked at GLB (26.73,35.39) and placeStatic does NOT recenter (stage() does) -- its mesh sat OUTSIDE the building (local ~(-10.3,-25.9)) in every build, invisible; R13's origin-only regression could not see it. Now bbox-centered like stage(). R20: evacuated from seated22's corner (it covered her, audit A2) to the NW corner (-16.4,13.3) yaw pi/2. See INTEG_R15.md / INTEG_R20.md
   // R15: __KL3B (lounge set 3 -- white sofa + patterned table) DELETED per user 20:00 ruling (red circle); job removed and kl31/kl32 dropped from the loader LIST. The orange corner group took its spot (15.5,8.5). No figure sat on it (bikinisit/sexypose are independent statues).
   // former-VIP set -> ARC booth ring behind the DJ/stage (lz ~ -7..-9, a half circle facing the hall)
-  job('__KVDB', g => prop(g, roomC, 3.5, -8.6, SLAB, -0.5));                    // vip-desk: decor only (no venue)
-  job('__KVSB', g => prop(g, roomC, 0, -8.9, SLAB, 0));                         // sofa (faces hall/stage)
-  job('__KVTB', g => prop(g, roomC, 0, -7.6, SLAB, 0));                         // coffee table
-  job('__KVCB', g => prop(g, roomC, -11.44, -13.08, SLAB, 0));                  // mini bar counter -- R15: this is the cabinet the user circled in 图1 (in front of rumba, the first lady on the left; NOT the wall bar R13 moved). Moved with KVHB/KVBB to the stage-end LEFT corner (door-facing-stage view), against the back wall beside the main bar's stage end; shelf-frame offset (+0.161,+0.473) from KVHB preserved verbatim
-  job('__KVHB', g => prop(g, roomC, -11.60, -13.55, SLAB, 0));                  // bottle shelf -- R15: anchor of the moved cabinet set; AABB lx -13.99..-9.21 / lz -14.01..-13.10 (back edge 0.04 off the back-wall inner face -14.05), yaw 0 faces the hall
+  job('__KVDB', g => prop(g, roomC, -3.6, 12.4, SLAB, Math.PI / 2));           // reception desk -- R20: entrance west side (was (3.5,-8.6) in the arc, its corner on the stage platform); 1.3 clear of the door opening's west edge
+  job('__KVSB', g => prop(g, roomC, -5.4, 6.4, SLAB, 0));                       // KVSB-A arc sofa -- R20: NW booth group main seat (was (0,-8.9) ON the room axis in front of the stage, audit A1); the nurse rides it (see __S3B)
+  job('__KVTB', g => prop(g, roomC, -6.6, 7.8, SLAB, 0));                       // KVTB-A coffee table -- R20: with KVSB-A (was (0,-7.6) on the axis); 1.45 clear of the nurse's circle
+  job('__KVCB', g => prop(g, roomC, -11.44, -13.08, SLAB, 0));                  // mini bar counter -- R15: this is the cabinet the user circled in 图1 (in front of rumba, the first lady on the left; NOT the wall bar R13 moved). Moved with KVHB/KVBB to the stage-end LEFT corner (door-facing-stage view), against the back wall beside the main bar's stage end; shelf-frame offset (+0.161,+0.473) from KVHB preserved verbatim. R20: plan fixes this set in place.
+  job('__KVHB', g => prop(g, roomC, -11.60, -13.55, SLAB, 0));                  // bottle shelf -- R15: anchor of the moved cabinet set; AABB lx -13.99..-9.21 / lz -14.01..-13.10 (back edge 0.04 off the back-wall inner face -14.05), yaw 0 faces the hall. R20: fixed in place per plan.
   job('__KVBB', g => prop(g, roomC, -11.63, -13.33, SLAB + 0.55, 0));          // bottles -- R15: follows KVHB (shelf-frame offset (-0.030,+0.222) preserved)
-  job('__KPOB', g => prop(g, roomC, 0, -11.4, STAGE - 0.2, 0));                 // stage-front prop (on stage)
+  job('__KPOB', g => prop(g, roomC, 0, -12.2, STAGE - 0.2, 0));                 // dance pole (on stage) -- R20: back 0.8 (was (0,-11.4), the EXACT spot of stage Leia, audit A3); now 0.19 clear of her core
   // stage neon sign: emissive x0.45 anti-blowout (S6 __KNEB handling, verbatim)
   job('__KNEB', g => { g.scene.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.emissiveMap) m.emissiveIntensity = (m.emissiveIntensity == null ? 1 : m.emissiveIntensity) * 0.45; }); }); prop(g, roomC, 0, -13.5, SLAB + 1.3, 0); });
-  job('__KCNB', g => prop(g, roomC, -17.55, -8.5, SLAB + 2.75, Math.PI / 2));   // cocktails neon over bar (R13: follows the bar group)
+  job('__KCNB', g => { const b = new THREE.Box3().setFromObject(g.scene); const w = new THREE.Group(); const inn = g.scene; const c = b.getCenter(new THREE.Vector3()); inn.position.set(-c.x, -c.y, -c.z); w.add(inn); prop({ scene: w }, roomC, -17.5, -8.5, SLAB + 2.75, Math.PI / 2); });   // cocktails neon over bar (R20: follows the bar set east +0.05 onto the wall line). R20 FIX: this GLB's geometry is baked at its source-scene coords (centre ~(57.2, 161.9, 9.0) -- the sign hung ~160 m away in the air in every build; origin-only probes could not see it, the R20 Box3 audit caught it). Bbox-centred on all three axes: the sign's centre now sits exactly on the placement point.
   // chandelier + wall lights re-homed from VIP room into the arc booth (BRIEF: move to hall)
-  job('__KCHB', g => prop(g, roomC, 0, -8.3, SLAB + 3.2, 0));                   // chandelier over arc booth
-  job('__KACB', g => prop(g, roomC, 4.5, -9.3, SLAB, Math.PI + 0.5));           // arc wall light R
-  job('__KLCB', g => prop(g, roomC, -4.5, -9.3, SLAB, Math.PI - 0.5));          // arc wall light L
-  // mid-hall booth rows flanking the dance floor (reuse the VIP sofa / coffee-table
-  // GLBs; sofas face the floor, tables on the floor side) -- fills the empty mid-hall
-  job('__KVSB', g => { const P = [[-6.0, -4.2, Math.PI / 2], [-6.0, 0.6, Math.PI / 2], [6.0, -4.2, -Math.PI / 2], [6.0, 0.6, -Math.PI / 2]]; P.forEach(([lx, lz, yo], i) => placeStatic(g, roomC, lx, lz, SLAB, yo, 1, { clone: i > 0 })); });
-  job('__KVTB', g => { const P = [[-4.9, -4.2], [-4.9, 0.6], [4.9, -4.2], [4.9, 0.6]]; P.forEach(([lx, lz], i) => placeStatic(g, roomC, lx, lz, SLAB, 0, 1, { clone: i > 0 })); });
-  job('__KPLB', g => { prop(g, roomC, 13.51, 9.62, SLAB, 0); placeStatic(g, roomC, -16.5, 12.5, SLAB, 0, 1, { clone: true }); }); // 2 plants (R15: plant #1 rigid Δ(-0.09,-3.88) with the orange group onto the deleted KL3B spot's west end; the -16.5 clone stays)
+  job('__KCHB', g => prop(g, roomC, 0, -8.3, SLAB + 3.2, 0));                   // chandelier (hanging, over the opened stage-front axis since R20)
+  job('__KACB', g => prop(g, roomC, -3.6, 9.0, SLAB, Math.PI + 0.5));           // armchair -- R20: NW booth group (was (4.5,-9.3), on the stage platform edge); 1.84 clear of the nurse
+  job('__KLCB', g => prop(g, roomC, -6.6, 9.3, SLAB, Math.PI - 0.5));           // lounge chair -- R20: NW booth group (was (-4.5,-9.3), on the stage platform edge)
+  // booth groups (R20: the mid-hall rows that flanked the dance floor are GONE --
+  // they sat inside Anna's patrol rect and broke the dance-floor->bar path; the
+  // sofas/tables now form a west facing pair (W), an east facing pair (E) and
+  // the NW group around KVSB-A/KL1B/KVSB-C)
+  job('__KVSB', g => { const P = [[-11.0, 1.0, Math.PI / 2], [-8.2, 1.0, -Math.PI / 2], [4.7, 6.2, 0], [4.7, 9.0, Math.PI]]; P.forEach(([lx, lz, yo], i) => placeStatic(g, roomC, lx, lz, SLAB, yo, 1, { clone: i > 0 })); });   // W1, W2, E1, E2
+  job('__KVTB', g => { const P = [[-9.6, 0.2, Math.PI / 2], [-9.6, 1.8, Math.PI / 2], [4.0, 7.6, 0], [5.5, 7.6, 0]]; P.forEach(([lx, lz, yo], i) => placeStatic(g, roomC, lx, lz, SLAB, yo, 1, { clone: i > 0 })); });   // W1, W2, E1, E2 (E2 size re-measured from the GLB in R20: same 1.34x0.85 as every KVTB -- the audit table's E2 AABB was a copy error)
+  job('__KPLB', g => { prop(g, roomC, -9.0, 13.6, SLAB, 0); placeStatic(g, roomC, -13.8, 13.6, SLAB, 0, 1, { clone: true }); }); // 2 plants -- R20: both on the north wall (were (13.51,9.62) in seated22's corner cluster and (-16.5,12.5)); plant #2 yields the NW corner to KL2B
   job('__KDFB', g => { g.scene.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.color && (m.color.r + m.color.g + m.color.b) > 0.5) m.color.multiplyScalar(0.6); }); }); for (let ix = -1; ix <= 1; ix++) for (let iz = -1; iz <= 1; iz++) placeStatic(g, roomC, ix * 2.03, -2 + iz * 2.03, SLAB, 0, 1, { clone: !(ix === 0 && iz === 0) }); }); // tiles sit ON slab; top = 0.227 (measured). Coloured panels dimmed x0.6 at the material level: full-saturation base colours + 0.08 roughness outshone the hall; now they sit between hall and stage in the GPT-5 brightness ladder
   job('__KDBB', g => { const st = placeStatic(g, roomC, 0, -2, SLAB + 3.66, 0, 1, {}); st.inner.position.y = -0.25; const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.4, 5), new THREE.MeshBasicMaterial({ color: 0x0a0a0e })); cord.position.y = 0.45; st.grp.add(cord); dynProps.push({ grp: st.grp, spin: 0.9 });
     // R18: the R13 coloured beam rig (3 SpotLights + 3 additive cones +
@@ -5847,18 +5849,18 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   const BOOTH_BASE = new THREE.Color(0x8a2bff);
   const boothMat = atmoMat(new THREE.MeshBasicMaterial({ color: 0x8a2bff, toneMapped: false }));
   const boothHaloMat = atmoMat(new THREE.MeshBasicMaterial({ map: radialTex, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, color: 0x8a2bff, toneMapped: false }));
-  { const SOFAS = [[0, -8.9, 0], [-6, -4.2, 1], [-6, 0.6, 1], [6, -4.2, 1], [6, 0.6, 1]];   // [lx, lz, swapped] -- the KVSB placements above
+  { const SOFAS = [[-5.4, 6.4, 0], [-11.0, 1.0, 1], [-8.2, 1.0, 1], [4.7, 6.2, 0], [4.7, 9.0, 0]];   // [lx, lz, swapped] -- R20: follows the five KVSB booth placements above (A, W1, W2, E1, E2)
     atmoMesh(mergeGeos(SOFAS.map(([lx, lz, sw]) => ({ geo: new THREE.BoxGeometry(sw ? 1.1 : 2.35, 0.05, sw ? 2.35 : 1.1), x: lx, y: SLAB + 0.05, z: lz }))), boothMat);
-    const TABLES = [[0, -7.6], [-4.9, -4.2], [-4.9, 0.6], [4.9, -4.2], [4.9, 0.6]];         // the KVTB placements above
+    const TABLES = [[-6.6, 7.8, 0], [-9.6, 0.2, 1], [-9.6, 1.8, 1], [4.0, 7.6, 0], [5.5, 7.6, 0]];         // R20: the KVTB placements above (A, W1, W2, E1, E2); flag = table yawed 90 deg, halo swaps with it
     const haloParts = SOFAS.map(([lx, lz, sw]) => { const p = new THREE.PlaneGeometry(sw ? 1.9 : 3.1, sw ? 3.1 : 1.9); p.rotateX(-Math.PI / 2); return { geo: p, x: lx, y: SLAB + 0.012, z: lz }; })
-      .concat(TABLES.map(([lx, lz]) => { const p = new THREE.PlaneGeometry(1.7, 1.3); p.rotateX(-Math.PI / 2); return { geo: p, x: lx, y: SLAB + 0.012, z: lz }; }));
+      .concat(TABLES.map(([lx, lz, sw]) => { const p = new THREE.PlaneGeometry(sw ? 1.3 : 1.7, sw ? 1.7 : 1.3); p.rotateX(-Math.PI / 2); return { geo: p, x: lx, y: SLAB + 0.012, z: lz }; }));
     atmoMesh(mergeGeos(haloParts), boothHaloMat, 20); }
   const warmMat = atmoMat(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
   atmoMesh(mergeGeos([
-    { geo: new THREE.BoxGeometry(0.12, 0.05, 5.0), x: -17.25, y: CY, z: -8.5, col: 0xffb83d },                              // L1's bar segment: fixed amber, off the hue cycle
-    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -17.02, y: SLAB + 1.10, z: -8.5, col: 0xffe9c4 },                     // main bottle shelf (__KBHB) slots
-    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -17.02, y: SLAB + 1.75, z: -8.5, col: 0xffe9c4 },
-    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -17.02, y: SLAB + 2.40, z: -8.5, col: 0xffe9c4 },
+    { geo: new THREE.BoxGeometry(0.12, 0.05, 5.0), x: -17.10, y: CY, z: -8.5, col: 0xffb83d },                              // L1's bar segment: fixed amber, off the hue cycle (R20: follows the shelf east +0.15)
+    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -16.87, y: SLAB + 1.10, z: -8.5, col: 0xffe9c4 },                     // main bottle shelf (__KBHB) slots (R20: follow the shelf east +0.15)
+    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -16.87, y: SLAB + 1.75, z: -8.5, col: 0xffe9c4 },
+    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -16.87, y: SLAB + 2.40, z: -8.5, col: 0xffe9c4 },
     { geo: new THREE.BoxGeometry(3.6, 0.035, 0.06), x: -11.60, y: SLAB + 1.15, z: -13.28, col: 0xffe9c4 },                   // mini shelf (__KVHB, R15 corner cabinet) slots
     { geo: new THREE.BoxGeometry(3.6, 0.035, 0.06), x: -11.60, y: SLAB + 1.80, z: -13.28, col: 0xffe9c4 }]), warmMat);
 
