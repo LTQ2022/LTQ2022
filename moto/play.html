@@ -5414,7 +5414,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   if (!roomC) return null;                               // >>坑2: roomV dependency GONE
   const SLAB = roomC.slabY, STAGE = roomC.stageY, DANCE = roomC.danceY, SOFA = SLAB + 0.42;
   const dancers = [], statues = [], dynProps = [], lights = [];
-  const beamRefs = { grp: null, lights: [] };   // R13 disco beams (filled by the __KDBB job; exposed for QA probes)
+  const beamRefs = { grp: null, lights: [] };   // R13 disco beams -- REMOVED in R18 (user: '跟ktv的差多了'); export kept empty so old probes read a sane shape
   const innerExtra = [];   // extra interior groups built procedurally (ceiling hex field); the perf gate toggles these with the cast
   const innerGrps = [];    // EVERY interior group (cast via stage(), props/statues/tiles via placeStatic(), mic stands): the perf visibility gate toggles these
   let innerShown = true;   // perf gate state (round 2 item 1): interior hidden beyond 40 m, restored inside 25 m
@@ -5437,7 +5437,8 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   let resTex = null, resTexGrpN = -1, resTexMB = 0, resState = 'in', resFarT = 0, resQueue = [], resFarSeen = true;
   function resTexBytes(t) { const im = t && t.image; if (!im) return 0; const w = im.videoWidth || im.width || 0, h = im.videoHeight || im.height || 0; return w * h * 4 * 1.333; }
   function resCollect() {
-    const set = new Set(); const eat = root => root.traverse(o => { if (!o.isMesh) return; const ms = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []); for (const m of ms) for (const k of RES_SLOTS) { const t = m[k]; if (t && t.isTexture) set.add(t); } });
+    const set = new Set(); const eat = root => root.traverse(o => { if (!o.isMesh) return; const ms = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []); for (const m of ms) { if (m.userData && m.userData.atmo) continue;   // R18: KTV atmo materials are residency-exempt -- their ~5 MB of canvas textures stay resident so a far->near round trip can never bring back a black layer (KTV_LIGHTING_PACK S3.5/S6.9)
+      for (const k of RES_SLOTS) { const t = m[k]; if (t && t.isTexture) set.add(t); } } });
     for (const d of dancers) eat(d.grp); for (const s of statues) eat(s.grp); for (const g2 of innerGrps) eat(g2);
     resTex = [...set]; resTexGrpN = innerGrps.length; resTexMB = resTex.reduce((a, t) => a + resTexBytes(t), 0) / 1048576;
   }
@@ -5701,20 +5702,12 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   job('__KPLB', g => { prop(g, roomC, 13.51, 9.62, SLAB, 0); placeStatic(g, roomC, -16.5, 12.5, SLAB, 0, 1, { clone: true }); }); // 2 plants (R15: plant #1 rigid Δ(-0.09,-3.88) with the orange group onto the deleted KL3B spot's west end; the -16.5 clone stays)
   job('__KDFB', g => { g.scene.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.color && (m.color.r + m.color.g + m.color.b) > 0.5) m.color.multiplyScalar(0.6); }); }); for (let ix = -1; ix <= 1; ix++) for (let iz = -1; iz <= 1; iz++) placeStatic(g, roomC, ix * 2.03, -2 + iz * 2.03, SLAB, 0, 1, { clone: !(ix === 0 && iz === 0) }); }); // tiles sit ON slab; top = 0.227 (measured). Coloured panels dimmed x0.6 at the material level: full-saturation base colours + 0.08 roughness outshone the hall; now they sit between hall and stage in the GPT-5 brightness ladder
   job('__KDBB', g => { const st = placeStatic(g, roomC, 0, -2, SLAB + 3.66, 0, 1, {}); st.inner.position.y = -0.25; const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.4, 5), new THREE.MeshBasicMaterial({ color: 0x0a0a0e })); cord.position.y = 0.45; st.grp.add(cord); dynProps.push({ grp: st.grp, spin: 0.9 });
-    // R13: coloured beams from the disco ball (user request: 彩灯四射). 3 no-shadow
-    // SpotLights in the locked GPT-5 palette + additive fake-volume cones, in one
-    // slowly rotating group hung at the ball centre (ball bbox centre = SLAB+4.06).
-    // Spots join lights[] -> the existing nearClub && innerShown gate drives their
-    // visibility; the group joins innerGrps -> hidden wholesale beyond 40 m.
-    const bwp = roomC.L(0, -2); const beamGrp = new THREE.Group(); beamGrp.position.set(bwp.x, SLAB + 4.06, bwp.z); scene.add(beamGrp); innerGrps.push(beamGrp); beamGrp.visible = innerShown;
-    [0xff28b8, 0x00dfff, 0xffb83d].forEach((col, i) => { const az = i * Math.PI * 2 / 3, tilt = 0.91;   // ~52 deg off vertical, 120 deg apart
-      const dir = new THREE.Vector3(Math.sin(tilt) * Math.cos(az), -Math.cos(tilt), Math.sin(tilt) * Math.sin(az)).normalize();
-      const S = new THREE.SpotLight(col, 65, 19, 0.46, 0.9, 1.2); beamGrp.add(S);
-      S.target.position.copy(dir).multiplyScalar(6.2); beamGrp.add(S.target); lights.push(S); beamRefs.lights.push(S);
-      const cg = new THREE.ConeGeometry(1.55, 6.2, 20, 1, true); cg.translate(0, -3.1, 0);
-      const cone = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-      cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); beamGrp.add(cone); });
-    beamRefs.grp = beamGrp; dynProps.push({ grp: beamGrp, spin: 0.45 }); });
+    // R18: the R13 coloured beam rig (3 SpotLights + 3 additive cones +
+    // rotating group) is REMOVED -- the user rejected it ('跟ktv的差多了');
+    // its sweep is taken over by the L3 gobo plates of the KTV atmo layer
+    // below, at zero real-light cost (lights[] drops 13 -> 10, back to the
+    // GPT-5 set alone). The ball itself + cord + its own 0.9 spin stay.
+    });
   // >> __KEFB (old-site world facade at 56,0,-117) DELETED -- new exterior is gxClubBuilding (Section 1).
   // >> VIP desk light-box block DELETED -- it was tied to the removed VIP venue.
 
@@ -5740,6 +5733,167 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     for (const hx of [-6.2, 0, 6.2]) for (const hz of [-6.4, -2, 2.4]) { const grp = new THREE.Group(); const wp = roomC.L(hx, hz); grp.position.set(wp.x, SLAB + 5.9, wp.z); grp.rotation.y = roomC.yaw;
       const disc = new THREE.Mesh(hexG, hexM[hi++ % 3]); const rod = new THREE.Mesh(rodG, rodM); rod.position.y = 0.18;
       grp.add(disc, rod); scene.add(grp); innerExtra.push(grp); grp.visible = innerShown; } }
+
+
+  // ---- R18: KTV atmosphere layer (KTV_LIGHTING_PACK.md §4 must-do five + L9) ----
+  // The user's verdict on the R13 beam rig was '跟ktv的差多了' -- a KTV room is
+  // not three light pillars, it is MANY cheap glowing layers. This block adds:
+  //   L1 ceiling LED ring + stage-mouth band (hue-cycling) + spill halos
+  //   L2 nebula ceiling plate + two star Points fields (opposed breathing)
+  //   L3 gobo pattern plates x4 (2 dance-floor, stage back wall, east wall) --
+  //      these take over the "sweeping light" job from the deleted R13 spots
+  //   L5 mirror-ball dot field (floor + both long walls, one drifting texture)
+  //   L7 booth sofa underglow + table halos (violet, 5 s breathing) and the bar
+  //      shelf light slots + amber ring segment over the bar (warm, static hue)
+  //   L9 fake floor reflection streaks under the two long ring runs
+  // Left out on purpose (pack §4.2, recorded in INTEG_R18.md): L4 laser fan
+  // (cheapest-looking layer, high-climax only), L6 wall wash/panels (would push
+  // the east wall past the 3-additive-layer stacking limit with L3+L5 there),
+  // L8 LED screen (the __KNEB neon sign already fills that slot).
+  // HARD RULES held: ZERO new real lights (the GPT-5 set is untouched; lights[]
+  // goes 13 -> 10 with the R13 spots gone). Every material is MeshBasicMaterial
+  // (self-lit) or an additive plane -- nothing here can tint a dancer's skin,
+  // because no real light is added or changed. All atmo materials carry
+  // userData.atmo and resCollect() SKIPS them: the ~5 MB of canvas textures
+  // below stay GPU-resident and can never be disposed by the R14 residency
+  // manager (pack §3.5/§6.9 -- otherwise the layer would come back black).
+  // The whole layer is ONE group in innerGrps, so the existing 40/25 m gate
+  // hides/shows it wholesale, and atmoTick only runs inside nearClub.
+  const atmoGrp = new THREE.Group(); { const cp = roomC.L(0, 0); atmoGrp.position.set(cp.x, 0, cp.z); atmoGrp.rotation.y = roomC.yaw; }
+  scene.add(atmoGrp); innerGrps.push(atmoGrp); atmoGrp.visible = innerShown;
+  const atmoTex = [];
+  let aSeed = 987654321; const aRnd = () => (aSeed = (aSeed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  function atmoCanvas(w, h, draw, srgb) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); if (srgb !== false) t.colorSpace = THREE.SRGBColorSpace; atmoTex.push(t); return t; }
+  function atmoMat(m) { m.userData.atmo = true; m.fog = false; return m; }
+  function mergeGeos(list) {   // tiny non-indexed merge: position/normal/uv/color
+    let n = 0; const parts = list.map(it => { const g = it.geo.toNonIndexed(); g.translate(it.x || 0, it.y || 0, it.z || 0); n += g.attributes.position.count; return { g, col: it.col }; });
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2), col = new Float32Array(n * 3);
+    let o = 0; for (const p of parts) { const g = p.g, cnt = g.attributes.position.count, c = new THREE.Color(p.col == null ? 0xffffff : p.col);
+      pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2);
+      for (let i = 0; i < cnt; i++) { col[(o + i) * 3] = c.r; col[(o + i) * 3 + 1] = c.g; col[(o + i) * 3 + 2] = c.b; } o += cnt; }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    out.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); out.setAttribute('color', new THREE.BufferAttribute(col, 3)); return out; }
+  function atmoMesh(geo, mat, ro) { const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; if (ro != null) m.renderOrder = ro; atmoGrp.add(m); return m; }
+
+  // -- procedural textures (pack §3.5 budget: <=6 sheets / <=6 MB) --
+  const nebTex = atmoCanvas(1024, 512, (g, w, h) => {   // L2 nebula: dark base, soft colour clouds, star dust
+    g.fillStyle = '#04060d'; g.fillRect(0, 0, w, h);
+    const cols = ['106,60,220', '255,40,184', '0,140,255', '70,40,160', '0,200,230'];
+    for (let i = 0; i < 30; i++) { const x = aRnd() * w, y = aRnd() * h, r = 60 + aRnd() * 190, c = cols[i % cols.length];
+      const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(' + c + ',' + (0.10 + aRnd() * 0.13).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(' + c + ',0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+    for (let i = 0; i < 800; i++) { g.fillStyle = 'rgba(255,255,255,' + (0.25 + aRnd() * 0.75).toFixed(3) + ')'; const s = aRnd() < 0.92 ? 1 : 2; g.fillRect(aRnd() * w, aRnd() * h, s, s); } });
+  function goboDraw(blobs) { return (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+    for (const b of blobs) { const gr = g.createRadialGradient(b[0], b[1], 0, b[0], b[1], b[2]); gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(b[0], b[1], b[2], 0, 7); g.fill(); } }; }
+  const goboTexA = atmoCanvas(512, 512, goboDraw([[256, 256, 95], [110, 130, 62], [402, 130, 62], [110, 382, 62], [402, 382, 62], [256, 84, 48], [256, 428, 48]]), false);
+  const goboTexB = atmoCanvas(512, 512, goboDraw([[150, 150, 105], [362, 150, 78], [256, 330, 120], [96, 400, 52], [416, 400, 52]]), false);
+  goboTexA.generateMipmaps = goboTexB.generateMipmaps = false; goboTexA.minFilter = goboTexB.minFilter = THREE.LinearFilter;
+  const goboTexW = goboTexB.clone(); goboTexW.center.set(0.5, 0.5); goboTexW.needsUpdate = true; atmoTex.push(goboTexW);   // stage-wall copy: own transform so it can spin
+  const dotsTex = atmoCanvas(512, 512, (g, w, h) => {   // L5 mirror-ball dots: warm-white led, sparse pink/cyan
+    g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+    const pal = ['#fff3d6', '#fff3d6', '#fff3d6', '#ffffff', '#ffb8e6', '#bdefff'];
+    for (let i = 0; i < 430; i++) { const r = 2.5 + aRnd() * 5.5 + (aRnd() < 0.06 ? 6 : 0); g.globalAlpha = 0.35 + aRnd() * 0.6; g.fillStyle = pal[(aRnd() * pal.length) | 0];
+      g.beginPath(); g.arc(aRnd() * w, aRnd() * h, r, 0, 7); g.fill(); } g.globalAlpha = 1; }, false);
+  dotsTex.wrapS = dotsTex.wrapT = THREE.RepeatWrapping; dotsTex.generateMipmaps = false; dotsTex.minFilter = THREE.LinearFilter;
+  const gradVTex = atmoCanvas(16, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, false);
+  const gradHTex = atmoCanvas(128, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'destination-out'; const gv = g.createLinearGradient(0, 0, 0, h); gv.addColorStop(0, 'rgba(0,0,0,0.55)'); gv.addColorStop(0.5, 'rgba(0,0,0,0)'); gv.addColorStop(1, 'rgba(0,0,0,0.55)'); g.fillStyle = gv; g.fillRect(0, 0, w, h); g.globalCompositeOperation = 'source-over'; }, false);
+  const radialTex = atmoCanvas(128, 128, (g, w, h) => { const gr = g.createRadialGradient(64, 64, 2, 64, 64, 62); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, false);
+  const starTex = atmoCanvas(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 1, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }, false);
+
+  // -- L1: ceiling LED ring (inset 0.4 from the walls) + stage-mouth band, one
+  // merged geometry / one material -> the whole ring recolours in one write.
+  const CY = SLAB + 5.92;
+  const ringMat = atmoMat(new THREE.MeshBasicMaterial({ color: 0x00dfff, toneMapped: false }));
+  atmoMesh(mergeGeos([
+    { geo: new THREE.BoxGeometry(0.12, 0.05, 27.3), x: -17.25, y: CY, z: 0 }, { geo: new THREE.BoxGeometry(0.12, 0.05, 27.3), x: 17.25, y: CY, z: 0 },
+    { geo: new THREE.BoxGeometry(34.5, 0.05, 0.12), x: 0, y: CY, z: -13.65 }, { geo: new THREE.BoxGeometry(34.5, 0.05, 0.12), x: 0, y: CY, z: 13.65 },
+    { geo: new THREE.BoxGeometry(17.0, 0.05, 0.12), x: 0, y: CY, z: -9.35 }]), ringMat);
+  // spill halo: a gradient skirt hanging 0.55 below the ring, additive
+  const haloMat = atmoMat(new THREE.MeshBasicMaterial({ map: gradVTex, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+  { const mk = (w, ry, x, z) => { const p = new THREE.PlaneGeometry(w, 0.55); p.rotateY(ry); return { geo: p, x, y: CY - 0.30, z }; };
+    atmoMesh(mergeGeos([mk(27.3, Math.PI / 2, -17.25, 0), mk(27.3, -Math.PI / 2, 17.25, 0), mk(34.5, 0, 0, -13.65), mk(34.5, Math.PI, 0, 13.65), mk(17.0, 0, 0, -9.35)]), haloMat, 20); }
+
+  // -- L2: nebula plate (centre ceiling) + star points (galaxy band bias) --
+  const nebMat = atmoMat(new THREE.MeshBasicMaterial({ map: nebTex, color: 0x8f86b8 }));
+  { const p = new THREE.PlaneGeometry(15, 11.5); p.rotateX(Math.PI / 2); atmoMesh(p, nebMat).position.set(0, SLAB + 6.16, -2); }
+  function starField(n) { const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    const pal = [[1, 1, 1], [0.8, 0.9, 1], [0.9, 0.8, 1], [1, 0.95, 0.85]]; let i = 0, guard = 0;
+    while (i < n && guard++ < n * 30) { const x = -17.3 + aRnd() * 34.6, z = -13.9 + aRnd() * 27.8, d = z - 0.5 * x + 2;
+      if (aRnd() > 0.30 + 0.70 * Math.exp(-(d * d) / 10.2)) continue;
+      pos[i * 3] = x; pos[i * 3 + 1] = SLAB + 6.10; pos[i * 3 + 2] = z;
+      const c = pal[(aRnd() * pal.length) | 0], b = 0.5 + aRnd() * 0.5; col[i * 3] = c[0] * b; col[i * 3 + 1] = c[1] * b; col[i * 3 + 2] = c[2] * b; i++; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); return g; }
+  function starMat() { return atmoMat(new THREE.PointsMaterial({ size: 2.0, sizeAttenuation: false, map: starTex, transparent: true, opacity: 0.68, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true, toneMapped: false })); }
+  const starMatA = starMat(), starMatB = starMat();
+  for (const [geo, mt] of [[starField(575), starMatA], [starField(575), starMatB]]) { const pts = new THREE.Points(geo, mt); pts.frustumCulled = false; atmoGrp.add(pts); }
+
+  // -- L3: gobo plates (the sweep the deleted spots used to fake, now with shape) --
+  function goboMat(map, op) { return atmoMat(new THREE.MeshBasicMaterial({ map, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); }
+  const goboMatA = goboMat(goboTexA, 0.34), goboMatB = goboMat(goboTexA, 0.28), goboMatW = goboMat(goboTexW, 0.30), goboMatE = goboMat(goboTexA, 0.26);
+  { const p = new THREE.PlaneGeometry(6, 6); p.rotateX(-Math.PI / 2); var goboFloorA = atmoMesh(p, goboMatA, 23); goboFloorA.position.set(0.8, DANCE + 0.030, -1.6); }
+  { const p = new THREE.PlaneGeometry(5.5, 5.5); p.rotateX(-Math.PI / 2); var goboFloorB = atmoMesh(p, goboMatB, 23); goboFloorB.position.set(-2.6, DANCE + 0.033, -3.4); }
+  atmoMesh(new THREE.PlaneGeometry(9, 4.6), goboMatW, 22).position.set(0, SLAB + 2.7, -13.99);          // stage back wall, texture spins
+  { const p = new THREE.PlaneGeometry(7.5, 4.2); p.rotateY(-Math.PI / 2); var goboEast = atmoMesh(p, goboMatE, 22); goboEast.position.set(17.60, SLAB + 2.5, -2); }
+
+  // -- L5: mirror-ball dot field -- floor + both long walls share ONE material
+  // (one drift for all three; the ball's own spin sells the rest) --
+  const dotsMat = atmoMat(new THREE.MeshBasicMaterial({ map: dotsTex, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  { const p = new THREE.PlaneGeometry(13, 13); p.rotateX(-Math.PI / 2); atmoMesh(p, dotsMat, 21).position.set(0, DANCE + 0.025, -2); }
+  { const p = new THREE.PlaneGeometry(17, 4.6); p.rotateY(Math.PI / 2); atmoMesh(p, dotsMat, 21).position.set(-17.60, SLAB + 2.6, -2); }
+  { const p = new THREE.PlaneGeometry(17, 4.6); p.rotateY(-Math.PI / 2); atmoMesh(p, dotsMat, 21).position.set(17.60, SLAB + 2.6, -2); }
+
+  // -- L7: booth warmth. Sofa underglow boxes + floor halos (violet, breathing);
+  // bar shelf slots + the ring's amber segment over the bar (warm vertex
+  // colours, near-static) -- the bar stays the one warm zone (GPT-5 定调). --
+  const BOOTH_BASE = new THREE.Color(0x8a2bff);
+  const boothMat = atmoMat(new THREE.MeshBasicMaterial({ color: 0x8a2bff, toneMapped: false }));
+  const boothHaloMat = atmoMat(new THREE.MeshBasicMaterial({ map: radialTex, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, color: 0x8a2bff, toneMapped: false }));
+  { const SOFAS = [[0, -8.9, 0], [-6, -4.2, 1], [-6, 0.6, 1], [6, -4.2, 1], [6, 0.6, 1]];   // [lx, lz, swapped] -- the KVSB placements above
+    atmoMesh(mergeGeos(SOFAS.map(([lx, lz, sw]) => ({ geo: new THREE.BoxGeometry(sw ? 1.1 : 2.35, 0.05, sw ? 2.35 : 1.1), x: lx, y: SLAB + 0.05, z: lz }))), boothMat);
+    const TABLES = [[0, -7.6], [-4.9, -4.2], [-4.9, 0.6], [4.9, -4.2], [4.9, 0.6]];         // the KVTB placements above
+    const haloParts = SOFAS.map(([lx, lz, sw]) => { const p = new THREE.PlaneGeometry(sw ? 1.9 : 3.1, sw ? 3.1 : 1.9); p.rotateX(-Math.PI / 2); return { geo: p, x: lx, y: SLAB + 0.012, z: lz }; })
+      .concat(TABLES.map(([lx, lz]) => { const p = new THREE.PlaneGeometry(1.7, 1.3); p.rotateX(-Math.PI / 2); return { geo: p, x: lx, y: SLAB + 0.012, z: lz }; }));
+    atmoMesh(mergeGeos(haloParts), boothHaloMat, 20); }
+  const warmMat = atmoMat(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
+  atmoMesh(mergeGeos([
+    { geo: new THREE.BoxGeometry(0.12, 0.05, 5.0), x: -17.25, y: CY, z: -8.5, col: 0xffb83d },                              // L1's bar segment: fixed amber, off the hue cycle
+    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -17.02, y: SLAB + 1.10, z: -8.5, col: 0xffe9c4 },                     // main bottle shelf (__KBHB) slots
+    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -17.02, y: SLAB + 1.75, z: -8.5, col: 0xffe9c4 },
+    { geo: new THREE.BoxGeometry(0.06, 0.035, 3.4), x: -17.02, y: SLAB + 2.40, z: -8.5, col: 0xffe9c4 },
+    { geo: new THREE.BoxGeometry(3.6, 0.035, 0.06), x: -11.60, y: SLAB + 1.15, z: -13.28, col: 0xffe9c4 },                   // mini shelf (__KVHB, R15 corner cabinet) slots
+    { geo: new THREE.BoxGeometry(3.6, 0.035, 0.06), x: -11.60, y: SLAB + 1.80, z: -13.28, col: 0xffe9c4 }]), warmMat);
+
+  // -- L9: fake reflection streaks under the two long ring runs (no Reflector) --
+  const streakMat = atmoMat(new THREE.MeshBasicMaterial({ map: gradHTex, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  { const mk = x => { const p = new THREE.PlaneGeometry(1.3, 21); p.rotateX(-Math.PI / 2); return { geo: p, x, y: SLAB + 0.012, z: -2 }; };
+    atmoMesh(mergeGeos([mk(-16.8), mk(16.8)]), streakMat, 20); }
+
+  // -- colour conductor: ONE phase source for every cycling layer (pack §3.6) --
+  const HUE_STOPS = [new THREE.Color(0x00dfff), new THREE.Color(0x7a2bff), new THREE.Color(0xff28b8)];
+  const _hueA = new THREE.Color(), _hueB = new THREE.Color();
+  const _nebA = new THREE.Color(0x8f86b8), _nebB = new THREE.Color(0xa8c4e0);
+  function clubHue(ph, out) { const p = (((ph % 1) + 1) % 1) * 3, i = Math.floor(p) % 3, f = p - Math.floor(p); return out.copy(HUE_STOPS[i]).lerp(HUE_STOPS[(i + 1) % 3], f); }
+  function atmoTick(dt, t) {
+    clubHue(t / 32, _hueA); clubHue(t / 32 + 0.5, _hueB);                       // 32 s cycle; B runs half a phase behind
+    ringMat.color.copy(_hueA);
+    haloMat.color.copy(_hueA).multiplyScalar(0.5);
+    streakMat.color.copy(_hueA).multiplyScalar(0.45);
+    goboMatA.color.copy(_hueA); goboMatB.color.copy(_hueB); goboMatE.color.copy(_hueB); goboMatW.color.copy(_hueA);
+    nebMat.color.copy(_nebA).lerp(_nebB, 0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 48));
+    starMatA.opacity = 0.68 + 0.17 * Math.sin(t * 0.55); starMatB.opacity = 0.68 - 0.17 * Math.sin(t * 0.55);
+    goboFloorA.rotation.y += dt * 0.16; goboFloorB.rotation.y -= dt * 0.11;
+    goboTexW.rotation = t * 0.05;
+    goboEast.position.z = -2 + Math.sin(t * 2 * Math.PI / 11) * 1.1; goboEast.position.y = SLAB + 2.5 + Math.sin(t * 2 * Math.PI / 7.3) * 0.35;
+    dotsTex.offset.set((t * 0.008) % 1, (t * 0.005) % 1);
+    const br = 0.85 + 0.15 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 5));        // L7: 5 s breathing, never on the beat
+    boothMat.color.copy(BOOTH_BASE).multiplyScalar(br); boothHaloMat.opacity = 0.16 * br;
+    warmMat.color.setScalar(0.92 + 0.08 * Math.sin(t * 0.8 + 1.3));
+  }
+  let atmoDraws = 0; atmoGrp.traverse(o => { if (o.isMesh || o.isPoints) atmoDraws++; });
+  const atmoQA = { grp: atmoGrp, draws: atmoDraws, get lights() { return lights.length; }, get tex() { return atmoTex.length; } };
 
 
   Promise.all(jobs).then(() => { readyFlag = true; });
@@ -5772,6 +5926,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
       fillL.intensity = 26 * (0.7 + 0.5 * eCur); fillR.intensity = 26 * (0.7 + 0.5 * eCur);
       barAmb.intensity = 15 + 3 * Math.sin(t * 0.8);
       arcAmb.intensity = 20 * (0.8 + 0.3 * eCur);
+      atmoTick(dt, t);   // R18: KTV atmo layer (hue cycle / gobo sweep / star breathing; zero real lights, surface-bound only)
       if (FOOT.on && FOOT.mode === 'foot') {
         const nd = nearestDancer(); if (nd.d) { danceVen.x = nd.d.grp.position.x; danceVen.z = nd.d.grp.position.z; }
         if (danceD) { const dd = Math.hypot(danceD.grp.position.x - F.x, danceD.grp.position.z - F.z);
@@ -5795,7 +5950,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     }
     hearts.forEach(s => { if (s.userData.t > 0) { s.userData.t -= dt; s.position.y += dt * 0.75; s.material.opacity = Math.min(0.95, s.userData.t); if (s.userData.t <= 0) s.visible = false; } });
   }
-  return { frame, tip, dance, dancers, statues, SPOTS, beams: beamRefs, get ready() { return readyFlag; }, get innerShown() { return innerShown; }, res: { get state() { return resState; }, get texCount() { if (resTexGrpN !== innerGrps.length) resCollect(); return resTex.length; }, get estMB() { if (resTexGrpN !== innerGrps.length) resCollect(); return Math.round(resTexMB); }, get queued() { return resQueue.length; } } };
+  return { frame, tip, dance, dancers, statues, SPOTS, beams: beamRefs, atmo: atmoQA, get ready() { return readyFlag; }, get innerShown() { return innerShown; }, res: { get state() { return resState; }, get texCount() { if (resTexGrpN !== innerGrps.length) resCollect(); return resTex.length; }, get estMB() { if (resTexGrpN !== innerGrps.length) resCollect(); return Math.round(resTexMB); }, get queued() { return resQueue.length; } } };
 })();
 if (GXCLUB) window.GXCLUBX = GXCLUB;
 
