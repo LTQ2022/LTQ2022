@@ -5422,8 +5422,12 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   // keep their texture refs and the decoded images stay in CPU memory, so on
   // return three.js re-uploads the SAME texture objects -- no placeholder, no
   // resolution/content change). <300 m -> staged re-upload via
-  // renderer.initTexture (~32 MB of estimated bytes per frame, dancers first)
-  // so the return trip never spikes a single frame; <15 m -> finish at once.
+  // renderer.initTexture (dancers first) so the return trip never spikes a
+  // single frame. R24: the old ~32 MB/frame budget AND the <15 m force-finish
+  // are gone -- uploads are hard-sliced to <=8 ms per frame at EVERY distance
+  // (user-reported freeze on club approach), a "夜店加载中 xx%" card shows
+  // while the queue drains in the approach zone, and interior shader programs
+  // are pre-compiled in slices inside 300 m (see frame()).
   // Anti-churn latch: after a restore completes, a new release first requires
   // one excursion beyond 300 m (resFarSeen), so parking in the 260-300 m band
   // cannot oscillate dispose/upload. Releasing mid-restore is safe: the whole
@@ -5431,6 +5435,9 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   // mixers, transforms and venues are never touched by this manager.
   const RES_SLOTS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap', 'bumpMap', 'displacementMap', 'lightMap', 'specularIntensityMap', 'specularColorMap'];
   let resTex = null, resTexGrpN = -1, resTexMB = 0, resState = 'in', resFarT = 0, resQueue = [], resFarSeen = true;
+  let resTotal = 0, warmIdx = 0;   // R24: restore denominator + shader-prewarm cursor
+  const clubLoadEl = document.createElement('div'); clubLoadEl.id = 'clubLoad'; clubLoadEl.style.cssText = 'position:fixed;left:50%;top:calc(110px + env(safe-area-inset-top));transform:translateX(-50%);background:rgba(10,12,18,.78);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:8px 16px;color:#fff;font:700 13px/1.5 "PingFang SC",Arial,sans-serif;z-index:7;display:none;text-align:center;pointer-events:none';
+  document.body.appendChild(clubLoadEl);
   function resTexBytes(t) { const im = t && t.image; if (!im) return 0; const w = im.videoWidth || im.width || 0, h = im.videoHeight || im.height || 0; return w * h * 4 * 1.333; }
   function resCollect() {
     const set = new Set(); const eat = root => root.traverse(o => { if (!o.isMesh) return; const ms = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []); for (const m of ms) { if (m.userData && m.userData.atmo) continue;   // R18: KTV atmo materials are residency-exempt -- their ~5 MB of canvas textures stay resident so a far->near round trip can never bring back a black layer (KTV_LIGHTING_PACK S3.5/S6.9)
@@ -5443,12 +5450,18 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     if (dc > 300) resFarSeen = true;
     if (dc > 260 && resFarSeen) { resFarT += dt; if (resFarT >= 5 && resState !== 'out') resRelease(); }
     else resFarT = 0;
-    if (resState === 'out' && dc < 300) { if (resTexGrpN !== innerGrps.length) resCollect(); resQueue = resTex.slice(); resState = 'restoring'; }
+    if (resState === 'out' && dc < 300) { if (resTexGrpN !== innerGrps.length) resCollect(); resQueue = resTex.slice(); resTotal = resQueue.length; resState = 'restoring'; }
     if (resState === 'restoring') {
-      if (dc < 15) { for (const t of resQueue) renderer.initTexture(t); resQueue = []; }
-      else { let budget = 33554432; while (resQueue.length && budget > 0) { const t = resQueue.shift(); renderer.initTexture(t); budget -= Math.max(resTexBytes(t), 1048576); } }
+      // R24 hard time slice: at most ~8 ms of texture uploads per frame at any
+      // distance (at least one texture, so the queue always makes progress).
+      const t0 = performance.now(); let n = 0;
+      while (resQueue.length) { const t = resQueue.shift(); renderer.initTexture(t); n++; if (n >= 1 && performance.now() - t0 > 8) break; }
       if (!resQueue.length) { resState = 'in'; resFarSeen = false; }
     }
+    // R24 loading indicator (car-loader card style, non-blocking): shown
+    // while the restore queue is active inside the approach zone.
+    if (resState === 'restoring' && dc < 300) { clubLoadEl.style.display = 'block'; clubLoadEl.textContent = '夜店加载中 ' + Math.round(100 * (1 - resQueue.length / Math.max(1, resTotal))) + '%'; }
+    else if (clubLoadEl.style.display !== 'none') clubLoadEl.style.display = 'none';
   }
 
 
@@ -5910,6 +5923,14 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     if (innerShown && dcClub > 40) { innerShown = false; for (const g2 of innerGrps) g2.visible = false; for (const g2 of innerExtra) g2.visible = false; hearts.forEach(s => { s.visible = false; }); }
     else if (!innerShown && dcClub < 25) { innerShown = true; for (const g2 of innerGrps) g2.visible = true; for (const g2 of innerExtra) g2.visible = true; }
     resTick(dt, dcClub);   // R14: texture residency (dispose/restore by distance; see manager above)
+    // R24 shader prewarm: inside 300 m, compile the interior groups' programs
+    // a few per frame (<=6 ms slice) so the first visible frame (<25 m) no
+    // longer compiles ~350 programs at once. The groups are invisible at this
+    // range; visibility flips only around the synchronous compile call and is
+    // restored immediately -- nothing is drawn early.
+    { const wl = innerGrps.concat(innerExtra);
+      if (dcClub < 300 && warmIdx < wl.length) { const t0 = performance.now();
+        while (warmIdx < wl.length && performance.now() - t0 < 6) { const g2 = wl[warmIdx++]; const was = g2.visible; g2.visible = true; try { renderer.compile(g2, camera); } catch (e) {} g2.visible = was; } } }
     if (danceD && !nearClub) endDance();
     for (const Lt of lights) Lt.visible = nearClub && innerShown;
     if (!nearClub && !farFrozen) { farFrozen = true; dancers.forEach(d => perfSkelSet(d, d.inner, false)); }
@@ -5948,7 +5969,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     }
     hearts.forEach(s => { if (s.userData.t > 0) { s.userData.t -= dt; s.position.y += dt * 0.75; s.material.opacity = Math.min(0.95, s.userData.t); if (s.userData.t <= 0) s.visible = false; } });
   }
-  return { frame, tip, dance, dancers, statues, SPOTS, beams: beamRefs, atmo: atmoQA, get ready() { return readyFlag; }, get innerShown() { return innerShown; }, res: { get state() { return resState; }, get texCount() { if (resTexGrpN !== innerGrps.length) resCollect(); return resTex.length; }, get estMB() { if (resTexGrpN !== innerGrps.length) resCollect(); return Math.round(resTexMB); }, get queued() { return resQueue.length; } } };
+  return { frame, tip, dance, dancers, statues, SPOTS, beams: beamRefs, atmo: atmoQA, get ready() { return readyFlag; }, get innerShown() { return innerShown; }, res: { get state() { return resState; }, get texCount() { if (resTexGrpN !== innerGrps.length) resCollect(); return resTex.length; }, get estMB() { if (resTexGrpN !== innerGrps.length) resCollect(); return Math.round(resTexMB); }, get queued() { return resQueue.length; }, get restoring() { return resState === 'restoring'; }, get progress() { return resTotal ? 1 - resQueue.length / resTotal : 1; }, get loadShown() { return clubLoadEl.style.display !== 'none'; }, get loadText() { return clubLoadEl.textContent; }, warm: { get done() { return warmIdx; }, get total() { return innerGrps.length + innerExtra.length; } } } };
 })();
 if (GXCLUB) window.GXCLUBX = GXCLUB;
 
@@ -6563,6 +6584,31 @@ if (GXW && GX && FOOT) PCX = (function () {
     return flipped;
   }
   const diag = {};
+  // ---- R24: real turn-signal segments. Where a model has no dedicated indicator
+  // mesh/material, the lamp mesh is split by triangle centroid (measured in
+  // GLB/inner space: nose +Z, left +X) into segment meshes with cloned
+  // materials. Every boundary comes from the per-car audits in INTEG_R24
+  // (natural geometry gaps, texture zones, strip tertiles) -- never a
+  // whole-lamp flash standing in for a segment.
+  function splitMeshSegs(mesh, inner, pick) {
+    const g = mesh.geometry; if (!g || !g.attributes.position || Array.isArray(mesh.material)) return null;
+    const pos = g.attributes.position, idx = g.index ? g.index.array : null;
+    const tris = Math.floor((idx ? idx.length : pos.count) / 3); if (!tris) return null;
+    inner.updateMatrixWorld(true);
+    const toInner = new THREE.Matrix4().copy(inner.matrixWorld).invert().multiply(mesh.matrixWorld);
+    const v = new THREE.Vector3(), cen = new THREE.Vector3();
+    const buckets = new Map(), rest = [];
+    for (let t = 0; t < tris; t++) { const i0 = idx ? idx[t * 3] : t * 3, i1 = idx ? idx[t * 3 + 1] : t * 3 + 1, i2 = idx ? idx[t * 3 + 2] : t * 3 + 2;
+      cen.set(0, 0, 0); for (const ii of [i0, i1, i2]) { v.fromBufferAttribute(pos, ii).applyMatrix4(toInner); cen.add(v); } cen.multiplyScalar(1 / 3);
+      const key = pick(cen); if (key === null || key === undefined) rest.push(i0, i1, i2); else { if (!buckets.has(key)) buckets.set(key, []); buckets.get(key).push(i0, i1, i2); } }
+    if (!buckets.size) return null;
+    const restGeo = g.clone(); restGeo.setIndex(rest); mesh.geometry = restGeo;
+    const out = {};
+    for (const [key, arr] of buckets) { const sg = g.clone(); sg.setIndex(arr); const sm = mesh.material.clone(); const nm = new THREE.Mesh(sg, sm); nm.name = (mesh.name || 'lamp') + '_seg' + key; nm.castShadow = mesh.castShadow; nm.receiveShadow = mesh.receiveShadow; mesh.parent.add(nm); out[key] = sm; }
+    return out;
+  }
+  function findLampMeshes(inner, nodeName, matRe) { const out = []; const o = nodeName ? inner.getObjectByName(nodeName) : inner; if (!o) return out; o.traverse(m => { if (m.isMesh && m.material && !Array.isArray(m.material) && matRe.test(m.material.name || '')) out.push(m); }); return out; }
+  function regSeg(car, side, end, mat, baseHex, baseInt) { if (!mat || !mat.emissive) return; mat.userData._baseEmi = baseHex; mat.userData._baseInt = baseInt; car._ind[side][end].push(mat); }
   // ---- physical lamps (batch-2 CAD cars): twin SpotLights throw a real pool on the road
   // (bmw_m4_v2 SPEC s.4.2: 900 cd, angle .46, penumbra .55, decay 2), one red PointLight
   // spills behind the car (6 running / 18 braking), and the tail-strip emissive follows
@@ -6590,8 +6636,32 @@ if (GXW && GX && FOOT) PCX = (function () {
     // so the blue ring stays saturated and the housings stay dark.
     headMats.forEach(m => { if (m.emissive && m.emissive.getHex() !== 0) { const e = m.emissive; const blueAccent = e.r < 0.1 && e.b > 0.9; m.emissiveIntensity = blueAccent ? (M.night ? 2.2 : 1.6) : (M.night ? 1.8 : 1.3); } }); // lifts stay LOW on purpose: past ~2 the tonemapper clips the blue channel to white and the angel eye washes out again (measured: at 2.6 the blue element rendered ~2 blue-dominant pixels in the whole lamp); near-stock intensity keeps the colour saturated, as on the original model the user remembers
     car._spots = spots; car._tailPt = tailPt; car._headMats = headMats; car._tailMats = tailMats; car._tailBySide = tailBySide;
-    car._seqSegs = { L: [tailBySide[0] || []], R: [tailBySide[1] || []] }; // R22B sequential indicators, rear only: the front mats carry the factory blue angel eye and are never repainted amber
     tailMats.forEach(m => { if (m.emissive) { m.userData._baseEmi = m.emissive.getHex(); m.userData._baseInt = m.emissiveIntensity; } });
+    // ---- R24 M4: sequential sweep segments, centre -> out, front AND rear.
+    // Rear: the Material_739 tail strip split into |x| tertiles (audit span
+    // 0.366-0.817). Front: the Material_776 eyebrow band across the lamp face
+    // split into |x| tertiles -- on the real G82 the sequential indicator
+    // lives in that top light-guide strip. The factory blue angel eye
+    // (Material_161) and the ice beam (Material_708) are NOT segments and
+    // their static values are never touched.
+    car._ind = { L: { F: [], R: [] }, R: { F: [], R: [] } };
+    const sweep = { LF: [], LR: [], RF: [], RR: [] };
+    const primSpan = mesh => { const pa = mesh.geometry.attributes.position; inner.updateMatrixWorld(true); const toI = new THREE.Matrix4().copy(inner.matrixWorld).invert().multiply(mesh.matrixWorld); const vv = new THREE.Vector3(); let mn = 1e9, mx = -1e9; for (let i = 0; i < pa.count; i++) { vv.fromBufferAttribute(pa, i).applyMatrix4(toI); const ax = Math.abs(vv.x); if (ax < mn) mn = ax; if (ax > mx) mx = ax; } return [mn, mx]; };
+    const split3 = (mesh, side, end, baseOf) => { const [mn, mx] = primSpan(mesh); const c1 = mn + (mx - mn) / 3, c2 = mn + 2 * (mx - mn) / 3; const segs = splitMeshSegs(mesh, inner, c => { const ax = Math.abs(c.x); return ax < c1 ? '0' : (ax < c2 ? '1' : '2'); }); if (!segs) return null; const ordered = []; ['0', '1', '2'].forEach(k => { if (segs[k]) { const b = baseOf(mesh); regSeg(car, side, end, segs[k], b[0], b[1]); sweep[side + end].push(segs[k]); ordered.push(segs[k]); } }); return ordered; };
+    LC.tail.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /^Material_739$/).forEach(mesh => { const orig = mesh.material; const ordered = split3(mesh, side, 'R', () => [orig.userData._baseEmi !== undefined ? orig.userData._baseEmi : 0xff1a08, orig.userData._baseInt !== undefined ? orig.userData._baseInt : LC.tailRun]); if (ordered) { const ti = tailMats.indexOf(orig); if (ti >= 0) tailMats.splice(ti, 1); const sa = tailBySide[si]; const sj = sa.indexOf(orig); if (sj >= 0) sa.splice(sj, 1); ordered.forEach(m => { tailMats.push(m); sa.push(m); }); } }); });
+    LC.head.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /^Material_776$/).forEach(mesh => { split3(mesh, side, 'F', () => [0x000000, 0]); }); });
+    car._indSweep = sweep;
+    // ---- R24 M4 beam show: the two real SpotLights get choreographed targets
+    // (inspect loop + welcome-on-entry). Base offsets are recorded here and
+    // restored EXACTLY when a show ends; static lamp values never change.
+    car._beamBase = spots.map(s => s.target.position.clone());
+    // Ground text projection via three r160 SpotLight.map (a real projector
+    // light in the nose, canvas 'M4' gobo) -- inspect / welcome only. If the
+    // build's spot map does not project, the acceptance probe records it and
+    // this stays dark (never faked with a ground decal).
+    try { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256; const cx2 = cv.getContext('2d'); cx2.fillStyle = '#000'; cx2.fillRect(0, 0, 256, 256); cx2.fillStyle = '#fff'; cx2.font = '900 148px Arial'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle'; cx2.fillText('M4', 128, 136); const tx = new THREE.CanvasTexture(cv);
+      const pj = new THREE.SpotLight(0xcfe2ff, 0, 30, 0.34, 0.45, 1.2); pj.position.set(0, 0.72, 1.95); const tg = new THREE.Object3D(); tg.position.set(0, 0, 8.6); wrap.add(tg); pj.target = tg; pj.map = tx; wrap.add(pj); car._proj = pj; } catch (e) {}
+    if (diag[def.id]) diag[def.id].ind = { LF: car._ind.L.F.length, LR: car._ind.L.R.length, RF: car._ind.R.F.length, RR: car._ind.R.R.length, sweepF: sweep.LF.length, sweepR: sweep.LR.length };
     car.lampTick = brk => { car._brk = brk ? 1 : 0; const base = brk ? LC.tailBrake : LC.tailRun; const v = car._seqActive ? base : (car._haz ? (car._hazLevel || 0) * LC.tailBrake : base); tailMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); };
     car.lampTick(0);
     if (diag[def.id]) diag[def.id].lamps = { head: heads.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tail: tails.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tailMats: tailMats.length };
@@ -6611,17 +6681,63 @@ if (GXW && GX && FOOT) PCX = (function () {
     const tailAll = tails.concat(LC.tailC ? [anchor(LC.tailC)].filter(Boolean) : []);
     if (tailAll.length) { const c = tailAll.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / tailAll.length); tailPt = new THREE.PointLight(0xff1a1a, 0, 7, 2); tailPt.position.copy(c); wrap.add(tailPt); }
     const isGlass = m => /glass/i.test(m.name || '') || m.transparent;
-    const collect = (names, strict) => { const out = []; names.forEach(nm => { const o = inner.getObjectByName(nm); if (!o) return; o.traverse(m2 => { if (m2.isMesh && m2.material && !Array.isArray(m2.material) && m2.material.isMeshStandardMaterial && (!strict || isGlass(m2.material))) { if (!m2.material.userData._pcLamp) { const cl = m2.material.clone(); cl.userData._pcLamp = 1; m2.material = cl; } if (out.indexOf(m2.material) < 0) out.push(m2.material); } }); }); return out; };
-    let headMats = collect(LC.head, true); if (!headMats.length) headMats = collect(LC.head, false);
-    let tailMats = collect(LC.tail, true); if (!tailMats.length) tailMats = collect(LC.tail, false);
-    let tailCMats = LC.tailC ? collect([LC.tailC], true) : []; if (LC.tailC && !tailCMats.length) tailCMats = collect([LC.tailC], false); /* centre-bar node ships chrome-only meshes: cloned + red emissive it becomes the lit centre of the full-width band */
+    const isEmitter = m => /emitter/i.test(m.name || '');
+    const collect = (names, filt) => { const out = []; names.forEach(nm => { const o = inner.getObjectByName(nm); if (!o) return; o.traverse(m2 => { if (m2.isMesh && m2.material && !Array.isArray(m2.material) && m2.material.isMeshStandardMaterial && (!filt || filt(m2.material))) { if (!m2.material.userData._pcLamp) { const cl = m2.material.clone(); cl.userData._pcLamp = 1; m2.material = cl; } if (out.indexOf(m2.material) < 0) out.push(m2.material); } }); }); return out; };
+    // R24 Dawn white-out fix: Dawn's lamp assemblies contain NO glass and NO
+    // transparent material (all-opaque metal/chrome/emitter prims), so the old
+    // strict pass found nothing and the fallback painted the ice emissive onto
+    // the WHOLE housing (runtime probe: all five head materials at 0xbfd4ff
+    // @1.3 -- the lamp internals were washed out). Tiered now: 1) glass /
+    // transparent (legacy -- Wraith and Silvia resolve exactly as before),
+    // 2) emitter-named only (Dawn: the LED guide strip alone glows, the
+    // housing stays dark metal/chrome), 3) everything (legacy fallback).
+    const collectTiered = names => { let a = collect(names, isGlass); if (!a.length) a = collect(names, isEmitter); if (!a.length) a = collect(names, null); return a; };
+    let headMats = collectTiered(LC.head);
+    let tailMats = collectTiered(LC.tail);
+    let tailCMats = LC.tailC ? collectTiered([LC.tailC]) : []; /* centre-bar node ships chrome-only meshes: cloned + red emissive it becomes the lit centre of the full-width band */
     headMats.forEach(m => { if (m.emissive) { m.emissive.setHex(0xbfd4ff); m.emissiveIntensity = M.night ? 1.8 : 1.3; } });
     tailMats.concat(tailCMats).forEach(m => { if (m.emissive) m.emissive.setHex(0xff1a08); });
-    const perNode = nm => { let a = collect([nm], true); if (!a.length) a = collect([nm], false); return a; };
+    const perNode = nm => collectTiered([nm]);
     const headSides = LC.head.map(perNode), tailSides = LC.tail.map(perNode);
     car._spots = spots; car._tailPt = tailPt; car._headMats = headMats; car._tailMats = tailMats; car._tailCMats = tailCMats; car._hazHead = headMats;
-    car._seqSegs = { L: [headSides[0] || [], tailSides[0] || [], tailCMats], R: [headSides[headSides.length - 1] || [], tailSides[tailSides.length - 1] || [], tailCMats] }; // R22B sequential segments per side: head -> tail -> centre bar (Silvia's single headlight_C is shared as segment 0 of both sides)
     headMats.concat(tailMats, tailCMats).forEach(m => { if (m.emissive) { m.userData._baseEmi = m.emissive.getHex(); m.userData._baseInt = m.emissiveIntensity; } });
+    // ---- R24 indicator segments (per-car audit conclusions: INTEG_R24) ----
+    car._ind = { L: { F: [], R: [] }, R: { F: [], R: [] } }; car._indSweep = null;
+    const iceHex = 0xbfd4ff, iceInt = M.night ? 1.8 : 1.3;
+    if (def.id === 'wraith') {
+      // rear: dedicated amber-glass segment prim (glass.021) -- it LEAVES the
+      // red tail set (on the real car that patch is amber-only).
+      LC.tail.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /glass\.021/).forEach(mesh => { const m = mesh.material; const ti = tailMats.indexOf(m); if (ti >= 0) tailMats.splice(ti, 1); regSeg(car, side, 'R', m, 0x000000, 0); }); });
+      // front: outer segment of the glass.005 lens, split at the measured
+      // zero-density geometry gap |x| in [0.638, 0.654].
+      LC.head.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /glass\.005/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => (side === 'L' ? c.x >= 0.654 : c.x <= -0.654) ? 'i' : null); if (segs && segs.i) regSeg(car, side, 'F', segs.i, iceHex, iceInt); }); });
+    } else if (def.id === 'dawn') {
+      // switchback segments: outer part of the emitter DRL strip (front,
+      // |x| >= 0.589 of the 0.504-0.634 strip) and of the emitter tail strip
+      // (rear, |x| >= 0.71 of 0.618-0.767); amber while indicating, ice/red
+      // otherwise. Rear segment stays in tailMats so run/brake drive it.
+      LC.head.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /emitter_ch1\.003/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => (side === 'L' ? c.x >= 0.589 : c.x <= -0.589) ? 'i' : null); if (segs && segs.i) regSeg(car, side, 'F', segs.i, iceHex, iceInt); }); });
+      LC.tail.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /emitter_ch1\.007/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => (side === 'L' ? c.x >= 0.71 : c.x <= -0.71) ? 'i' : null); if (segs && segs.i) { tailMats.push(segs.i); regSeg(car, side, 'R', segs.i, 0xff1a08, LC.tailRun); } }); });
+    } else if (def.id === 'silvia') {
+      // front: the Type-X bumper combination lamps (material signals_typex_L,
+      // amber-textured triangles in two clusters, natural gap |x| < 0.41) --
+      // NOT the closed pop-up headlight. One mesh carries both sides.
+      findLampMeshes(inner, null, /signals_typex/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => c.x >= 0.41 ? 'L' : (c.x <= -0.41 ? 'R' : null)); if (segs) { if (segs.L) regSeg(car, 'L', 'F', segs.L, 0x000000, 0); if (segs.R) regSeg(car, 'R', 'F', segs.R, 0x000000, 0); } });
+      // rear: the kouki section BETWEEN the two brake pods (pod clusters at
+      // |x| 0.385-0.49 and 0.58-0.667 leave a measured gap at 0.49-0.58; the
+      // real kouki turn signal sits exactly there). Rear face only.
+      LC.tail.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /kouki/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => { const ax = Math.abs(c.x); return (ax >= 0.495 && ax <= 0.585 && c.z <= -1.95) ? 'i' : null; }); if (segs && segs.i) { tailMats.push(segs.i); regSeg(car, side, 'R', segs.i, 0xff1a08, LC.tailRun); } }); });
+      // itasha underglow: ONE real violet point light, restrained -- on only
+      // while this car is driven or being inspected.
+      const ug = new THREE.PointLight(0x7a4dff, 0, 3.8, 2); ug.position.set(0, 0.16, 0); wrap.add(ug); car._underglow = ug;
+    }
+    if (def.id === 'wraith' || def.id === 'dawn') {
+      // restrained welcome ground pools for inspect (real spotlights landing
+      // beside the car, warm and soft -- no sweeps, no flashes on a Rolls).
+      car._welcome = [];
+      [-1, 1].forEach(s => { const sp = new THREE.SpotLight(0xffd9a0, 0, 7, 0.62, 1, 2); sp.position.set(s * (def.W / 2 + 0.12), 1.05, 0.15); const tg = new THREE.Object3D(); tg.position.set(s * (def.W / 2 + 1.5), 0, 0.15); wrap.add(tg); sp.target = tg; wrap.add(sp); car._welcome.push(sp); });
+    }
+    if (diag[def.id]) diag[def.id].ind = { LF: car._ind.L.F.length, LR: car._ind.L.R.length, RF: car._ind.R.F.length, RR: car._ind.R.R.length, headMats: headMats.map(m => m.name), tailMats: tailMats.map(m => m.name) };
     car.lampTick = brk => { car._brk = brk ? 1 : 0; const base = brk ? LC.tailBrake : LC.tailRun; const hz = car._seqActive ? 0 : (car._haz ? (car._hazLevel || 0) * 3.4 : 0); const v = Math.max(base, hz); tailMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); tailCMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); }; // tailC at full value: the centre bar is part of one uniform full-width tail band
     car.lampTick(0);
     if (diag[def.id]) diag[def.id].lamps = { head: heads.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tail: tails.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tailMats: tailMats.length, headMats: headMats.length };
@@ -6714,21 +6830,61 @@ if (GXW && GX && FOOT) PCX = (function () {
       .then(c => { if (c) loadEl.style.display = 'none'; delete loadingCars[def.id]; return c; });
     loadingCars[def.id] = p; return p;
   }
-  { worldTick.push(dt => { // R22: hazard blink phase + inspect-mode animation/door drive
+  // R24 M4 beam-show pose: cross-sweep + pitch bob + spread, all envelopes are
+  // zero at u=0 and u=1, so the pose starts and ends EXACTLY on the base
+  // targets (and the driver also copies the bases back verbatim at the end).
+  function beamPose(c, u) { const sw = Math.sin(u * Math.PI * 2), lf = Math.sin(u * Math.PI * 4), sp = (Math.sin(u * Math.PI * 2 - Math.PI / 2) + 1) * 0.9;
+    c._spots.forEach((s, i) => { const b = c._beamBase[i]; const sgn = Math.sign(b.x) || 1; s.target.position.set(b.x + (sp * 0.55 - sw * 2.4) * sgn, b.y + lf * 0.45, b.z); }); }
+  { worldTick.push(dt => { // R24: true indicator segments + hazard + inspect drive
       for (const id in cars) { const c = cars[id]; if (!c || !c.ready) continue;
-        // R22B sequential indicators: hazard = both sides sweeping, turn = the driven
-        // car's input side; segments fill progressively front -> rear -> centre bar
-        // in amber, then the whole side rests dark before the next cycle.
-        let seqMode = 0;
-        if (c._seqSegs) { if (c._haz) seqMode = 3; else if (F.veh === c && F.mode === 'car') { if (input.left) seqMode |= 1; if (input.right) seqMode |= 2; } }
-        if (seqMode) { c._seqActive = 1; c._seqT = (c._seqT || 0) + dt; if (!c._seqMap) c._seqMap = new Map();
-          const ph = (c._seqT % 0.8) / 0.8;
-          const drive = segs => segs.forEach((mats, k) => { const on = ph >= k * 0.18 && ph < 0.78; mats.forEach(m => { if (!m.emissive) return; if (on) { m.emissive.setHex(0xff9a1f); m.emissiveIntensity = 3.6; c._seqMap.set(m, 3.6); } else { c._seqMap.set(m, 0); if (m.userData._baseEmi !== undefined) m.emissive.setHex(m.userData._baseEmi); if (!c._tailMats || c._tailMats.indexOf(m) < 0) m.emissiveIntensity = m.userData._baseInt !== undefined ? m.userData._baseInt : m.emissiveIntensity; } }); });
-          if (seqMode & 1) drive(c._seqSegs.L); if (seqMode & 2) drive(c._seqSegs.R);
-          if (c.lampTick) c.lampTick(c._brk || 0);
-        } else if (c._seqActive) { c._seqActive = 0; c._seqT = 0; if (c._seqMap) { c._seqMap.forEach((v, m) => { if (m.emissive && m.userData._baseEmi !== undefined) m.emissive.setHex(m.userData._baseEmi); if (m.emissive && (!c._tailMats || c._tailMats.indexOf(m) < 0)) m.emissiveIntensity = m.userData._baseInt !== undefined ? m.userData._baseInt : m.emissiveIntensity; }); c._seqMap.clear(); } if (c.lampTick) c.lampTick(c._brk || 0); }
-        if (c._haz) { c._hazT = (c._hazT || 0) + dt; c._hazLevel = (c._hazT % 0.625) < 0.34 ? 1 : 0; if (!c._seqActive && c._hazHead) c._hazHead.forEach(m => { if (m.emissive) m.emissiveIntensity = (M.night ? 1.8 : 1.3) + c._hazLevel * 2.4; }); }
+        // Indicators on the audited segments, bike rhythm (0.8 s period, lit
+        // window < 0.45, rear phase +0.12 -- identical to bikeIndTick).
+        // Hazard = the same four corners blinking together; the R22B
+        // whole-head flash and the centre-bar sweep are gone. The M4 sweeps
+        // centre -> out on turns; hazard blinks it like everyone else.
+        if (c._ind) {
+          let mode = 0;
+          if (c._haz) mode = 3; else if (F.veh === c && F.mode === 'car') { if (input.left) mode |= 1; if (input.right) mode |= 2; }
+          const show = !!(c._lightShow && INSP.on);
+          if (mode || show) { c._seqActive = 1; c._indT = (c._indT || 0) + dt; if (!c._seqMap) c._seqMap = new Map();
+            const t = c._indT, litF = (t % 0.8) < 0.45, litR = ((t + 0.12) % 0.8) < 0.45;
+            const setSeg = (m, on, boost) => { if (!m.emissive) return; if (on) { m.emissive.setHex(0xff9a1f); m.emissiveIntensity = boost || 3.6; c._seqMap.set(m, boost || 3.6); } else { c._seqMap.set(m, 0); if (m.userData._baseEmi !== undefined) m.emissive.setHex(m.userData._baseEmi); if (!c._tailMats || c._tailMats.indexOf(m) < 0) m.emissiveIntensity = m.userData._baseInt !== undefined ? m.userData._baseInt : m.emissiveIntensity; } };
+            if (show) { // inspect light show (Silvia + no-animation fallback): a
+              // chase rolling front-L -> front-R -> rear-L -> rear-R over the
+              // hazard blink, then a beam finale. Real segments/lights only.
+              const st = t % 2.4; const win = (a, b) => st >= a && st < b;
+              const chase = [[c._ind.L.F, win(0.0, 0.45)], [c._ind.R.F, win(0.3, 0.75)], [c._ind.L.R, win(0.6, 1.05)], [c._ind.R.R, win(0.9, 1.35)]];
+              chase.forEach(([arr, on]) => (arr || []).forEach(m => setSeg(m, on || litF, on ? 4.4 : 3.6)));
+              c._showFinale = win(1.55, 2.15) ? 1 : 0;
+            } else if (c._indSweep && mode !== 3) {
+              const side = mode === 1 ? 'L' : 'R', oth = mode === 1 ? 'R' : 'L', sw = c._indSweep;
+              const driveCorner = (arr, ph) => (arr || []).forEach((m, k) => setSeg(m, ph >= k * 0.13 && ph < 0.62));
+              driveCorner(sw[side + 'F'], t % 0.8); driveCorner(sw[side + 'R'], (t + 0.12) % 0.8);
+              (c._ind[oth].F || []).forEach(m => setSeg(m, false)); (c._ind[oth].R || []).forEach(m => setSeg(m, false));
+            } else {
+              const doL = !!(mode & 1) || mode === 3, doR = !!(mode & 2) || mode === 3;
+              (c._ind.L.F || []).forEach(m => setSeg(m, doL && litF)); (c._ind.L.R || []).forEach(m => setSeg(m, doL && litR));
+              (c._ind.R.F || []).forEach(m => setSeg(m, doR && litF)); (c._ind.R.R || []).forEach(m => setSeg(m, doR && litR));
+            }
+            if (c.lampTick) c.lampTick(c._brk || 0);
+          } else if (c._seqActive) { c._seqActive = 0; c._indT = 0; c._showFinale = 0; if (c._seqMap) { c._seqMap.forEach((v, m) => { if (m.emissive && m.userData._baseEmi !== undefined) m.emissive.setHex(m.userData._baseEmi); if (m.emissive && (!c._tailMats || c._tailMats.indexOf(m) < 0)) m.emissiveIntensity = m.userData._baseInt !== undefined ? m.userData._baseInt : m.emissiveIntensity; }); c._seqMap.clear(); } if (c.lampTick) c.lampTick(c._brk || 0); }
+        }
+        if (c._haz) { c._hazT = (c._hazT || 0) + dt; c._hazLevel = (c._hazT % 0.625) < 0.34 ? 1 : 0; }
         else if (c._hazLevel) { c._hazLevel = 0; if (c.lampTick) c.lampTick(c._brk || 0); }
+        // Silvia underglow / Rolls welcome pools / light-show beam finale
+        if (c._underglow) c._underglow.intensity = (F.veh === c || (INSP.on && INSP.cars.indexOf(c) >= 0)) ? 3 : 0;
+        if (c._welcome) { const won = INSP.on && INSP.cars.indexOf(c) >= 0; c._welcome.forEach(s => { s.intensity = won ? 55 : 0; }); }
+        if (c._showFinale && c._spots) c._spots.forEach(s => { s.intensity = M.night ? 1250 : 1900; });
+        // M4 beam show: full loop while inspected; one welcome run when the
+        // player gets in (user scope 2026-11-28: NO driving/brake trigger).
+        if (c.pcId === 'm4cs' && c._spots && c._beamBase) {
+          if (F.veh === c && F.mode === 'car' && !c._welcomed) { c._welcomed = 1; if (!INSP.on && !c._beamT) c._beamT = 0.0001; }
+          if (F.veh !== c) c._welcomed = 0;
+          const inInsp = INSP.on && INSP.cars.indexOf(c) >= 0;
+          if (inInsp) { c._beamT = (c._beamT || 0) + dt; beamPose(c, (c._beamT % 2.6) / 2.6); c._spots.forEach(s => { s.intensity = M.night ? 1250 : 1900; }); if (c._proj) c._proj.intensity = 2600; }
+          else if (c._beamT) { c._beamT += dt; const u = c._beamT / 2.6; if (u >= 1) { c._spots.forEach((s, i) => s.target.position.copy(c._beamBase[i])); c._beamT = 0; if (c._proj) c._proj.intensity = 0; } else { beamPose(c, u); if (c._proj) c._proj.intensity = 2600; } }
+          else if (c._proj && c._proj.intensity) c._proj.intensity = 0;
+        }
       }
       // R22B bike lamps: brake-bright tail strip + a real rear point light, and
       // staggered (front then rear) turn blink on per-side cloned amber mats.
@@ -6737,13 +6893,13 @@ if (GXW && GX && FOOT) PCX = (function () {
         if (onBike) { const brk = (input.back || 0) > 0.05; tailMat.color.setRGB(brk ? 3.4 : 1.0, brk ? 0.38 : 0.102, brk ? 0.38 : 0.102); if (window.__bikeTailPt) window.__bikeTailPt.intensity = brk ? 7 : 1.6; bikeIndTick(dt); }
         else if (tailMat.color.r !== 1.0) { tailMat.color.setRGB(1.0, 0.102, 0.102); if (window.__bikeTailPt) window.__bikeTailPt.intensity = 1.6; }
       }
-      if (INSP.on && INSP.car) { const c = INSP.car;
-        if (F.veh !== c || F.mode !== 'car') setInspect(false);
-        else if ((input.fwd || 0) > 0.1 || (input.back || 0) > 0.1) setInspect(false); // throttle/brake input = drive away: inspect auto-exits (chosen behaviour, see INTEG_R22)
-        else { c.v = 0; INSP.t += dt;
-          if (c._mixer && c._showAct && c._showAct.isRunning()) c._mixer.update(dt);
-          if (c.doorNode) { const ph = INSP.t % 4.0; const f = ph < 1.2 ? (1 - Math.pow(1 - ph / 1.2, 3)) : ph < 2.0 ? 1 : ph < 3.2 ? (1 - Math.pow((ph - 2.0) / 1.2, 2)) : 0; c.setDoor(f); if (c.setDoorR) c.setDoorR(f); }
-        } }
+      if (INSP.on) { INSP.t += dt;
+        if (F.mode === 'car' && ((input.fwd || 0) > 0.1 || (input.back || 0) > 0.1)) setInspect(false); // driving: throttle/brake exits inspect (kept rule)
+        else { if (F.mode === 'car' && F.veh) F.veh.v = 0;
+          for (const c of INSP.cars) { if (!c) continue;
+            if (c._mixer && c._showAct && c._showAct.isRunning()) c._mixer.update(dt);
+            if (c.doorNode && !c._showAct) { const ph = INSP.t % 4.0; const f = ph < 1.2 ? (1 - Math.pow(1 - ph / 1.2, 3)) : ph < 2.0 ? 1 : ph < 3.2 ? (1 - Math.pow((ph - 2.0) / 1.2, 2)) : 0; c.setDoor(f); if (c.setDoorR) c.setDoorR(f); } } }
+      }
     }); }
   // ---------- vehicle switching (from the settings panel) ----------
   let curPC = 'bike', switchSeq = 0;
@@ -6816,10 +6972,15 @@ if (GXW && GX && FOOT) PCX = (function () {
     const mode = (input.left ? 1 : 0) | (input.right ? 2 : 0);
     const setSide = (arr, on) => arr.forEach(e => { const ph = (bikeInd.t + (e.front ? 0 : 0.12)) % 0.8; const lit = on && ph < 0.45; e.m.color.setRGB(lit ? 3.2 : 1.0, lit ? 1.9 : 0.635, lit ? 0.25 : 0.102); });
     setSide(bikeInd.L, !!(mode & 1)); setSide(bikeInd.R, !!(mode & 2)); }
-  // ---------- inspect mode (R22): hazards + the car's own animations on loop ----------
-  // Behaviour choice: while inspecting, the car stays parked (v held at 0); any
-  // throttle or brake input exits inspect and hands control back (see INTEG_R22).
-  const INSP = { on: false, car: null, t: 0 };
+  // ---------- inspect mode (R24 rework): openable ANY time -- on foot, on the
+  // bike, in any car. ALL four fleet cars take part together: missing ones are
+  // lazy-loaded (progress card), absent ones are parked in a row in front of
+  // the player (the player's own car stays put), every car runs hazards on its
+  // real indicator segments and loops its inspect animation (Rolls showcase,
+  // M4 door cycle). A car with NO playable animation gets the light-show
+  // fallback instead of bare hazards. Closing stops everything and restores
+  // the moved cars. While driving, throttle/brake still exits inspect.
+  const INSP = { on: false, car: null, cars: [], t: 0, moved: [] };
   const inspBtn = document.createElement('button'); inspBtn.className = 'top'; inspBtn.id = 'bInspect'; inspBtn.innerHTML = '🔍<span class="lbl"> 检视</span>';
   inspBtn.style.cssText = 'right:calc(112px + env(safe-area-inset-right))';
   document.body.appendChild(inspBtn);
@@ -6843,17 +7004,33 @@ if (GXW && GX && FOOT) PCX = (function () {
   function gxPop(t, c) { const gx = window.__g && window.__g.GX; if (gx && gx.popup) gx.popup(t, c || '#ffd54a'); }
   function setInspect(on) {
     if (on === INSP.on) return;
-    if (on) {
-      const c = F.veh;
-      if (!c || !c.pcId || F.mode !== 'car') { gxPop('先开上一辆车，再点检视'); return; }
-      INSP.on = true; INSP.car = c; INSP.t = 0; c.v = 0; c._haz = 1; c._hazT = 0; c._doorSeq = null;
-      if (c._showAct) { c._showAct.reset(); c._showAct.play(); }
-      inspBtn.classList.add('on');
-    } else {
-      const c = INSP.car; INSP.on = false; INSP.car = null;
-      if (c) { c._haz = 0; c._hazLevel = 0; if (c._showAct) c._showAct.stop(); if (c.doorNode) { c.setDoor(0); if (c.setDoorR) c.setDoorR(0); } if (c._hazHead) c._hazHead.forEach(m => { if (m.emissive) m.emissiveIntensity = M.night ? 1.8 : 1.3; }); if (c.lampTick) c.lampTick(c._brk || 0); }
+    if (!on) {
+      INSP.on = false;
+      for (const c of INSP.cars) { if (!c) continue; c._haz = 0; c._hazLevel = 0; c._lightShow = 0; c._showFinale = 0; if (c._showAct) c._showAct.stop(); if (c.doorNode && !c._showAct) { c.setDoor(0); if (c.setDoorR) c.setDoorR(0); } if (c.lampTick) c.lampTick(c._brk || 0); }
+      for (const mv of INSP.moved) { mv.c.x = mv.x; mv.c.z = mv.z; mv.c.yaw = mv.yaw; mv.c.y = mv.y; mv.c.v = 0; G.poseCar(mv.c, 1); }
+      INSP.cars = []; INSP.moved = []; INSP.car = null;
       inspBtn.classList.remove('on');
+      return;
     }
+    INSP.on = true; INSP.t = 0; inspBtn.classList.add('on');
+    (async () => {
+      const loaded = await Promise.all(DEFS.map(d => ensureCar(d)));
+      if (!INSP.on) return; // closed again while the chunks were loading
+      let ax, az, ayaw;
+      if (F.veh && isFinite(F.veh.x)) { ax = F.veh.x; az = F.veh.z; ayaw = F.veh.yaw || 0; }
+      else if (FOOT.on) { ax = F.x; az = F.z; ayaw = F.head || 0; }
+      else { ax = st.pos.x; az = st.pos.z; ayaw = st.yaw || 0; }
+      const fx = Math.sin(ayaw), fz = Math.cos(ayaw), rx = -Math.cos(ayaw), rz = Math.sin(ayaw); // forward + world right (car +X is LEFT)
+      const own = (F.mode === 'car' && F.veh && F.veh.pcId) ? F.veh : null;
+      const parts = loaded.filter(Boolean);
+      const offs = [-5.6, -1.9, 1.9, 5.6];
+      parts.filter(c => c !== own).forEach((c, i) => {
+        for (const dist of [11, 14, 8.5]) { const px2 = ax + fx * dist + rx * offs[i % offs.length], pz2 = az + fz * dist + rz * offs[i % offs.length];
+          if (!GXW.cols(px2, pz2, 2.2, 2).length && GXW.paved(px2, pz2)) { INSP.moved.push({ c, x: c.x, z: c.z, yaw: c.yaw, y: c.y }); c.x = px2; c.z = pz2; c.yaw = ayaw + Math.PI; c.y = GXW.gy(px2, pz2, 5); c.v = 0; c.g.visible = true; G.poseCar(c, 1); break; } }
+      });
+      INSP.cars = parts; INSP.car = own;
+      for (const c of parts) { c._haz = 1; c._hazT = 0; c._doorSeq = null; if (c._showAct) { c._showAct.reset(); c._showAct.play(); } if (!c._showAct && !c.doorNode) c._lightShow = 1; if (c === own) c.v = 0; }
+    })();
   }
   inspBtn.addEventListener('click', () => setInspect(!INSP.on));
   return { DEFS, cars, switchTo, doSwitch, ensureCar, diag, RAIN, setRain, INSP, setInspect, get cur() { return curPC; } };
