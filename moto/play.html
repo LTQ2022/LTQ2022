@@ -16,8 +16,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 .btn{position:fixed;border-radius:50%;background:rgba(15,18,24,.42);border:2px solid rgba(255,255,255,.3);color:#fff;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);touch-action:none;font-weight:800;box-sizing:border-box}
 .btn.on{background:rgba(79,209,255,.5);border-color:#4fd1ff;transform:scale(.95)}
 /* left thumb: steering */
-#bL,#bR{width:96px;height:96px;font-size:34px;bottom:calc(22px + env(safe-area-inset-bottom))}
-#bL{left:calc(16px + env(safe-area-inset-left))}#bR{left:calc(124px + env(safe-area-inset-left))}
+#bL,#bR{width:84px;height:84px;font-size:30px;bottom:calc(22px + env(safe-area-inset-bottom))}
+#bL{left:calc(12px + env(safe-area-inset-left))}#bR{left:calc(104px + env(safe-area-inset-left))}
 /* right thumb: boost big at corner, throttle above, brake left, gear small */
 #bX{width:104px;height:104px;right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));border-color:rgba(255,176,46,.85);font-size:18px;background:rgba(255,140,20,.25)}#bX.on{background:rgba(255,176,46,.6)}
 #bF{width:80px;height:80px;right:calc(28px + env(safe-area-inset-right));bottom:calc(136px + env(safe-area-inset-bottom));font-size:26px}
@@ -38,7 +38,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none
 #mClose{width:100%;padding:12px;border-radius:14px;border:0;background:#fff;color:#000;font-weight:800;font-size:15px}
 #credit{font-size:10px;opacity:.5;margin-top:10px;line-height:1.5}
 #help{font-size:11px;opacity:.6;margin:2px 0 12px;line-height:1.6}
-@media (max-width:640px) and (orientation:portrait){.top .lbl{display:none}.top{padding:0 12px;font-size:15px}#bCam{right:calc(60px + env(safe-area-inset-right));width:44px;padding:0;justify-content:center}#bTraffic{left:auto;transform:none;right:calc(112px + env(safe-area-inset-right))}#fEnter{padding:0 11px;font-size:14px}#dash{top:calc(60px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%) scale(.9)}#bL,#bR{width:84px;height:84px}#bR{left:calc(108px + env(safe-area-inset-left))}#bX{width:92px;height:92px}#bF{width:72px;height:72px;bottom:calc(124px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(118px + env(safe-area-inset-right))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom))}#bS{width:54px;height:54px;right:calc(37px + env(safe-area-inset-right));bottom:calc(214px + env(safe-area-inset-bottom));font-size:12px}}
+@media (max-width:640px) and (orientation:portrait){.top .lbl{display:none}.top{padding:0 12px;font-size:15px}#bCam{right:calc(60px + env(safe-area-inset-right));width:44px;padding:0;justify-content:center}#bTraffic{left:auto;transform:none;right:calc(112px + env(safe-area-inset-right))}#fEnter{padding:0 11px;font-size:14px}#dash{left:calc(8px + env(safe-area-inset-left));top:calc(148px + env(safe-area-inset-top));bottom:auto;transform:scale(.78);transform-origin:top left}#bL,#bR{width:68px;height:68px;font-size:26px}#bL{left:calc(8px + env(safe-area-inset-left))}#bR{left:calc(84px + env(safe-area-inset-left))}#bX{width:88px;height:88px;right:calc(8px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom))}#bF{width:64px;height:64px;right:calc(8px + env(safe-area-inset-right));bottom:calc(220px + env(safe-area-inset-bottom))}#bB{width:72px;height:72px;right:calc(8px + env(safe-area-inset-right));bottom:calc(124px + env(safe-area-inset-bottom))}#bG{width:56px;height:56px;right:calc(124px + env(safe-area-inset-right));bottom:calc(112px + env(safe-area-inset-bottom))}#bS{width:54px;height:54px;right:calc(84px + env(safe-area-inset-right));bottom:calc(224px + env(safe-area-inset-bottom));font-size:12px}}
 @media (max-height:430px){#bS{right:calc(132px + env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom));width:52px;height:52px;font-size:11px}}
 @media (max-height:430px){#dash{transform:translateX(-50%) scale(.8);bottom:calc(2px + env(safe-area-inset-bottom))}}
 #bD{width:70px;height:70px;left:calc(66px + env(safe-area-inset-left));bottom:calc(132px + env(safe-area-inset-bottom));font-size:16px;border-color:rgba(255,80,200,.85);background:rgba(120,20,90,.3)}#bD.on{background:rgba(255,60,190,.65)}#driftHud{position:fixed;left:0;right:0;top:20%;text-align:center;color:#ff5ad9;font-size:30px;font-weight:900;letter-spacing:2px;text-shadow:0 0 12px rgba(255,60,200,.8),0 2px 6px #000;opacity:0;transition:opacity .25s;pointer-events:none}
@@ -3735,7 +3735,7 @@ const orbT = new Map(); let pinch0 = 0, pinchD0 = 0;
 // swipe measured +1.65 rad on foot vs +0.9 rad riding) nor flip camMode
 // (which swaps the camera onto the orbit branch mid-drag and strands it there).
 function footOwnsDrag() { const FX = window.FOOTX; if (!FX || !FX.F || !FX.F.on) return false; const F = FX.F; return F.mode === 'foot' || (F.mode === 'veh' && !!(F.vo && F.vo.drag)); }
-function orbDrag(dx, dy) { if (footOwnsDrag()) return; if (camMode !== 'free') setCamMode('free'); orb.theta -= dx * 0.009; orb.phi = THREE.MathUtils.clamp(orb.phi + dy * 0.006, -0.05, 1.35); orb.lastDrag = tGlobal; }
+function orbDrag(dx, dy) { if (footOwnsDrag()) return; if (camMode !== 'free') setCamMode('free'); orb.theta -= dx * 0.009; orb.phi = THREE.MathUtils.clamp(orb.phi + dy * 0.006, -0.5, 1.52); orb.lastDrag = tGlobal; } // R25 (user 2026-11-28 14:00): free-view PITCH travel widened both ways (was -0.05..1.35; distance limits untouched per the same ruling). -0.5 rad looks up from below -- safe: the camera floor guard (camPos.y >= surface+0.6) keeps it out of the ground; 1.52 rad is near-top-down but stays under PI/2 so the orbit never flips.
 renderer.domElement.addEventListener('touchstart', e => { for (const t of e.changedTouches) orbT.set(t.identifier, { x: t.clientX, y: t.clientY }); if (orbT.size === 2) { const a = [...orbT.values()]; pinch0 = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); pinchD0 = orb.dist; } }, { passive: true });
 renderer.domElement.addEventListener('touchmove', e => { for (const t of e.changedTouches) { const p = orbT.get(t.identifier); if (!p) continue; if (orbT.size === 1) orbDrag(t.clientX - p.x, t.clientY - p.y); p.x = t.clientX; p.y = t.clientY; } if (orbT.size === 2) { const a = [...orbT.values()]; const d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); if (pinch0 > 0 && !footOwnsDrag()) { if (camMode !== 'free') setCamMode('free'); orb.dist = THREE.MathUtils.clamp(pinchD0 * pinch0 / d, 1.4, 14); orb.lastDrag = tGlobal; } } e.preventDefault(); }, { passive: false });
 ['touchend', 'touchcancel'].forEach(ev => renderer.domElement.addEventListener(ev, e => { for (const t of e.changedTouches) orbT.delete(t.identifier); pinch0 = 0; }));
@@ -4111,7 +4111,7 @@ var GX = null;
   const save = () => lsSet('moto_gx', JSON.stringify(SAVE));
   // ---------- HUD (DOM) ----------
   const css = `
-#gxMini{position:fixed;left:calc(12px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));width:132px;height:132px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.45);box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 0 0 3px rgba(0,0,0,.35);pointer-events:none;z-index:3;background:#1a1d22}
+#gxMini{position:fixed;left:calc(12px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));width:104px;height:104px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.45);box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 0 0 3px rgba(0,0,0,.35);pointer-events:none;z-index:3;background:#1a1d22}
 #gxMini canvas{width:100%;height:100%;display:block}
 #gxN{position:absolute;left:50%;top:3px;transform:translateX(-50%);font:800 11px sans-serif;color:#fff;text-shadow:0 1px 2px #000}
 #gxHudR{position:fixed;right:calc(12px + env(safe-area-inset-right));top:calc(60px + env(safe-area-inset-top));text-align:right;pointer-events:none;z-index:3}
@@ -4134,7 +4134,7 @@ var GX = null;
 .gxRow{display:flex;gap:10px}.gxB{flex:1;padding:14px 8px;border-radius:14px;border:0;font-weight:900;font-size:16px}.gxB.go{background:linear-gradient(135deg,#ffcf5a,#ff8a1a);color:#1a1000}.gxB.no{background:rgba(255,255,255,.12);color:#fff}
 #gxList h3{margin:2px 0 10px;color:#9fb3d9;font-size:15px;letter-spacing:2px}.gxM{display:block;width:100%;text-align:left;margin-bottom:10px;padding:12px 14px;border-radius:14px;border:1.5px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#fff;font-size:16px;font-weight:800}
 .gxM small{display:block;font-size:12px;font-weight:400;opacity:.7;margin-top:3px;line-height:1.5}.gxM .rw{float:right;color:#7dff8a;font-size:13px}
-@media (max-width:640px) and (orientation:portrait){#gxMis{top:calc(172px + env(safe-area-inset-top))}#gxMini{width:98px;height:98px;left:calc(8px + env(safe-area-inset-left))}#bTask{top:calc(166px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left))}#gxHudR{top:calc(60px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}#gxStars{font-size:19px}#gxBan .a{font-size:36px}}
+@media (max-width:640px) and (orientation:portrait){#gxMis{top:calc(268px + env(safe-area-inset-top))}#gxMini{width:80px;height:80px;left:calc(8px + env(safe-area-inset-left))}#bTask{top:calc(166px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left))}#gxHudR{top:calc(60px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}#gxStars{font-size:19px}#gxBan .a{font-size:36px}#dash{left:calc(8px + env(safe-area-inset-left));top:calc(148px + env(safe-area-inset-top));bottom:auto;transform:scale(.78);transform-origin:top left}body #fHud{left:calc(8px + env(safe-area-inset-left));top:calc(248px + env(safe-area-inset-top))}}
 @media (max-height:430px){#gxMini{width:100px;height:100px}#bTask{top:calc(166px + env(safe-area-inset-top));height:34px}#gxMis{top:calc(8px + env(safe-area-inset-top));padding:4px 12px}#gxBan .a{font-size:34px}}`;
   const stl = document.createElement('style'); stl.textContent = css; document.head.appendChild(stl);
   const el = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); const n = d.firstChild; document.body.appendChild(n); return n; };
@@ -4143,6 +4143,7 @@ var GX = null;
   const hMis = el('<div id="gxMis"><div class="t"></div><div class="o"><i>➤</i><span></span></div><div class="tm"></div></div>'); const hMisT = hMis.querySelector('.t'), hMisO = hMis.querySelector('.o span'), hMisA = hMis.querySelector('.o i'), hMisTm = hMis.querySelector('.tm');
   const ban = el('<div id="gxBan"><div class="a"></div><div class="b"></div></div>'); const pop = el('<div id="gxPop"></div>');
   const bTask = el('<button id="bTask">📋 任务</button>');
+  bTask.style.display = 'none'; // R25 HUD (user 2026-11-28 14:04): the task button leaves the left column and becomes an item in the settings (都市 ▾) menu -- the PCX menu block clicks this hidden button, so showList()/mission flow are unchanged. The green bar under its old spot is NOT part of the button: it is the HP bar (#fHud/#fHp, an independent status readout) and stays in the left column as a thin status strip.
   const card = el('<div id="gxCard"><div class="c"><h2></h2><p></p><div class="gxRow"><button class="gxB no">算了</button><button class="gxB go">开始任务</button></div></div></div>');
   const list = el('<div id="gxList"><div class="c"><h3>任务 · 赏金</h3><div class="ls"></div><button class="gxB no" style="width:100%">关闭</button></div></div>');
   let banT = 0, popT = 0;
@@ -4488,7 +4489,7 @@ var GX = null;
     GXCAR.syncWheels(); drawMini(dt);
   }
   // ---------- 白天 / 夜晚 toggle (reloads the same city lit the other way; you continue where you were) ----------
-  stl.textContent += '#bDN{left:50%;transform:translateX(-50%);font-weight:800}@media (max-width:640px) and (orientation:portrait){#bDN{top:calc(60px + env(safe-area-inset-top))}}#gxSw{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(5,6,10,.85);color:#fff;font:800 22px "PingFang SC",sans-serif;opacity:0;pointer-events:none;transition:opacity .25s}';
+  stl.textContent += '#bDN{left:50%;transform:translateX(-50%);font-weight:800}#bDN{display:none!important}@media (max-width:640px) and (orientation:portrait){#bDN{top:calc(60px + env(safe-area-inset-top))}}#gxSw{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(5,6,10,.85);color:#fff;font:800 22px "PingFang SC",sans-serif;opacity:0;pointer-events:none;transition:opacity .25s}'; // R25 HUD (user 2026-11-28 14:04): the top-centre day/night badge is deleted from the HUD -- the element stays in the DOM hidden because the settings menu's day/night item toggles it via bDN.click() (programmatic click works on a display:none element). The readouts that shared its row (gear "1D", battery "100%", speed, lean) belong to the #dash speedometer card, not to the badge, and are kept.
   const bDN = el('<button class="top" id="bDN">' + (M.night ? '🌙 夜晚' : '☀️ 白天') + '</button>'); const swc = el('<div id="gxSw"></div>');
   function toggleDayNight() { swc.textContent = M.night ? '☀️ 天亮了…' : '🌙 入夜了…'; swc.style.opacity = 1; try { sessionStorage.setItem('gx_resume', JSON.stringify({ x: st.pos.x, z: st.pos.z, yaw: st.yaw, t: Date.now() })); } catch (e) { }
     lsSet('moto_night', M.night ? '0' : '1'); const u = new URL(location.href); u.searchParams.delete('night'); u.searchParams.delete('map'); u.searchParams.delete('car'); setTimeout(() => location.replace(u.href), 60); }
@@ -4821,7 +4822,7 @@ body.car #mode,body.car #bat,body.car #lean{display:none!important}#gxCarG,#gxCa
   addEventListener('wheel', e => { if (F.on && F.mode === 'foot') F.camDist = clamp((F.camDist || 3.6) * (1 + e.deltaY * 0.001), 0.3, 12); }, { passive: true });
   function drawHud() { hHp.querySelector('i').style.width = Math.max(0, F.hp) + '%'; hHp.classList.toggle('low', F.hp < 30); }
   function setUI() { const foot = F.on && F.mode === 'foot', car = F.on && F.mode === 'car', veh = F.on && F.mode === 'veh'; document.body.classList.toggle('foot', foot); document.body.classList.toggle('car', car); document.body.classList.toggle('veh', veh);
-    document.body.dataset.veh = veh && F.vo ? F.vo.kind : ''; [bJump, bRun, bZoom, bCrouch, bProne].forEach(b => b.style.display = foot ? 'flex' : 'none'); bFP.style.display = (foot || car) ? 'flex' : 'none'; joy.style.display = foot ? 'block' : 'none'; }
+    document.body.dataset.veh = veh && F.vo ? F.vo.kind : ''; [bJump, bRun, bZoom, bCrouch, bProne].forEach(b => b.style.display = foot ? 'flex' : 'none'); bFP.style.display = foot ? 'flex' : 'none'; joy.style.display = foot ? 'block' : 'none'; } // R25 (user 2026-11-28 13:56): the FP button (#fFP) is hidden in a car -- car FP was removed in R19, so in car mode it only showed an explanation toast. Bike ('veh') mode already hid it and its handler has no veh branch (no bike FP exists); on foot it stays (foot FP is alive). NOTE: this is #fFP, NOT the top-bar #bCam free-view toggle, which has a real function in every mode and is untouched.
   setUI(); drawHud(); bEnter.style.display = 'flex';
   
   // ---------- audio ----------
@@ -6655,12 +6656,35 @@ if (GXW && GX && FOOT) PCX = (function () {
     // (inspect loop + welcome-on-entry). Base offsets are recorded here and
     // restored EXACTLY when a show ends; static lamp values never change.
     car._beamBase = spots.map(s => s.target.position.clone());
-    // Ground text projection via three r160 SpotLight.map (a real projector
-    // light in the nose, canvas 'M4' gobo) -- inspect / welcome only. If the
-    // build's spot map does not project, the acceptance probe records it and
-    // this stays dark (never faked with a ground decal).
-    try { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256; const cx2 = cv.getContext('2d'); cx2.fillStyle = '#000'; cx2.fillRect(0, 0, 256, 256); cx2.fillStyle = '#fff'; cx2.font = '900 148px Arial'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle'; cx2.fillText('M4', 128, 136); const tx = new THREE.CanvasTexture(cv);
-      const pj = new THREE.SpotLight(0xcfe2ff, 0, 30, 0.34, 0.45, 1.2); pj.position.set(0, 0.72, 1.95); const tg = new THREE.Object3D(); tg.position.set(0, 0, 8.6); wrap.add(tg); pj.target = tg; pj.map = tx; wrap.add(pj); car._proj = pj; } catch (e) {}
+    // R25 ground projection, redone to the real-car recipe (user 2026-11-28;
+    // NIO HDPL shows write glyphs stroke by stroke, Audi/Mercedes welcome
+    // animations assemble the motif progressively then open into full
+    // illumination): a real projector SpotLight in the nose whose canvas gobo
+    // WRITES the letter "M" stroke by stroke -- bright tip dot, soft edges --
+    // holds, then fades as the beams open into the sweep show. The canvas is
+    // redrawn ONLY while a show is writing (zero cost while driving), and the
+    // projector is visible=false outside a show so it never enters the
+    // scene's light count on the road. Never faked with a ground decal.
+    try { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256; const cx2 = cv.getContext('2d');
+      const tx = new THREE.CanvasTexture(cv);
+      const pj = new THREE.SpotLight(0xcfe2ff, 0, 30, 0.34, 0.45, 1.2); pj.position.set(0, 0.72, 1.95); const tg = new THREE.Object3D(); tg.position.set(0, 0, 8.6); wrap.add(tg); pj.target = tg; pj.map = tx; pj.visible = false; wrap.add(pj);
+      // "M" as a handwriting path: up the left stem, diagonal down to the
+      // valley, diagonal up, down the right stem (canvas coords, y down).
+      const MP = [[58, 192], [58, 64], [128, 152], [198, 64], [198, 192]];
+      const ML = []; let MT = 0; for (let i = 1; i < MP.length; i++) { const l = Math.hypot(MP[i][0] - MP[i - 1][0], MP[i][1] - MP[i - 1][1]); ML.push(l); MT += l; }
+      car._proj = pj; car._projDrawn = -1;
+      car._projDraw = p => { // p in [0,1]: revealed fraction of the stroke path
+        if (Math.abs(p - car._projDrawn) < 0.004) return; car._projDrawn = p;
+        cx2.fillStyle = '#000'; cx2.fillRect(0, 0, 256, 256);
+        if (p > 0) { let rem = p * MT; const pts = [MP[0]];
+          for (let i = 0; i < ML.length && rem > 0; i++) { if (rem >= ML[i]) { pts.push(MP[i + 1]); rem -= ML[i]; } else { const f = rem / ML[i]; pts.push([MP[i][0] + (MP[i + 1][0] - MP[i][0]) * f, MP[i][1] + (MP[i + 1][1] - MP[i][1]) * f]); rem = 0; } }
+          const tip = pts[pts.length - 1];
+          const stroke = (w, a) => { cx2.strokeStyle = 'rgba(255,255,255,' + a + ')'; cx2.lineWidth = w; cx2.lineCap = 'round'; cx2.lineJoin = 'round'; cx2.beginPath(); cx2.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) cx2.lineTo(pts[i][0], pts[i][1]); if (pts.length === 1) cx2.lineTo(pts[0][0] + 0.01, pts[0][1]); cx2.stroke(); };
+          stroke(38, 0.30); stroke(24, 1); // soft halo pass + core pass = soft edge
+          if (p < 1) { const gr = cx2.createRadialGradient(tip[0], tip[1], 0, tip[0], tip[1], 26); gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cx2.fillStyle = gr; cx2.beginPath(); cx2.arc(tip[0], tip[1], 26, 0, 6.2832); cx2.fill(); } }
+        tx.needsUpdate = true; };
+      car._projDraw(0);
+    } catch (e) {}
     if (diag[def.id]) diag[def.id].ind = { LF: car._ind.L.F.length, LR: car._ind.L.R.length, RF: car._ind.R.F.length, RR: car._ind.R.R.length, sweepF: sweep.LF.length, sweepR: sweep.LR.length };
     car.lampTick = brk => { car._brk = brk ? 1 : 0; const base = brk ? LC.tailBrake : LC.tailRun; const v = car._seqActive ? base : (car._haz ? (car._hazLevel || 0) * LC.tailBrake : base); tailMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); };
     car.lampTick(0);
@@ -6723,13 +6747,37 @@ if (GXW && GX && FOOT) PCX = (function () {
       // amber-textured triangles in two clusters, natural gap |x| < 0.41) --
       // NOT the closed pop-up headlight. One mesh carries both sides.
       findLampMeshes(inner, null, /signals_typex/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => c.x >= 0.41 ? 'L' : (c.x <= -0.41 ? 'R' : null)); if (segs) { if (segs.L) regSeg(car, 'L', 'F', segs.L, 0x000000, 0); if (segs.R) regSeg(car, 'R', 'F', segs.R, 0x000000, 0); } });
-      // rear: the kouki section BETWEEN the two brake pods (pod clusters at
-      // |x| 0.385-0.49 and 0.58-0.667 leave a measured gap at 0.49-0.58; the
-      // real kouki turn signal sits exactly there). Rear face only.
-      LC.tail.forEach((nm, si) => { const side = si === 0 ? 'L' : 'R'; findLampMeshes(inner, nm, /kouki/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => { const ax = Math.abs(c.x); return (ax >= 0.495 && ax <= 0.585 && c.z <= -1.95) ? 'i' : null; }); if (segs && segs.i) { tailMats.push(segs.i); regSeg(car, side, 'R', segs.i, 0xff1a08, LC.tailRun); } }); });
+      // rear: R25 rework (user 2026-11-28: R24's kouki centre sliver at
+      // |x| 0.495-0.585 read as nothing -- "smaller than the old version, no
+      // presence at all"). Now the WHOLE same-side tail group is the
+      // indicator segment: both brake pods + the centre section on that
+      // half, split by side sign on the rear face. R22-grade presence,
+      // correct side only, same 0.8 s rhythm; the segment stays in tailMats
+      // so run/brake red drive is unchanged and amber overrides it while
+      // indicating (same switchback bookkeeping as Dawn's rear segment).
+      findLampMeshes(inner, null, /kouki/).forEach(mesh => { const segs = splitMeshSegs(mesh, inner, c => c.z <= -1.9 ? (c.x >= 0 ? 'L' : 'R') : null); if (segs) { if (segs.L) { tailMats.push(segs.L); regSeg(car, 'L', 'R', segs.L, 0xff1a08, LC.tailRun); } if (segs.R) { tailMats.push(segs.R); regSeg(car, 'R', 'R', segs.R, 0xff1a08, LC.tailRun); } } });
       // itasha underglow: ONE real violet point light, restrained -- on only
       // while this car is driven or being inspected.
       const ug = new THREE.PointLight(0x7a4dff, 0, 3.8, 2); ug.position.set(0, 0.16, 0); wrap.add(ug); car._underglow = ug;
+      // R25 (user 2026-11-28 13:46): a full underbody glow RING around the
+      // sill line -- procedural rounded-rectangle band (inset ~8 cm from the
+      // body outline so it clears the wheel arches, standing 0.045-0.095 m
+      // off the ground), self-lit material (the lamp body itself). The
+      // centre point light above is recolored in sync every tick, so the
+      // pool on the ground is REAL light in the same colour -- never a
+      // ground decal. Pure code, no GLB change. Hue wheels slowly; in
+      // inspect it is driven by the light-show clock (see worldTick).
+      try { const hw = def.W / 2 - 0.08, hl = def.L / 2 - 0.08, cr = 0.30, pts = [];
+        const corner = (cx, cz, a0) => { for (let i = 0; i <= 6; i++) { const a = a0 + i / 6 * Math.PI / 2; pts.push([cx + Math.cos(a) * cr, cz + Math.sin(a) * cr]); } };
+        corner(hw - cr, hl - cr, 0); corner(-(hw - cr), hl - cr, Math.PI / 2); corner(-(hw - cr), -(hl - cr), Math.PI); corner(hw - cr, -(hl - cr), Math.PI * 1.5);
+        const n = pts.length, posArr = new Float32Array(n * 2 * 3), idxArr = [];
+        pts.forEach((p, i) => { posArr.set([p[0], 0.045, p[1]], i * 6); posArr.set([p[0], 0.095, p[1]], i * 6 + 3); });
+        for (let i = 0; i < n; i++) { const j = (i + 1) % n, a = i * 2, b = i * 2 + 1, a2 = j * 2, b2 = j * 2 + 1; idxArr.push(a, a2, b, b, a2, b2); }
+        const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.BufferAttribute(posArr, 3)); gg.setIndex(idxArr);
+        const gm = new THREE.MeshBasicMaterial({ color: 0x7a4dff, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(gg, gm); ring.visible = false; wrap.add(ring);
+        car._glowRing = ring; car._glowHue = 0.78;
+      } catch (e) {}
     }
     if (def.id === 'wraith' || def.id === 'dawn') {
       // restrained welcome ground pools for inspect (real spotlights landing
@@ -6835,6 +6883,18 @@ if (GXW && GX && FOOT) PCX = (function () {
   // targets (and the driver also copies the bases back verbatim at the end).
   function beamPose(c, u) { const sw = Math.sin(u * Math.PI * 2), lf = Math.sin(u * Math.PI * 4), sp = (Math.sin(u * Math.PI * 2 - Math.PI / 2) + 1) * 0.9;
     c._spots.forEach((s, i) => { const b = c._beamBase[i]; const sgn = Math.sign(b.x) || 1; s.target.position.set(b.x + (sp * 0.55 - sw * 2.4) * sgn, b.y + lf * 0.45, b.z); }); }
+  // R25 beam-show timeline (3.6 s cycle): [0,1.35) the projector WRITES the
+  // "M" on the ground while the beams hold their base aim; [1.35,1.7) the
+  // finished letter holds; [1.7,3.6) the beams run the sweep choreography
+  // (beamPose, whose spread phase opens them into wide illumination) while
+  // the projection fades out over the first ~45% of the sweep. beamPose is
+  // exactly on the base targets at u=0 and u=1, and the welcome path also
+  // copies the bases back verbatim at the end.
+  const SHOW_T = 3.6, SHOW_WR = 1.35, SHOW_HOLD = 1.7;
+  function beamShowDrive(c, t) { const pj = c._proj;
+    if (t < SHOW_HOLD) { if (pj) { pj.visible = true; pj.intensity = 2600 * Math.min(1, t / 0.15); if (c._projDraw) c._projDraw(Math.min(1, t / SHOW_WR)); } }
+    else { const u = (t - SHOW_HOLD) / (SHOW_T - SHOW_HOLD); beamPose(c, u); c._spots.forEach(s => { s.intensity = M.night ? 1250 : 1900; });
+      if (pj) { const f = Math.max(0, 1 - u / 0.45); pj.intensity = 2600 * f; pj.visible = f > 0; } } }
   { worldTick.push(dt => { // R24: true indicator segments + hazard + inspect drive
       for (const id in cars) { const c = cars[id]; if (!c || !c.ready) continue;
         // Indicators on the audited segments, bike rhythm (0.8 s period, lit
@@ -6872,18 +6932,27 @@ if (GXW && GX && FOOT) PCX = (function () {
         if (c._haz) { c._hazT = (c._hazT || 0) + dt; c._hazLevel = (c._hazT % 0.625) < 0.34 ? 1 : 0; }
         else if (c._hazLevel) { c._hazLevel = 0; if (c.lampTick) c.lampTick(c._brk || 0); }
         // Silvia underglow / Rolls welcome pools / light-show beam finale
-        if (c._underglow) c._underglow.intensity = (F.veh === c || (INSP.on && INSP.cars.indexOf(c) >= 0)) ? 3 : 0;
+        if (c._underglow || c._glowRing) { const act = F.veh === c || (INSP.on && INSP.cars.indexOf(c) >= 0);
+          if (c._underglow) c._underglow.intensity = act ? 3 : 0;
+          if (c._glowRing) { c._glowRing.visible = act;
+            if (act) { // hue wheel: slow continuous cycle while driving
+              // (~33 s/rev, restrained); in inspect the hue is driven by the
+              // show clock INSP.t so the ring breathes with the light show.
+              let hue; if (INSP.on && INSP.cars.indexOf(c) >= 0) hue = (INSP.t * 0.05) % 1; else hue = ((c._glowHue || 0.78) + dt * 0.03) % 1; c._glowHue = hue;
+              c._glowRing.material.color.setHSL(hue, 0.9, 0.55).multiplyScalar(1.7);
+              if (c._underglow) c._underglow.color.setHSL(hue, 0.9, 0.6); } } }
         if (c._welcome) { const won = INSP.on && INSP.cars.indexOf(c) >= 0; c._welcome.forEach(s => { s.intensity = won ? 55 : 0; }); }
         if (c._showFinale && c._spots) c._spots.forEach(s => { s.intensity = M.night ? 1250 : 1900; });
-        // M4 beam show: full loop while inspected; one welcome run when the
-        // player gets in (user scope 2026-11-28: NO driving/brake trigger).
+        // M4 beam show (R25 timeline: write "M" -> hold -> sweep open):
+        // full loop while inspected; one welcome run when the player gets
+        // in (user scope 2026-11-28: NO driving/brake trigger).
         if (c.pcId === 'm4cs' && c._spots && c._beamBase) {
           if (F.veh === c && F.mode === 'car' && !c._welcomed) { c._welcomed = 1; if (!INSP.on && !c._beamT) c._beamT = 0.0001; }
           if (F.veh !== c) c._welcomed = 0;
           const inInsp = INSP.on && INSP.cars.indexOf(c) >= 0;
-          if (inInsp) { c._beamT = (c._beamT || 0) + dt; beamPose(c, (c._beamT % 2.6) / 2.6); c._spots.forEach(s => { s.intensity = M.night ? 1250 : 1900; }); if (c._proj) c._proj.intensity = 2600; }
-          else if (c._beamT) { c._beamT += dt; const u = c._beamT / 2.6; if (u >= 1) { c._spots.forEach((s, i) => s.target.position.copy(c._beamBase[i])); c._beamT = 0; if (c._proj) c._proj.intensity = 0; } else { beamPose(c, u); if (c._proj) c._proj.intensity = 2600; } }
-          else if (c._proj && c._proj.intensity) c._proj.intensity = 0;
+          if (inInsp) { c._beamT = (c._beamT || 0) + dt; beamShowDrive(c, c._beamT % SHOW_T); }
+          else if (c._beamT) { c._beamT += dt; if (c._beamT >= SHOW_T) { c._spots.forEach((s, i) => s.target.position.copy(c._beamBase[i])); c._beamT = 0; if (c._proj) { c._proj.intensity = 0; c._proj.visible = false; } } else beamShowDrive(c, c._beamT); }
+          else if (c._proj && (c._proj.intensity || c._proj.visible)) { c._proj.intensity = 0; c._proj.visible = false; }
         }
       }
       // R22B bike lamps: brake-bright tail strip + a real rear point light, and
@@ -6953,6 +7022,7 @@ if (GXW && GX && FOOT) PCX = (function () {
       const row1 = document.createElement('div'); row1.className = 'row';
       rainBtn = document.createElement('button'); rainBtn.className = 'opt'; rainBtn.id = 'bRain'; rainBtn.addEventListener('click', () => setRain(!RAIN.on)); row1.appendChild(rainBtn);
       const dnBtn = document.createElement('button'); dnBtn.className = 'opt'; dnBtn.innerHTML = (M.night ? '🌙 现在是夜晚' : '☀️ 现在是白天') + '<small>点按切换昼 / 夜（重载续位）</small>'; dnBtn.addEventListener('click', () => { const b = document.getElementById('bDN'); if (b) b.click(); }); row1.appendChild(dnBtn);
+      const taskBtn = document.createElement('button'); taskBtn.className = 'opt'; taskBtn.innerHTML = '📋 任务' + '<small>接任务 · 赏金列表（原左列按钮已收进菜单）</small>'; taskBtn.addEventListener('click', () => { document.getElementById('menu').classList.remove('show'); const b = document.getElementById('bTask'); if (b) b.click(); }); row1.appendChild(taskBtn); // R25 HUD (user 2026-11-28 14:04): task entry lives in this menu now; it clicks the hidden #bTask so the mission list flow is byte-identical.
       const row2 = document.createElement('div'); row2.className = 'row';
       [{ id: 'bike', name: '🏍 电摩 X5', sub: '默认座驾' }].concat(DEFS.map(d => ({ id: d.id, name: d.name, sub: d.sub }))).forEach(v => { const b = document.createElement('button'); b.className = 'opt'; b.dataset.pc = v.id; b.innerHTML = v.name + '<small>' + v.sub + '</small>'; b.addEventListener('click', () => { document.getElementById('menu').classList.remove('show'); switchTo(v.id); }); row2.appendChild(b); vehBtns.push(b); });
       [h3, row1, row2].forEach(n => cardEl.insertBefore(n, anchor)); refreshRain(); refreshVeh();
@@ -6972,15 +7042,16 @@ if (GXW && GX && FOOT) PCX = (function () {
     const mode = (input.left ? 1 : 0) | (input.right ? 2 : 0);
     const setSide = (arr, on) => arr.forEach(e => { const ph = (bikeInd.t + (e.front ? 0 : 0.12)) % 0.8; const lit = on && ph < 0.45; e.m.color.setRGB(lit ? 3.2 : 1.0, lit ? 1.9 : 0.635, lit ? 0.25 : 0.102); });
     setSide(bikeInd.L, !!(mode & 1)); setSide(bikeInd.R, !!(mode & 2)); }
-  // ---------- inspect mode (R24 rework): openable ANY time -- on foot, on the
-  // bike, in any car. ALL four fleet cars take part together: missing ones are
-  // lazy-loaded (progress card), absent ones are parked in a row in front of
-  // the player (the player's own car stays put), every car runs hazards on its
-  // real indicator segments and loops its inspect animation (Rolls showcase,
-  // M4 door cycle). A car with NO playable animation gets the light-show
-  // fallback instead of bare hazards. Closing stops everything and restores
-  // the moved cars. While driving, throttle/brake still exits inspect.
-  const INSP = { on: false, car: null, cars: [], t: 0, moved: [] };
+  // ---------- inspect mode (R25 final spec, user 2026-11-28 13:49): openable
+  // ANY time, but it applies ONLY to cars already summoned into the world by
+  // the switcher -- inspect NEVER lazy-loads, spawns or moves a car. On foot
+  // / on the bike, every instantiated car plays its inspect animation where
+  // it stands (hazards on its real indicator segments, Rolls showcase, M4
+  // door cycle; a car with NO playable animation gets the light-show
+  // fallback). Inside a car, only that car is inspected. Closing stops all
+  // animations and hazards; no position restore exists because nothing was
+  // ever moved. While driving, throttle/brake still exits inspect.
+  const INSP = { on: false, car: null, cars: [], t: 0 };
   const inspBtn = document.createElement('button'); inspBtn.className = 'top'; inspBtn.id = 'bInspect'; inspBtn.innerHTML = '🔍<span class="lbl"> 检视</span>';
   inspBtn.style.cssText = 'right:calc(112px + env(safe-area-inset-right))';
   document.body.appendChild(inspBtn);
@@ -6997,7 +7068,11 @@ if (GXW && GX && FOOT) PCX = (function () {
         fe.style.left = bm.offsetLeft + 'px'; fe.style.top = 'calc(60px + env(safe-area-inset-top))';
         const mm = document.getElementById('gxMini'), bt = document.getElementById('bTask');
         if (mm) mm.style.top = (parseFloat(getComputedStyle(mm).top) + 48) + 'px';
-        if (bt) bt.style.top = (parseFloat(getComputedStyle(bt).top) + 48) + 'px'; } };
+        if (bt) bt.style.top = (parseFloat(getComputedStyle(bt).top) + 48) + 'px';
+        // R25 HUD: the left column grew (portrait speedo now sits under the
+        // minimap), so the row-2 fallback must shift the whole column, not
+        // just the minimap -- dash only when it is top-anchored (portrait).
+        for (const id of ['dash', 'fHud', 'gxMis']) { const n = document.getElementById(id); if (!n) continue; const t = getComputedStyle(n).top; if (t && t !== 'auto') n.style.top = (parseFloat(t) + 48) + 'px'; } } };
     placeFE(); addEventListener('resize', placeFE); if (window.ResizeObserver && bm) new ResizeObserver(placeFE).observe(bm); }
   const inspCss = document.createElement('style'); inspCss.textContent = '#bInspect.on{background:rgba(255,180,40,.55);border-color:#ffb428}@media (max-width:640px) and (orientation:portrait){#bInspect{right:calc(110px + env(safe-area-inset-right));width:44px;padding:0;justify-content:center}}';
   document.head.appendChild(inspCss);
@@ -7007,30 +7082,15 @@ if (GXW && GX && FOOT) PCX = (function () {
     if (!on) {
       INSP.on = false;
       for (const c of INSP.cars) { if (!c) continue; c._haz = 0; c._hazLevel = 0; c._lightShow = 0; c._showFinale = 0; if (c._showAct) c._showAct.stop(); if (c.doorNode && !c._showAct) { c.setDoor(0); if (c.setDoorR) c.setDoorR(0); } if (c.lampTick) c.lampTick(c._brk || 0); }
-      for (const mv of INSP.moved) { mv.c.x = mv.x; mv.c.z = mv.z; mv.c.yaw = mv.yaw; mv.c.y = mv.y; mv.c.v = 0; G.poseCar(mv.c, 1); }
-      INSP.cars = []; INSP.moved = []; INSP.car = null;
+      INSP.cars = []; INSP.car = null;
       inspBtn.classList.remove('on');
       return;
     }
     INSP.on = true; INSP.t = 0; inspBtn.classList.add('on');
-    (async () => {
-      const loaded = await Promise.all(DEFS.map(d => ensureCar(d)));
-      if (!INSP.on) return; // closed again while the chunks were loading
-      let ax, az, ayaw;
-      if (F.veh && isFinite(F.veh.x)) { ax = F.veh.x; az = F.veh.z; ayaw = F.veh.yaw || 0; }
-      else if (FOOT.on) { ax = F.x; az = F.z; ayaw = F.head || 0; }
-      else { ax = st.pos.x; az = st.pos.z; ayaw = st.yaw || 0; }
-      const fx = Math.sin(ayaw), fz = Math.cos(ayaw), rx = -Math.cos(ayaw), rz = Math.sin(ayaw); // forward + world right (car +X is LEFT)
-      const own = (F.mode === 'car' && F.veh && F.veh.pcId) ? F.veh : null;
-      const parts = loaded.filter(Boolean);
-      const offs = [-5.6, -1.9, 1.9, 5.6];
-      parts.filter(c => c !== own).forEach((c, i) => {
-        for (const dist of [11, 14, 8.5]) { const px2 = ax + fx * dist + rx * offs[i % offs.length], pz2 = az + fz * dist + rz * offs[i % offs.length];
-          if (!GXW.cols(px2, pz2, 2.2, 2).length && GXW.paved(px2, pz2)) { INSP.moved.push({ c, x: c.x, z: c.z, yaw: c.yaw, y: c.y }); c.x = px2; c.z = pz2; c.yaw = ayaw + Math.PI; c.y = GXW.gy(px2, pz2, 5); c.v = 0; c.g.visible = true; G.poseCar(c, 1); break; } }
-      });
-      INSP.cars = parts; INSP.car = own;
-      for (const c of parts) { c._haz = 1; c._hazT = 0; c._doorSeq = null; if (c._showAct) { c._showAct.reset(); c._showAct.play(); } if (!c._showAct && !c.doorNode) c._lightShow = 1; if (c === own) c.v = 0; }
-    })();
+    const own = (F.mode === 'car' && F.veh && F.veh.pcId) ? F.veh : null;
+    const parts = own ? [own] : Object.values(cars).filter(c => c && c.ready);
+    INSP.cars = parts; INSP.car = own;
+    for (const c of parts) { c._haz = 1; c._hazT = 0; c._doorSeq = null; if (c._showAct) { c._showAct.reset(); c._showAct.play(); } if (!c._showAct && !c.doorNode) c._lightShow = 1; if (c === own) c.v = 0; }
   }
   inspBtn.addEventListener('click', () => setInspect(!INSP.on));
   return { DEFS, cars, switchTo, doSwitch, ensureCar, diag, RAIN, setRain, INSP, setInspect, get cur() { return curPC; } };
