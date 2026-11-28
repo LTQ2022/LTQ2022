@@ -2518,7 +2518,7 @@ function buildX5() {
 // ==X5 END==
 CARS.ev = buildEV(); CARS.gh = buildGH(); CARS.zx = buildZX(); CARS.x5 = buildX5();
 // headlight + underglow lights
-const headLight = new THREE.SpotLight(0xeaf4ff, M.night ? 60 : 0, 70, 0.42, 0.5, 1.4); headLight.position.set(0, 0.7, 0.85); bikeBody.add(headLight); const hlT = new THREE.Object3D(); hlT.position.set(0, -1.0, 12); bikeBody.add(hlT); headLight.target = hlT;
+const headLight = new THREE.SpotLight(0xeaf4ff, M.night ? 320 : 200, 85, 0.44, 0.5, 2); /* R22B: real beam always on, physical decay (was 60 night / 0 day, decay 1.4); the night-map block below still scales it for that map */ headLight.position.set(0, 0.7, 0.85); bikeBody.add(headLight); const hlT = new THREE.Object3D(); hlT.position.set(0, -1.0, 12); bikeBody.add(hlT); headLight.target = hlT;
 const glowLight = new THREE.PointLight(0x29e8ff, M.night ? 4 : 0.6, 2.6, 1.5); glowLight.position.set(0, 0.08, 0); bikeBody.add(glowLight);
 let curCar = null; const PIV = { y: WR, z: REAR_Z }; const carRZ = () => (curCar && curCar.rz) || REAR_Z;
 function setCar(id) { if (!CARS[id]) id = 'ev'; const prev = curCar; curCar = CARS[id]; CAR = id; lsSet('moto_car', id); Object.entries(CARS).forEach(([k, c]) => { c.B.visible = c.St.visible = (k === id); }); document.querySelectorAll('[data-car]').forEach(b => b.classList.toggle('sel', b.dataset.car === id));
@@ -6574,11 +6574,11 @@ if (GXW && GX && FOOT) PCX = (function () {
     const heads = LC.head.map(anchor).filter(Boolean), tails = LC.tail.map(anchor).filter(Boolean);
     const spots = [];
     const fwd = tails.length && heads.length ? (Math.sign(heads[0].z - tails[0].z) || 1) : 1; // wrap-space forward: -1 when the wrap is 180-flipped (Rolls), else the pool would land behind the car
-    heads.forEach(p => { const sp = new THREE.SpotLight(new THREE.Color(0.82, 0.90, 1.0), 0, 60, 0.46, 0.55, 2); sp.position.copy(p); const tg = new THREE.Object3D(); tg.position.set(p.x + Math.sign(p.x || 1) * 0.42, Math.max(0.02, p.y - 0.31), p.z + 12 * fwd); wrap.add(tg); sp.target = tg; wrap.add(sp); spots.push(sp); });
+    heads.forEach(p => { const sp = new THREE.SpotLight(new THREE.Color(0.82, 0.90, 1.0), 0, 80, 0.48, 0.55, 2); sp.position.copy(p); const tg = new THREE.Object3D(); tg.position.set(p.x + Math.sign(p.x || 1) * 0.42, Math.max(0.02, p.y - 0.31), p.z + 12 * fwd); wrap.add(tg); sp.target = tg; wrap.add(sp); spots.push(sp); });
     let tailPt = null;
     if (tails.length) { const c = tails.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / tails.length); tailPt = new THREE.PointLight(0xff1a1a, 0, 7, 2); tailPt.position.copy(c); wrap.add(tailPt); }
-    const tailMats = [];
-    LC.tail.forEach(nm => { const o = inner.getObjectByName(nm); if (!o) return; o.traverse(m => { if (m.isMesh && m.material && !Array.isArray(m.material) && m.material.name === LC.tailMat) { if (!m.material.userData._pcTail) { const cl = m.material.clone(); cl.userData._pcTail = 1; m.material = cl; } if (tailMats.indexOf(m.material) < 0) tailMats.push(m.material); } }); });
+    const tailMats = [], tailBySide = [];
+    LC.tail.forEach(nm => { const side = []; tailBySide.push(side); const o = inner.getObjectByName(nm); if (!o) return; o.traverse(m => { if (m.isMesh && m.material && !Array.isArray(m.material) && m.material.name === LC.tailMat) { if (!m.material.userData._pcTail) { const cl = m.material.clone(); cl.userData._pcTail = 1; m.material = cl; } if (tailMats.indexOf(m.material) < 0) tailMats.push(m.material); if (side.indexOf(m.material) < 0) side.push(m.material); } }); });
     const headMats = [];
     LC.head.forEach(nm => { const o = inner.getObjectByName(nm); if (!o) return; o.traverse(m => { if (m.isMesh && m.material && !Array.isArray(m.material) && m.material.isMeshStandardMaterial) { if (!m.material.userData._pcHead) { const cl = m.material.clone(); cl.userData._pcHead = 1; m.material = cl; } if (headMats.indexOf(m.material) < 0) headMats.push(m.material); } }); });
     // restore the model's own lamp look (user: 'the headlights are too white, where did the blue
@@ -6589,8 +6589,10 @@ if (GXW && GX && FOOT) PCX = (function () {
     // black emissive. Rule now: never invent emissive -- only lift what the model already emits,
     // so the blue ring stays saturated and the housings stay dark.
     headMats.forEach(m => { if (m.emissive && m.emissive.getHex() !== 0) { const e = m.emissive; const blueAccent = e.r < 0.1 && e.b > 0.9; m.emissiveIntensity = blueAccent ? (M.night ? 2.2 : 1.6) : (M.night ? 1.8 : 1.3); } }); // lifts stay LOW on purpose: past ~2 the tonemapper clips the blue channel to white and the angel eye washes out again (measured: at 2.6 the blue element rendered ~2 blue-dominant pixels in the whole lamp); near-stock intensity keeps the colour saturated, as on the original model the user remembers
-    car._spots = spots; car._tailPt = tailPt; car._headMats = headMats; car._tailMats = tailMats;
-    car.lampTick = brk => { car._brk = brk ? 1 : 0; const v = car._haz ? (car._hazLevel || 0) * LC.tailBrake : (brk ? LC.tailBrake : LC.tailRun); tailMats.forEach(m => { m.emissiveIntensity = v; }); };
+    car._spots = spots; car._tailPt = tailPt; car._headMats = headMats; car._tailMats = tailMats; car._tailBySide = tailBySide;
+    car._seqSegs = { L: [tailBySide[0] || []], R: [tailBySide[1] || []] }; // R22B sequential indicators, rear only: the front mats carry the factory blue angel eye and are never repainted amber
+    tailMats.forEach(m => { if (m.emissive) { m.userData._baseEmi = m.emissive.getHex(); m.userData._baseInt = m.emissiveIntensity; } });
+    car.lampTick = brk => { car._brk = brk ? 1 : 0; const base = brk ? LC.tailBrake : LC.tailRun; const v = car._seqActive ? base : (car._haz ? (car._hazLevel || 0) * LC.tailBrake : base); tailMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); };
     car.lampTick(0);
     if (diag[def.id]) diag[def.id].lamps = { head: heads.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tail: tails.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tailMats: tailMats.length };
   }
@@ -6604,7 +6606,7 @@ if (GXW && GX && FOOT) PCX = (function () {
     const heads = LC.head.map(anchor).filter(Boolean), tails = LC.tail.map(anchor).filter(Boolean);
     const spots = [];
     const fwd = tails.length && heads.length ? (Math.sign(heads[0].z - tails[0].z) || 1) : 1;
-    heads.forEach(p => { const sp = new THREE.SpotLight(new THREE.Color(0.82, 0.90, 1.0), 0, 60, 0.46, 0.55, 2); sp.position.copy(p); const tg = new THREE.Object3D(); tg.position.set(p.x + Math.sign(p.x || 1) * 0.42, Math.max(0.02, p.y - 0.31), p.z + 12 * fwd); wrap.add(tg); sp.target = tg; wrap.add(sp); spots.push(sp); });
+    heads.forEach(p => { const sp = new THREE.SpotLight(new THREE.Color(0.82, 0.90, 1.0), 0, 80, 0.48, 0.55, 2); sp.position.copy(p); const tg = new THREE.Object3D(); tg.position.set(p.x + Math.sign(p.x || 1) * 0.42, Math.max(0.02, p.y - 0.31), p.z + 12 * fwd); wrap.add(tg); sp.target = tg; wrap.add(sp); spots.push(sp); });
     let tailPt = null;
     const tailAll = tails.concat(LC.tailC ? [anchor(LC.tailC)].filter(Boolean) : []);
     if (tailAll.length) { const c = tailAll.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / tailAll.length); tailPt = new THREE.PointLight(0xff1a1a, 0, 7, 2); tailPt.position.copy(c); wrap.add(tailPt); }
@@ -6612,11 +6614,15 @@ if (GXW && GX && FOOT) PCX = (function () {
     const collect = (names, strict) => { const out = []; names.forEach(nm => { const o = inner.getObjectByName(nm); if (!o) return; o.traverse(m2 => { if (m2.isMesh && m2.material && !Array.isArray(m2.material) && m2.material.isMeshStandardMaterial && (!strict || isGlass(m2.material))) { if (!m2.material.userData._pcLamp) { const cl = m2.material.clone(); cl.userData._pcLamp = 1; m2.material = cl; } if (out.indexOf(m2.material) < 0) out.push(m2.material); } }); }); return out; };
     let headMats = collect(LC.head, true); if (!headMats.length) headMats = collect(LC.head, false);
     let tailMats = collect(LC.tail, true); if (!tailMats.length) tailMats = collect(LC.tail, false);
-    const tailCMats = LC.tailC ? collect([LC.tailC], true) : [];
+    let tailCMats = LC.tailC ? collect([LC.tailC], true) : []; if (LC.tailC && !tailCMats.length) tailCMats = collect([LC.tailC], false); /* centre-bar node ships chrome-only meshes: cloned + red emissive it becomes the lit centre of the full-width band */
     headMats.forEach(m => { if (m.emissive) { m.emissive.setHex(0xbfd4ff); m.emissiveIntensity = M.night ? 1.8 : 1.3; } });
     tailMats.concat(tailCMats).forEach(m => { if (m.emissive) m.emissive.setHex(0xff1a08); });
+    const perNode = nm => { let a = collect([nm], true); if (!a.length) a = collect([nm], false); return a; };
+    const headSides = LC.head.map(perNode), tailSides = LC.tail.map(perNode);
     car._spots = spots; car._tailPt = tailPt; car._headMats = headMats; car._tailMats = tailMats; car._tailCMats = tailCMats; car._hazHead = headMats;
-    car.lampTick = brk => { car._brk = brk ? 1 : 0; const hz = car._haz ? (car._hazLevel || 0) * 3.4 : 0; const v = Math.max(brk ? LC.tailBrake : LC.tailRun, hz); tailMats.forEach(m => { m.emissiveIntensity = v; }); tailCMats.forEach(m => { m.emissiveIntensity = v * 0.85; }); };
+    car._seqSegs = { L: [headSides[0] || [], tailSides[0] || [], tailCMats], R: [headSides[headSides.length - 1] || [], tailSides[tailSides.length - 1] || [], tailCMats] }; // R22B sequential segments per side: head -> tail -> centre bar (Silvia's single headlight_C is shared as segment 0 of both sides)
+    headMats.concat(tailMats, tailCMats).forEach(m => { if (m.emissive) { m.userData._baseEmi = m.emissive.getHex(); m.userData._baseInt = m.emissiveIntensity; } });
+    car.lampTick = brk => { car._brk = brk ? 1 : 0; const base = brk ? LC.tailBrake : LC.tailRun; const hz = car._seqActive ? 0 : (car._haz ? (car._hazLevel || 0) * 3.4 : 0); const v = Math.max(base, hz); tailMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); tailCMats.forEach(m => { m.emissiveIntensity = Math.max(v, (car._seqMap && car._seqMap.get(m)) || 0); }); }; // tailC at full value: the centre bar is part of one uniform full-width tail band
     car.lampTick(0);
     if (diag[def.id]) diag[def.id].lamps = { head: heads.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tail: tails.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]), tailMats: tailMats.length, headMats: headMats.length };
   }
@@ -6684,7 +6690,7 @@ if (GXW && GX && FOOT) PCX = (function () {
     worldTick.push(dt => { const v = F.veh || null;
       if (v !== prevVeh) { if (v && v.doorNode) v._doorSeq = 0.0001; if (prevVeh && prevVeh.doorNode && prevVeh !== v) prevVeh._doorSeq = 0.0001; prevVeh = v; }
       for (const id in cars) { const c = cars[id]; if (!c || !c.ready) continue;
-        if (c._spots) { const on = v === c; const si = M.night ? 900 : 1500; c._spots.forEach(s => { s.intensity = on ? si : 0; }); if (c._tailPt) c._tailPt.intensity = on ? (c._brk ? 18 : 6) : 0; } // headlights burn whenever you drive the car (user: bright even in daylight/dusk), stronger spot in day to cut through ambient
+        if (c._spots) { const on = v === c; const si = M.night ? 1250 : 1900; /* R22B beam boost, decay 2 kept */ c._spots.forEach(s => { s.intensity = on ? si : 0; }); if (c._tailPt) c._tailPt.intensity = on ? (c._brk ? 18 : 6) : 0; } // headlights burn whenever you drive the car (user: bright even in daylight/dusk), stronger spot in day to cut through ambient
         if (c.doorNode && c._doorSeq !== null && c._doorSeq !== undefined) { c._doorSeq += dt; const t = c._doorSeq; let f;
           if (t < 0.6) { const u = t / 0.6; f = 1 - Math.pow(1 - u, 3); } else if (t < 1.5) f = 1; else if (t < 2.0) { const u = (t - 1.5) / 0.5; f = 1 - u * u; } else { f = 0; c._doorSeq = null; }
           c.setDoor(f); } }
@@ -6710,8 +6716,26 @@ if (GXW && GX && FOOT) PCX = (function () {
   }
   { worldTick.push(dt => { // R22: hazard blink phase + inspect-mode animation/door drive
       for (const id in cars) { const c = cars[id]; if (!c || !c.ready) continue;
-        if (c._haz) { c._hazT = (c._hazT || 0) + dt; c._hazLevel = (c._hazT % 0.625) < 0.34 ? 1 : 0; if (c._hazHead) c._hazHead.forEach(m => { if (m.emissive) m.emissiveIntensity = (M.night ? 1.8 : 1.3) + c._hazLevel * 2.4; }); }
+        // R22B sequential indicators: hazard = both sides sweeping, turn = the driven
+        // car's input side; segments fill progressively front -> rear -> centre bar
+        // in amber, then the whole side rests dark before the next cycle.
+        let seqMode = 0;
+        if (c._seqSegs) { if (c._haz) seqMode = 3; else if (F.veh === c && F.mode === 'car') { if (input.left) seqMode |= 1; if (input.right) seqMode |= 2; } }
+        if (seqMode) { c._seqActive = 1; c._seqT = (c._seqT || 0) + dt; if (!c._seqMap) c._seqMap = new Map();
+          const ph = (c._seqT % 0.8) / 0.8;
+          const drive = segs => segs.forEach((mats, k) => { const on = ph >= k * 0.18 && ph < 0.78; mats.forEach(m => { if (!m.emissive) return; if (on) { m.emissive.setHex(0xff9a1f); m.emissiveIntensity = 3.6; c._seqMap.set(m, 3.6); } else { c._seqMap.set(m, 0); if (m.userData._baseEmi !== undefined) m.emissive.setHex(m.userData._baseEmi); if (!c._tailMats || c._tailMats.indexOf(m) < 0) m.emissiveIntensity = m.userData._baseInt !== undefined ? m.userData._baseInt : m.emissiveIntensity; } }); });
+          if (seqMode & 1) drive(c._seqSegs.L); if (seqMode & 2) drive(c._seqSegs.R);
+          if (c.lampTick) c.lampTick(c._brk || 0);
+        } else if (c._seqActive) { c._seqActive = 0; c._seqT = 0; if (c._seqMap) { c._seqMap.forEach((v, m) => { if (m.emissive && m.userData._baseEmi !== undefined) m.emissive.setHex(m.userData._baseEmi); if (m.emissive && (!c._tailMats || c._tailMats.indexOf(m) < 0)) m.emissiveIntensity = m.userData._baseInt !== undefined ? m.userData._baseInt : m.emissiveIntensity; }); c._seqMap.clear(); } if (c.lampTick) c.lampTick(c._brk || 0); }
+        if (c._haz) { c._hazT = (c._hazT || 0) + dt; c._hazLevel = (c._hazT % 0.625) < 0.34 ? 1 : 0; if (!c._seqActive && c._hazHead) c._hazHead.forEach(m => { if (m.emissive) m.emissiveIntensity = (M.night ? 1.8 : 1.3) + c._hazLevel * 2.4; }); }
         else if (c._hazLevel) { c._hazLevel = 0; if (c.lampTick) c.lampTick(c._brk || 0); }
+      }
+      // R22B bike lamps: brake-bright tail strip + a real rear point light, and
+      // staggered (front then rear) turn blink on per-side cloned amber mats.
+      { const onBike = curPC === 'bike' && F.mode !== 'car';
+        if (!window.__bikeTailPt && typeof bikeBody !== 'undefined') { const pl = new THREE.PointLight(0xff2214, 1.6, 5, 2); pl.position.set(0, 0.78, -1.15); bikeBody.add(pl); window.__bikeTailPt = pl; }
+        if (onBike) { const brk = (input.back || 0) > 0.05; tailMat.color.setRGB(brk ? 3.4 : 1.0, brk ? 0.38 : 0.102, brk ? 0.38 : 0.102); if (window.__bikeTailPt) window.__bikeTailPt.intensity = brk ? 7 : 1.6; bikeIndTick(dt); }
+        else if (tailMat.color.r !== 1.0) { tailMat.color.setRGB(1.0, 0.102, 0.102); if (window.__bikeTailPt) window.__bikeTailPt.intensity = 1.6; }
       }
       if (INSP.on && INSP.car) { const c = INSP.car;
         if (F.veh !== c || F.mode !== 'car') setInspect(false);
@@ -6783,6 +6807,15 @@ if (GXW && GX && FOOT) PCX = (function () {
       egg.addEventListener('click', () => { const gx = (window.__g && window.__g.GX) || (typeof GX !== 'undefined' ? GX : null); if (!gx) return; gx.addCash(10000); gx.popup('获取1万金币', '#ffd54a'); egg.style.opacity = 1; if (egg.animate) egg.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-16deg)' }, { transform: 'rotate(13deg) scale(1.3)' }, { transform: 'rotate(0deg)' }], { duration: 380 }); setTimeout(() => { egg.style.opacity = .45; }, 450); });
       eggRow.appendChild(egg); cardEl.insertBefore(eggRow, anchor);
     } }
+  // R22B bike indicator scan: the amber signal boxes share one MeshBasicMaterial
+  // across every skin, so the player's bike gets per-mesh clones split by side
+  // (game convention: +X = left, as on the cars' headlight_L anchors).
+  const bikeInd = { L: [], R: [], scan: 99, t: 0 };
+  function scanBikeInd() { bikeInd.L = []; bikeInd.R = []; bikeBody.traverse(o => { if (o.isMesh && o.material && !Array.isArray(o.material) && o.material.userData && (o.material === amberMat || o.material.userData._bikeInd)) { if (!o.material.userData._bikeInd) { const cl = amberMat.clone(); cl.userData._bikeInd = 1; o.material = cl; } const p = new THREE.Vector3(); o.getWorldPosition(p); const lp = bikeBody.worldToLocal(p); (lp.x > 0 ? bikeInd.L : bikeInd.R).push({ m: o.material, front: lp.z > 0 }); } }); }
+  function bikeIndTick(dt) { bikeInd.t += dt; bikeInd.scan += dt; if (bikeInd.scan > 2.5 || (!bikeInd.L.length && !bikeInd.R.length)) { bikeInd.scan = 0; scanBikeInd(); }
+    const mode = (input.left ? 1 : 0) | (input.right ? 2 : 0);
+    const setSide = (arr, on) => arr.forEach(e => { const ph = (bikeInd.t + (e.front ? 0 : 0.12)) % 0.8; const lit = on && ph < 0.45; e.m.color.setRGB(lit ? 3.2 : 1.0, lit ? 1.9 : 0.635, lit ? 0.25 : 0.102); });
+    setSide(bikeInd.L, !!(mode & 1)); setSide(bikeInd.R, !!(mode & 2)); }
   // ---------- inspect mode (R22): hazards + the car's own animations on loop ----------
   // Behaviour choice: while inspecting, the car stays parked (v held at 0); any
   // throttle or brake input exits inspect and hands control back (see INTEG_R22).
