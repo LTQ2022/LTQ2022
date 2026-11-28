@@ -5524,7 +5524,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     return { grp, inner, phase: Math.random() * 10, base: scale || 1 };
   }
   function prop(g, room, lx, lz, yFloor, yawOff, scale) { return placeStatic(g, room, lx, lz, yFloor, yawOff, scale || 1, {}); }
-  function statue(g, room, lx, lz, yFloor, yawOff, scale, opts) { const st = placeStatic(g, room, lx, lz, yFloor, yawOff, scale, opts || {}); statues.push(st); return st; }
+  function statue(g, room, lx, lz, yFloor, yawOff, scale, opts) { const st = placeStatic(g, room, lx, lz, yFloor, yawOff, scale, opts || {}); st.yaw0 = st.grp.rotation.y; st.mTx = 0.016; st.mTz = 0.009; st.mYaw = 0; st.mYawW = 0; statues.push(st); return st; }   // R21: per-statue micro-motion params (defaults = pre-R21 sway values); jobs below override per STATUE_PLAN S8
 
 
   // ---- lights: GPT-5 scheme (values VERBATIM; only positions follow new layout) ----
@@ -5640,14 +5640,14 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
 
 
   // statues (7) -- y from Section 0: hall-floor statues at SLAB, arc-sofa seated30 at SOFA
-  job('__DWB', g => statue(g, roomC, 13.5, -12.0, SLAB, 0, 0.84));              // dresswoman -- R20: off the back wall (was (11.8,-13.0), wall clipped her R1.2 viewing circle by 0.15); now 2.05 clear of the wall, 3.16 from the DJ booth
-  job('__ELB', g => statue(g, roomC, -14.0, -2.0, SLAB, Math.PI / 2, 0.85));    // elara w/ own stool -- R20: bar north end per plan (was (-14.7,-3.65), bar counter intruded her viewing circle 0.44; now 2.13 clear of it)
+  job('__DWB', g => { const st = statue(g, roomC, 13.5, -12.0, SLAB, 0, 0.84); st.mYaw = 0.0087; st.mYawW = 2 * Math.PI / 9; });              // dresswoman -- R20: off the back wall (was (11.8,-13.0), wall clipped her R1.2 viewing circle by 0.15); now 2.05 clear of the wall, 3.16 from the DJ booth
+  job('__ELB', g => { const st = statue(g, roomC, -14.0, -2.0, SLAB, Math.PI / 2, 0.85); st.mYaw = 0.017; st.mYawW = 2 * Math.PI / 9; });    // elara w/ own stool -- R20: bar north end per plan (was (-14.7,-3.65), bar counter intruded her viewing circle 0.44; now 2.13 clear of it)
   job('__SPB', g => { const st = statue(g, roomC, 9.0, 6.8, SLAB, Math.PI + 0.34, 1.0); st.noTilt = true; });     // Fadly sexypose (booth area). R13: noTilt -- she is a floor-contact all-fours pose (contact measured exact: minY 0.194-0.196 vs slab 0.20); the statue sway tilt would rock her on her hands/knees and read as floating. Breathing scale stays.
-  job('__S3B', g => statue(g, roomC, -4.7, 6.6, SOFA, 0, 1.0));   // the nurse (Fadly seated30) -- R20: rides KVSB-A to its new NW-booth home (-5.4,6.4), sitting its east section; y stays SOFA (0.62) -- her seat-contact plane is model y=0 (vertex-measured, R20) and the same sofa GLB keeps its 0.62 seat top on the same slab; contact re-verified in probe_r20_accept. (History: R12 turned her to face the hall on the old arc sofa.)
+  job('__S3B', g => { const st = statue(g, roomC, -4.7, 6.6, SOFA, 0, 1.0); st.mTx = 0.028; st.mTz = 0.016; st.mYaw = 0.017; st.mYawW = 2 * Math.PI / 11; });   // the nurse (Fadly seated30) -- R20: rides KVSB-A to its new NW-booth home (-5.4,6.4), sitting its east section; y stays SOFA (0.62) -- her seat-contact plane is model y=0 (vertex-measured, R20) and the same sofa GLB keeps its 0.62 seat top on the same slab; contact re-verified in probe_r20_accept. (History: R12 turned her to face the hall on the old arc sofa.)
   job('__S2B', g => { const st = statue(g, roomC, 16.0, 8.8, SLAB, -Math.PI / 2, 1.0); st.noTilt = true; });     // Fadly seated22 -- R20: her sofas are GONE from this corner (user 21:52 ruling: furniture all moved aside, she stays alone); she now lands on the FLOOR in her crawl pose: vertex-measured contact plane = model y=0.000 (35 verts within 5 mm spread over hands/knees), so yFloor = SLAB exactly. noTilt like sexypose -- a multi-point floor-contact pose must not rock. (History: R10/R15 had her on the KVSB-C sofa at SOFA-0.35.)
   job('__KVSB', g => placeStatic(g, roomC, -11.5, 9.4, SLAB, Math.PI, 1, {}));          // KVSB-C sofa pair -- R20: evacuated from seated22's corner to the NW booth group, facing KL1B across a 0.90 gap (was (15.50,8.50) yaw 0.83 under seated22)
   job('__KYB', g => statue(g, roomC, -10.8, -10.4, SLAB, 0.35, 0.84));           // kayla -- R20: between the mini bar and the stage west end (was (-13.2,-9.6)); 2.08 clear of the mini-bar counter, 2.3 off the stage edge. If she is rigged later, her dancer spot reuses this point (adjudication 5).
-  job('__BKB', g => statue(g, roomC, 8.6, 12.3, SLAB, -2.90, 1.0, { fwdX: true })); // bikinisit
+  job('__BKB', g => { const st = statue(g, roomC, 8.6, 12.3, SLAB, -2.90, 1.0, { fwdX: true }); st.mTx = 0.028; st.mTz = 0.016; st.mYaw = 0.017; st.mYawW = 2 * Math.PI / 11; }); // bikinisit -- R21: nurse seat tier (S8)
 
 
   // bar + stage props (unchanged homes)
@@ -5834,7 +5834,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
   { const p = new THREE.PlaneGeometry(6, 6); p.rotateX(-Math.PI / 2); var goboFloorA = atmoMesh(p, goboMatA, 23); goboFloorA.position.set(0.8, DANCE + 0.030, -1.6); }
   { const p = new THREE.PlaneGeometry(5.5, 5.5); p.rotateX(-Math.PI / 2); var goboFloorB = atmoMesh(p, goboMatB, 23); goboFloorB.position.set(-2.6, DANCE + 0.033, -3.4); }
   atmoMesh(new THREE.PlaneGeometry(9, 4.6), goboMatW, 22).position.set(0, SLAB + 2.7, -13.99);          // stage back wall, texture spins
-  { const p = new THREE.PlaneGeometry(7.5, 4.2); p.rotateY(-Math.PI / 2); var goboEast = atmoMesh(p, goboMatE, 22); goboEast.position.set(17.60, SLAB + 2.5, -2); }
+  { const p = new THREE.PlaneGeometry(7.5, 4.2); p.rotateY(-Math.PI / 2); var goboEast = atmoMesh(p, goboMatE, 22); goboEast.position.set(17.60, SLAB + 2.5, 7.6); }   // R21: home z follows the retargeted drift band in atmoTick (east statue row, S8-3)
 
   // -- L5: mirror-ball dot field -- floor + both long walls share ONE material
   // (one drift for all three; the ball's own spin sells the rest) --
@@ -5884,7 +5884,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
     starMatA.opacity = 0.68 + 0.17 * Math.sin(t * 0.55); starMatB.opacity = 0.68 - 0.17 * Math.sin(t * 0.55);
     goboFloorA.rotation.y += dt * 0.16; goboFloorB.rotation.y -= dt * 0.11;
     goboTexW.rotation = t * 0.05;
-    goboEast.position.z = -2 + Math.sin(t * 2 * Math.PI / 11) * 1.1; goboEast.position.y = SLAB + 2.5 + Math.sin(t * 2 * Math.PI / 7.3) * 0.35;
+    goboEast.position.z = 7.6 + Math.sin(t * 2 * Math.PI / 21) * 2.8; goboEast.position.y = SLAB + 2.5 + Math.sin(t * 2 * Math.PI / 7.3) * 0.35;   // R21: sweep band z 4.8..10.4 -- the 7.5-wide plate washes the east statue row (SPB 6.8 / S2B 8.8 / BKB 12.3) in turn; path params only, no new light, GPT-5 values untouched
     dotsTex.offset.set((t * 0.008) % 1, (t * 0.005) % 1);
     const br = 0.85 + 0.15 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 5));        // L7: 5 s breathing, never on the beat
     boothMat.color.copy(BOOTH_BASE).multiplyScalar(br); boothHaloMat.opacity = 0.16 * br;
@@ -5943,7 +5943,7 @@ if (GXW && GX && FOOT && window.__ALB && window.__ANB && window.__KBCB && window
         else if (d.patrol) { const P = d.patrol, tg = P.pts[P.i]; const dx = tg.x - d.grp.position.x, dz = tg.z - d.grp.position.z, dist = Math.hypot(dx, dz);
           if (dist < 0.2) P.i = (P.i + 1) % P.pts.length; else { const stp = Math.min(dist, d.speed * dt); d.grp.position.x += dx / dist * stp; d.grp.position.z += dz / dist * stp; d.grp.rotation.y = Math.atan2(dx, dz); } }
       }
-      for (const s2 of statues) { if (!s2.noTilt) { s2.grp.rotation.x = Math.sin(t * 0.5 + s2.phase) * 0.016; s2.grp.rotation.z = Math.sin(t * 0.37 + s2.phase * 1.7) * 0.009; } s2.inner.scale.y = s2.base * (1 + 0.006 * Math.sin(t * 1.45 + s2.phase)); }
+      for (const s2 of statues) { if (!s2.noTilt) { s2.grp.rotation.x = Math.sin(t * 0.5 + s2.phase) * s2.mTx; s2.grp.rotation.z = Math.sin(t * 0.37 + s2.phase * 1.7) * s2.mTz; } if (s2.mYaw) s2.grp.rotation.y = s2.yaw0 + Math.sin(t * s2.mYawW + s2.phase * 2.3) * s2.mYaw; s2.inner.scale.y = s2.base * (1 + 0.006 * Math.sin(t * 1.45 + s2.phase) + 0.003 * Math.sin(t * (2 * Math.PI / 7) + s2.phase * 3.1)); }   // R21: per-statue amplitudes + slow yaw (S8); +7 s slow breathing sine for ALL statues -- the only extra motion the noTilt floor-contact pair gets
       for (const dp of dynProps) dp.grp.rotation.y += dt * dp.spin;
     }
     hearts.forEach(s => { if (s.userData.t > 0) { s.userData.t -= dt; s.position.y += dt * 0.75; s.material.opacity = Math.min(0.95, s.userData.t); if (s.userData.t <= 0) s.visible = false; } });
